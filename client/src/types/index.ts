@@ -7,6 +7,21 @@ export interface User {
   handle: string;
   platform: Platform;
   avatar_url?: string;
+  bio?: string;
+  phone?: string;
+  category?: string;
+  rates?: {
+    reel_rate?: number;
+    video_rate?: number;
+    story_rate?: number;
+    whitelisting_monthly_rate?: number;
+  };
+  social_links?: {
+    instagram?: string;
+    youtube?: string;
+    twitter?: string;
+    website?: string;
+  };
   created_at?: string;
 }
 

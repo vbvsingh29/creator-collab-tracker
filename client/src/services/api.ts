@@ -98,6 +98,18 @@ export async function apiResetPassword(email: string, code: string, newPassword:
   return data;
 }
 
+
+export async function apiUpdateProfile(profileData: Partial<User>): Promise<{ success: boolean; user: User; message: string }> {
+  const res = await fetch(`${API_BASE}/auth/profile`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(profileData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update profile');
+  return data;
+}
+
 export async function apiGetDemoCreators(): Promise<User[]> {
   const res = await fetch(`${API_BASE}/auth/demo-creators`);
   const data = await res.json();

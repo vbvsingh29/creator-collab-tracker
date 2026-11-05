@@ -27,6 +27,8 @@ import { ProofCardModal } from './components/ProofCardModal';
 import { FollowUpModal } from './components/FollowUpModal';
 import { AuthModal } from './components/AuthModal';
 import { IntegrationsModal } from './components/IntegrationsModal';
+import { ProfileModal } from './components/ProfileModal';
+import { SettingsModal } from './components/SettingsModal';
 
 const STAGES: PipelineStage[] = [
   'pitch_inquiry',
@@ -40,7 +42,7 @@ const STAGES: PipelineStage[] = [
 ];
 
 export function App() {
-  const { user, token, loading: authLoading, logout, demoLogin } = useAuth();
+  const { user, token, loading: authLoading, logout, demoLogin, setSession } = useAuth() as any;
 
   const [collabs, setCollabs] = useState<Collab[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -86,7 +88,9 @@ export function App() {
   const [isBrandsOpen, setIsBrandsOpen] = useState(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [newCollabPrefill, setNewCollabPrefill] = useState<any>(null);
+    const [newCollabPrefill, setNewCollabPrefill] = useState<any>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Fetch creator's private data
   const loadData = async () => {
@@ -251,7 +255,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-150">
       {/* Top Navigation with Creator Profile */}
       <Navbar
         user={user}
@@ -279,6 +283,8 @@ export function App() {
         onOpenBrands={() => setIsBrandsOpen(true)}
         onOpenIntegrations={() => setIsIntegrationsOpen(true)}
         conflictCount={conflictCount}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -455,6 +461,32 @@ export function App() {
           onClose={() => setIsIntegrationsOpen(false)}
         />
       )}
+
+      {/* Complete Creator Profile & Brand Kit Modal */}
+      {isProfileOpen && user && (
+        <ProfileModal
+          user={user}
+          isOpen={isProfileOpen}
+          onClose={() => setIsProfileOpen(false)}
+          onProfileUpdated={(updatedUser) => {
+            if (setSession && token) {
+              setSession(token, updatedUser);
+            }
+          }}
+        />
+      )}
+
+      {/* Comprehensive Workspace Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currency={currency}
+        setCurrency={setCurrency}
+        appMode={appMode}
+        setAppMode={handleSetAppMode}
+        simpleLayout={simpleLayout}
+        setSimpleLayout={handleSetSimpleLayout}
+      />
 
       {/* Auth Modal (Log in / Sign up / 1-Click Demo Profiles) */}
       <AuthModal

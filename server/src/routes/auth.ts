@@ -119,6 +119,11 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       handle: user.handle,
       platform: user.platform,
       avatar_url: user.avatar_url,
+      bio: user.bio || '',
+      phone: user.phone || '',
+      category: user.category || '',
+      rates: user.rates_json ? JSON.parse(user.rates_json) : {},
+      social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {},
       created_at: user.created_at
     };
 
@@ -135,13 +140,75 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 // GET /api/auth/me (Current creator session)
 authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
   try {
-    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, created_at FROM users WHERE id = ?').get(req.userId) as any;
+    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, created_at FROM users WHERE id = ?').get(req.userId) as any;
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User account not found' });
     }
 
-    res.json({ success: true, user });
+    res.json({
+      success: true,
+      user: {
+        ...user,
+        rates: user.rates_json ? JSON.parse(user.rates_json) : {},
+        social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {}
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /api/auth/profile (Update creator profile details)
+authRouter.put('/profile', requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const {
+      name,
+      handle,
+      platform,
+      avatar_url,
+      bio = '',
+      phone = '',
+      category = '',
+      rates = {},
+      social_links = {}
+    } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Name is required' });
+    }
+
+    const cleanHandle = handle ? (handle.trim().startsWith('@') ? handle.trim() : `@${handle.trim()}`) : '';
+
+    db.prepare(`
+      UPDATE users 
+      SET name = ?, handle = ?, platform = ?, avatar_url = ?, bio = ?, phone = ?, category = ?, rates_json = ?, social_links_json = ?
+      WHERE id = ?
+    `).run(
+      name.trim(),
+      cleanHandle,
+      platform || 'both',
+      avatar_url || '',
+      bio.trim(),
+      phone.trim(),
+      category.trim(),
+      JSON.stringify(rates),
+      JSON.stringify(social_links),
+      userId
+    );
+
+    const updatedUser = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, created_at FROM users WHERE id = ?').get(userId) as any;
+
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully!',
+      user: {
+        ...updatedUser,
+        rates: updatedUser.rates_json ? JSON.parse(updatedUser.rates_json) : {},
+        social_links: updatedUser.social_links_json ? JSON.parse(updatedUser.social_links_json) : {}
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -150,7 +217,7 @@ authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
 // GET /api/auth/demo-creators (Sanitized list for 1-click test logins)
 authRouter.get('/demo-creators', (_req: Request, res: Response) => {
   try {
-    const users = db.prepare('SELECT id, name, email, handle, platform, avatar_url FROM users LIMIT 5').all();
+    const users = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category FROM users LIMIT 5').all();
     res.json({ success: true, data: users });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -195,8 +262,6 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
 
     console.log(`🔑 [CollabFlow Auth] Password reset OTP generated for ${cleanEmail}: ${resetCode} (valid for 15 mins)`);
 
-    // In production with RESEND_API_KEY or SMTP configured, an email is dispatched.
-    // In free tier / zero-setup mode, we provide preview_code so the user is never blocked!
     const hasEmailService = Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_USER && process.env.SMTP_PASS));
 
     return res.json({
@@ -280,7 +345,7 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
     db.prepare('DELETE FROM password_resets WHERE email = ?').run(cleanEmail);
 
     // Fetch updated user to automatically log them in
-    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, created_at FROM users WHERE email = ?').get(cleanEmail) as any;
+    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, created_at FROM users WHERE email = ?').get(cleanEmail) as any;
     const token = signToken({ userId: user.id, email: user.email, handle: user.handle });
 
     console.log(`✓ Password successfully reset for user: ${cleanEmail}`);
@@ -289,7 +354,11 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
       success: true,
       message: 'Password reset successfully! You are now logged in.',
       token,
-      user
+      user: {
+        ...user,
+        rates: user.rates_json ? JSON.parse(user.rates_json) : {},
+        social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {}
+      }
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });

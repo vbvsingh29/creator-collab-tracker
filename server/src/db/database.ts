@@ -106,6 +106,15 @@ export function initDB() {
     console.log("✓ Added user_id column to existing collabs table");
   }
 
+    // Safe migration check for user profile extensions
+  const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  const colNames = userCols.map(c => c.name);
+  if (!colNames.includes('bio')) db.exec("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''");
+  if (!colNames.includes('phone')) db.exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''");
+  if (!colNames.includes('category')) db.exec("ALTER TABLE users ADD COLUMN category TEXT DEFAULT ''");
+  if (!colNames.includes('rates_json')) db.exec("ALTER TABLE users ADD COLUMN rates_json TEXT DEFAULT '{}'");
+  if (!colNames.includes('social_links_json')) db.exec("ALTER TABLE users ADD COLUMN social_links_json TEXT DEFAULT '{}'");
+
   console.log('✓ Database initialized successfully at:', DB_PATH);
 
   // Automatically update any overdue invoices on startup
