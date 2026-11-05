@@ -257,6 +257,7 @@ export function App() {
         user={user}
         onOpenAuth={() => setIsAuthModalOpen(true)}
         onLogout={logout}
+        onDemoLogin={demoLogin}
         appMode={appMode}
         setAppMode={handleSetAppMode}
         currentView={currentView}

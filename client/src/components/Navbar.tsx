@@ -36,12 +36,14 @@ interface NavbarProps {
   onOpenBrands: () => void;
   onOpenIntegrations: () => void;
   conflictCount: number;
+  onDemoLogin?: (email: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   user,
   onOpenAuth,
   onLogout,
+  onDemoLogin,
   appMode,
   setAppMode,
   currentView,
@@ -318,14 +320,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
         ) : (
-          <button
-            onClick={onOpenAuth}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 text-xs font-semibold text-white"
-          >
-            <UserIcon size={13} />
-            <span>Sign In</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onDemoLogin?.('aarav@tech.com')}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500/15 to-purple-500/15 hover:from-indigo-500/25 hover:to-purple-500/25 border border-indigo-500/30 text-xs font-semibold text-indigo-300 transition-all shadow-sm"
+              title="1-Click Instant Demo Login (Aarav Tech)"
+            >
+              <Zap size={13} className="text-amber-400 fill-amber-400" />
+              <span className="hidden sm:inline">1-Click Demo</span>
+              <span className="sm:hidden">Demo</span>
+            </button>
+            <button
+              onClick={onOpenAuth}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 text-xs font-semibold text-white"
+            >
+              <UserIcon size={13} />
+              <span>Sign In</span>
+            </button>
+          </div>
         )}
+
       </div>
     </header>
   );

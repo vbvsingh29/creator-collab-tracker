@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initDB } from './db/database';
+import { autoSeedIfEmpty } from './db/seed';
 import { authRouter } from './routes/auth';
 import { collabsRouter } from './routes/collabs';
 import { brandsRouter } from './routes/brands';
@@ -47,6 +48,7 @@ app.use(express.json());
 
 // Initialize database
 initDB();
+autoSeedIfEmpty();
 
 // API Routes
 app.use('/api/auth', authRouter);

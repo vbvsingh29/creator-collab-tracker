@@ -497,6 +497,18 @@ export function seed() {
   console.log(`✓ Seeded ${brands.length} brands and ${collabs.length} creator-isolated collaborations successfully.`);
 }
 
+export function autoSeedIfEmpty() {
+  try {
+    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+    if (!userCount || userCount.count === 0) {
+      console.log('🌱 Database has 0 users. Auto-seeding Demo Creators (Aarav & Priya) and sample deals...');
+      seed();
+    }
+  } catch (err) {
+    console.warn('Auto-seed check error:', err);
+  }
+}
+
 if (require.main === module) {
   seed();
 }
