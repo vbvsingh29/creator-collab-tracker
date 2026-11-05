@@ -64,6 +64,40 @@ export async function apiGetMe(): Promise<User> {
   return data.user;
 }
 
+
+export async function apiForgotPassword(email: string): Promise<{ success: boolean; message: string; preview_code?: string; preview_mode?: boolean }> {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to request password reset');
+  return data;
+}
+
+export async function apiVerifyResetCode(email: string, code: string): Promise<{ success: boolean; valid: boolean }> {
+  const res = await fetch(`${API_BASE}/auth/verify-reset-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Invalid reset code');
+  return data;
+}
+
+export async function apiResetPassword(email: string, code: string, newPassword: string): Promise<{ success: boolean; token: string; user: User; message: string }> {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to reset password');
+  return data;
+}
+
 export async function apiGetDemoCreators(): Promise<User[]> {
   const res = await fetch(`${API_BASE}/auth/demo-creators`);
   const data = await res.json();

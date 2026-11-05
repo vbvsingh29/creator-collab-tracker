@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   register: (data: { name: string; email: string; password: string; handle: string; platform: string }) => Promise<void>;
   demoLogin: (email: string) => Promise<void>;
+  setSession: (token: string, user: User) => void;
   logout: () => void;
 }
 
@@ -59,7 +60,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(data.user);
   };
 
-  const demoLogin = async (email: string) => {
+    const setSession = (newToken: string, newUser: User) => {
+    setAuthToken(newToken);
+    setToken(newToken);
+    setUser(newUser);
+  };
+const demoLogin = async (email: string) => {
     await login(email, 'password123');
   };
 
@@ -70,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, demoLogin, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, demoLogin, logout, setSession }}>
       {children}
     </AuthContext.Provider>
   );

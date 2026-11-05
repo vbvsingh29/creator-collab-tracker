@@ -83,6 +83,15 @@ CREATE INDEX IF NOT EXISTS idx_collabs_platform ON collabs(platform);
 CREATE INDEX IF NOT EXISTS idx_collabs_commercial_type ON collabs(commercial_type);
 CREATE INDEX IF NOT EXISTS idx_collabs_payment_status ON collabs(payment_status);
 CREATE INDEX IF NOT EXISTS idx_collabs_pipeline_stage ON collabs(pipeline_stage);
+
+CREATE TABLE IF NOT EXISTS password_resets (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_email ON password_resets(email);
 `;
 
 // Initialize schema

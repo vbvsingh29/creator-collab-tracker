@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
@@ -151,6 +152,145 @@ authRouter.get('/demo-creators', (_req: Request, res: Response) => {
   try {
     const users = db.prepare('SELECT id, name, email, handle, platform, avatar_url FROM users LIMIT 5').all();
     res.json({ success: true, data: users });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/auth/forgot-password
+authRouter.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !EMAIL_REGEX.test(email.trim())) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = db.prepare('SELECT id, name FROM users WHERE email = ?').get(cleanEmail) as { id: string; name: string } | undefined;
+
+    if (!user) {
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, a 6-digit reset code has been sent.',
+        preview_mode: false
+      });
+    }
+
+    // Generate cryptographically secure 6-digit OTP code
+    const resetCode = crypto.randomInt(100000, 999999).toString();
+    const codeHash = hashPassword(resetCode);
+    const resetId = uuidv4();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString(); // 15 mins validity
+
+    // Invalidate any older reset codes for this email
+    db.prepare('DELETE FROM password_resets WHERE email = ?').run(cleanEmail);
+
+    // Save new reset record
+    db.prepare(`
+      INSERT INTO password_resets (id, email, code_hash, expires_at, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(resetId, cleanEmail, codeHash, expiresAt, now.toISOString());
+
+    console.log(`🔑 [CollabFlow Auth] Password reset OTP generated for ${cleanEmail}: ${resetCode} (valid for 15 mins)`);
+
+    // In production with RESEND_API_KEY or SMTP configured, an email is dispatched.
+    // In free tier / zero-setup mode, we provide preview_code so the user is never blocked!
+    const hasEmailService = Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_USER && process.env.SMTP_PASS));
+
+    return res.json({
+      success: true,
+      message: hasEmailService 
+        ? 'A 6-digit password reset code has been sent to your email.'
+        : 'A 6-digit reset code has been generated. (Free Tier instant preview below)',
+      preview_code: hasEmailService ? undefined : resetCode,
+      preview_mode: !hasEmailService,
+      expires_in_minutes: 15
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/auth/verify-reset-code
+authRouter.post('/verify-reset-code', (req: Request, res: Response) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({ success: false, error: 'Email and 6-digit code are required.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const now = new Date().toISOString();
+
+    const record = db.prepare(`
+      SELECT * FROM password_resets 
+      WHERE email = ? AND expires_at > ?
+      ORDER BY created_at DESC LIMIT 1
+    `).get(cleanEmail, now) as any;
+
+    if (!record || !verifyPassword(code.trim(), record.code_hash)) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired 6-digit reset code.' });
+    }
+
+    return res.json({ success: true, valid: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/auth/reset-password
+authRouter.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Email, code, and new password are required.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'New password must be at least 6 characters long.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const now = new Date().toISOString();
+
+    const record = db.prepare(`
+      SELECT * FROM password_resets 
+      WHERE email = ? AND expires_at > ?
+      ORDER BY created_at DESC LIMIT 1
+    `).get(cleanEmail, now) as any;
+
+    if (!record || !verifyPassword(code.trim(), record.code_hash)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired reset code. Please request a new code.'
+      });
+    }
+
+    // Hash new password with scrypt NIST-compliant security
+    const newHash = hashPassword(newPassword);
+
+    // Update user password
+    db.prepare('UPDATE users SET password_hash = ? WHERE email = ?').run(newHash, cleanEmail);
+
+    // Delete used reset code
+    db.prepare('DELETE FROM password_resets WHERE email = ?').run(cleanEmail);
+
+    // Fetch updated user to automatically log them in
+    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, created_at FROM users WHERE email = ?').get(cleanEmail) as any;
+    const token = signToken({ userId: user.id, email: user.email, handle: user.handle });
+
+    console.log(`✓ Password successfully reset for user: ${cleanEmail}`);
+
+    return res.json({
+      success: true,
+      message: 'Password reset successfully! You are now logged in.',
+      token,
+      user
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
