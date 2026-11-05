@@ -109,7 +109,7 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Header */}
-        <div className="sticky top-0 z-20 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-20 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {/* Mode Switcher */}
             <div className="flex items-center bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg text-xs mr-1">

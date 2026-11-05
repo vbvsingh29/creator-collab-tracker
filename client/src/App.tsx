@@ -281,7 +281,7 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 px-6 py-6 max-w-[1600px] w-full mx-auto">
+      <main className="flex-1 px-3 sm:px-6 py-3.5 sm:py-6 max-w-[1600px] w-full mx-auto">
         {/* Creator Greeting Banner if logged in */}
         {user && (
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-900 text-xs">

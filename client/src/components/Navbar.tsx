@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md px-6 py-3.5 flex items-center justify-between">
+    <header className="sticky top-0 z-30 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
       {/* Brand & Platform Badges */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
@@ -82,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {appMode === 'simple' ? 'Simple Mode' : 'Advanced Mode'}
               </span>
             </div>
-            <p className="text-[11px] text-zinc-400 flex items-center gap-1.5">
+            <p className="text-[11px] text-zinc-400 hidden sm:flex items-center gap-1.5">
               <span className="inline-flex items-center gap-0.5 text-pink-400">
                 <Instagram size={11} /> Instagram
               </span>
@@ -265,7 +265,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all shadow-indigo-600/20 active:scale-95"
         >
           <Plus size={14} />
-          <span>New Collab</span>
+          <span className="hidden sm:inline">New Collab</span>
+          <span className="sm:hidden">New</span>
         </button>
 
         {/* Creator Auth Profile / Switcher */}
