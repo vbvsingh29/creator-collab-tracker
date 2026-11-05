@@ -1,6 +1,6 @@
 import { Collab, Brand, StatsSummary, User } from '../types';
 
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 // Retrieve auth token from localStorage
 export function getAuthToken(): string | null {
