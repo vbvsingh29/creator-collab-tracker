@@ -2,6 +2,9 @@
   "name": "creator-collab-tracker",
   "version": "1.0.0",
   "description": "CollabFlow - The Creator Collaboration OS for Instagram & YouTube",
+  "engines": {
+    "node": ">=20.0.0 <21.0.0"
+  },
   "scripts": {
     "dev": "npm run dev:client",
     "dev:all": "npm run dev:server & npm run dev:client",
@@ -10,7 +13,13 @@
     "build": "cd server && npm run build && cd ../client && npm run build",
     "seed": "cd server && npm run seed"
   },
-  "keywords": ["creator", "instagram", "youtube", "sponsorships", "influencer-marketing"],
+  "keywords": [
+    "creator",
+    "instagram",
+    "youtube",
+    "sponsorships",
+    "influencer-marketing"
+  ],
   "author": "",
   "license": "MIT"
 }
