@@ -1,0 +1,29 @@
+services:
+  # Backend API Web Service on Render (Free Tier)
+  - type: web
+    name: collabflow-api
+    env: node
+    plan: free
+    buildCommand: cd server && npm install && npm run build
+    startCommand: cd server && npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      # Paste your free Turso DB URL and Token for persistent cloud storage:
+      # - key: TURSO_DATABASE_URL
+      #   sync: false
+      # - key: TURSO_AUTH_TOKEN
+      #   sync: false
+
+  # Frontend Static Site on Render (Free Tier)
+  - type: static
+    name: collabflow-web
+    env: static
+    plan: free
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: client/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://collabflow-api.onrender.com
