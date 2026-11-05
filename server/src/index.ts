@@ -13,8 +13,36 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// CORS configuration supporting production Vercel frontend, local dev, and custom CLIENT_URL
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (no origin header, e.g. curl/health-checks)
+    if (!origin) return callback(null, true);
+    
+    // Allow all if CLIENT_URL is * or not configured
+    if (!process.env.CLIENT_URL || process.env.CLIENT_URL === '*') {
+      return callback(null, true);
+    }
+
+    // Allow configured origins and any Vercel deployment domain
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+
+    // Safe fallback
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // Initialize database
