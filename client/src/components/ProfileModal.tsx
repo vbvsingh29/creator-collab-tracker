@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
+  Check, 
+  Sparkles, 
   User as UserIcon, 
-  AtSign, 
-  Mail, 
-  Phone, 
+  DollarSign, 
+  Globe, 
   Instagram, 
   Youtube, 
-  Globe, 
-  DollarSign, 
-  Sparkles, 
-  Check, 
+  Twitter, 
+  Mail, 
+  Phone, 
   ShieldCheck, 
-  Save, 
-  Camera, 
-  ExternalLink 
+  Layers, 
+  Camera,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User, Platform } from '../types';
@@ -24,19 +24,45 @@ interface ProfileModalProps {
   user: User | null;
   isOpen: boolean;
   onClose: () => void;
-  onProfileUpdated: (updatedUser: User) => void;
+  onProfileUpdated?: (updatedUser: User) => void;
+  onOpenAuth?: () => void;
 }
+
+const DEMO_CREATOR_PROFILE: User = {
+  id: 'demo-creator-aarav',
+  name: 'Aarav Sharma',
+  email: 'aarav@tech.com',
+  handle: '@aarav_tech',
+  platform: 'both',
+  category: 'Tech & Consumer Electronics',
+  bio: 'Top tech reviewer and digital creator sharing in-depth gadget breakdowns, smartphone camera tests, and setup builds.',
+  avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+  phone: '+91 98200 12345',
+  rates: {
+    reel_rate: 35000,
+    video_rate: 75000,
+    story_rate: 12000,
+    whitelisting_monthly_rate: 15000
+  },
+  social_links: {
+    instagram: 'https://instagram.com/aarav_tech',
+    youtube: 'https://youtube.com/@aarav_tech',
+    twitter: 'https://x.com/aarav_tech',
+    website: 'https://aaravtech.com'
+  },
+  created_at: new Date().toISOString()
+};
 
 const CATEGORIES = [
   'Tech & Consumer Electronics',
-  'Beauty, Skincare & Grooming',
-  'Fashion & Apparel',
-  'Fitness, Health & Nutrition',
   'Gaming & Esports',
-  'Business, Finance & Crypto',
-  'Travel, Hospitality & Lifestyle',
-  'Food, Cooking & Beverage',
-  'Education & Career Development',
+  'Fashion & Apparel',
+  'Beauty & Skincare',
+  'Fitness & Wellness',
+  'Finance & Fintech',
+  'Food & Culinary',
+  'Travel & Hospitality',
+  'Education & Productivity',
   'Automobile & Mobility'
 ];
 
@@ -44,34 +70,37 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   user,
   isOpen,
   onClose,
-  onProfileUpdated
+  onProfileUpdated,
+  onOpenAuth
 }) => {
-  if (!isOpen || !user) return null;
+  if (!isOpen) return null;
+
+  const activeUser = user || DEMO_CREATOR_PROFILE;
 
   // Profile Form State
-  const [name, setName] = useState(user.name || '');
-  const [handle, setHandle] = useState(user.handle || '');
-  const [platform, setPlatform] = useState<Platform>(user.platform || 'both');
-  const [category, setCategory] = useState(user.category || 'Tech & Consumer Electronics');
+  const [name, setName] = useState(activeUser.name || '');
+  const [handle, setHandle] = useState(activeUser.handle || '');
+  const [platform, setPlatform] = useState<Platform>(activeUser.platform || 'both');
+  const [category, setCategory] = useState(activeUser.category || 'Tech & Consumer Electronics');
   const [bio, setBio] = useState(
-    user.bio || 'Tech reviewer and digital creator sharing in-depth reviews, gadgets, and consumer software integrations.'
+    activeUser.bio || 'Tech reviewer and digital creator sharing in-depth reviews, gadgets, and consumer software integrations.'
   );
-  const [phone, setPhone] = useState(user.phone || '+91 98200 12345');
+  const [phone, setPhone] = useState(activeUser.phone || '+91 98200 12345');
   const [avatarUrl, setAvatarUrl] = useState(
-    user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`
+    activeUser.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeUser.name)}`
   );
 
   // Baseline Rates State
-  const [reelRate, setReelRate] = useState<number>(user.rates?.reel_rate || 35000);
-  const [videoRate, setVideoRate] = useState<number>(user.rates?.video_rate || 75000);
-  const [storyRate, setStoryRate] = useState<number>(user.rates?.story_rate || 12000);
-  const [whitelistingRate, setWhitelistingRate] = useState<number>(user.rates?.whitelisting_monthly_rate || 15000);
+  const [reelRate, setReelRate] = useState<number>(activeUser.rates?.reel_rate || 35000);
+  const [videoRate, setVideoRate] = useState<number>(activeUser.rates?.video_rate || 75000);
+  const [storyRate, setStoryRate] = useState<number>(activeUser.rates?.story_rate || 12000);
+  const [whitelistingRate, setWhitelistingRate] = useState<number>(activeUser.rates?.whitelisting_monthly_rate || 15000);
 
   // Social Links State
-  const [igUrl, setIgUrl] = useState(user.social_links?.instagram || `https://instagram.com/${user.handle?.replace('@', '')}`);
-  const [ytUrl, setYtUrl] = useState(user.social_links?.youtube || `https://youtube.com/@${user.handle?.replace('@', '')}`);
-  const [twitterUrl, setTwitterUrl] = useState(user.social_links?.twitter || `https://x.com/${user.handle?.replace('@', '')}`);
-  const [websiteUrl, setWebsiteUrl] = useState(user.social_links?.website || 'https://collabflow.app');
+  const [igUrl, setIgUrl] = useState(activeUser.social_links?.instagram || `https://instagram.com/${activeUser.handle?.replace('@', '')}`);
+  const [ytUrl, setYtUrl] = useState(activeUser.social_links?.youtube || `https://youtube.com/@${activeUser.handle?.replace('@', '')}`);
+  const [twitterUrl, setTwitterUrl] = useState(activeUser.social_links?.twitter || `https://x.com/${activeUser.handle?.replace('@', '')}`);
+  const [websiteUrl, setWebsiteUrl] = useState(activeUser.social_links?.website || 'https://collabflow.app');
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -94,11 +123,32 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  useEffect(() => {
+    const u = user || DEMO_CREATOR_PROFILE;
+    setName(u.name || '');
+    setHandle(u.handle || '');
+    setPlatform(u.platform || 'both');
+    setCategory(u.category || 'Tech & Consumer Electronics');
+    setBio(u.bio || '');
+    setPhone(u.phone || '+91 98200 12345');
+    setAvatarUrl(u.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`);
+    setReelRate(u.rates?.reel_rate || 35000);
+    setVideoRate(u.rates?.video_rate || 75000);
+    setStoryRate(u.rates?.story_rate || 12000);
+    setWhitelistingRate(u.rates?.whitelisting_monthly_rate || 15000);
+  }, [user, isOpen]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     setSuccess(false);
+
+    if (!user) {
+      setSaving(false);
+      setError('You are viewing in Demo Mode. Please log in or select a demo creator account to save permanent edits.');
+      return;
+    }
 
     try {
       const updatedData: Partial<User> = {
@@ -124,9 +174,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       };
 
       const res = await apiUpdateProfile(updatedData);
-      onProfileUpdated(res.user);
+      const updatedUser = res.user;
       setSuccess(true);
       confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
+      if (onProfileUpdated) onProfileUpdated(updatedUser);
+
       setTimeout(() => {
         setSuccess(false);
         onClose();
@@ -163,6 +215,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
 
+        {/* Demo Notice Banner */}
+        {!user && (
+          <div className="px-6 py-2.5 bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-amber-500/15 border-b border-indigo-500/20 text-xs text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-medium">
+              <Sparkles size={13} className="text-amber-500" />
+              Viewing Demo Profile (Aarav Sharma). Sign in to personalize and save your permanent rates.
+            </span>
+            {onOpenAuth && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenAuth();
+                }}
+                className="px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] shadow-xs"
+              >
+                Sign In / Claim
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Modal Body */}
         <form onSubmit={handleSave} className="p-6 space-y-6 text-xs max-h-[82vh] overflow-y-auto">
           {/* Avatar & Cover Section */}
@@ -188,228 +262,275 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     type="button"
                     onClick={() => setAvatarUrl(preset)}
                     className={`w-7 h-7 rounded-lg overflow-hidden border-2 transition-transform hover:scale-110 ${
-                      avatarUrl === preset ? 'border-indigo-600 scale-105' : 'border-zinc-300 dark:border-zinc-700'
+                      avatarUrl === preset ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-zinc-300 dark:border-zinc-700'
                     }`}
                   >
-                    <img src={preset} alt="preset" className="w-full h-full object-cover" />
+                    <img src={preset} alt={`Style ${idx}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
+              </div>
+              <input
+                type="text"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="Or paste external avatar image URL (HTTPS)"
+                className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          {/* Section: Basic Identity */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              <UserIcon size={13} className="text-indigo-500" /> Public Creator Identity
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-zinc-500 dark:text-zinc-400 text-[11px] mb-1 font-medium">Display Name</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Aarav Sharma"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-500 dark:text-zinc-400 text-[11px] mb-1 font-medium">Primary Handle</label>
+                <input
+                  type="text"
+                  required
+                  value={handle}
+                  onChange={(e) => setHandle(e.target.value)}
+                  placeholder="e.g. @aarav_tech"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-zinc-900 dark:text-zinc-100"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-zinc-500 dark:text-zinc-400 text-[11px] mb-1 font-medium">Niche / Content Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-zinc-500 dark:text-zinc-400 text-[11px] mb-1 font-medium">Primary Channels</label>
+                <div className="grid grid-cols-3 gap-1 bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl border border-zinc-300 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setPlatform('instagram')}
+                    className={`py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-center gap-1 transition-colors ${
+                      platform === 'instagram' ? 'bg-pink-600 text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <Instagram size={12} /> IG
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlatform('youtube')}
+                    className={`py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-center gap-1 transition-colors ${
+                      platform === 'youtube' ? 'bg-red-600 text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <Youtube size={12} /> YT
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlatform('both')}
+                    className={`py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-center gap-1 transition-colors ${
+                      platform === 'both' ? 'bg-indigo-600 text-white shadow-xs' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    Both
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-zinc-500 dark:text-zinc-400 text-[11px] mb-1 font-medium">Public Bio / Pitch Introduction</label>
+              <textarea
+                rows={3}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Brief summary of your content focus, verified reach, and audience demographics..."
+                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-zinc-500 dark:text-zinc-400 text-[11px] mb-1 font-medium">Direct WhatsApp / Mobile Phone (for Agency Escalations)</label>
+              <div className="relative">
+                <Phone size={14} className="absolute left-3.5 top-3 text-zinc-400" />
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+91 98200 12345"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
+                />
               </div>
             </div>
           </div>
 
-          {/* Feedback alerts */}
+          {/* Section: Baseline Commercial Rates */}
+          <div className="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <DollarSign size={13} className="text-emerald-500" /> Standard Baseline Rates (Rate Card Auto-Fill)
+              </h4>
+              <span className="text-[10px] text-zinc-400">Used as default pricing in proposals & pitch generator</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1">
+                <label className="text-[10px] text-zinc-400 uppercase font-semibold">Instagram Reel</label>
+                <div className="flex items-center gap-1 font-bold">
+                  <span className="text-zinc-400">₹</span>
+                  <input
+                    type="number"
+                    value={reelRate}
+                    onChange={(e) => setReelRate(Number(e.target.value))}
+                    className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1">
+                <label className="text-[10px] text-zinc-400 uppercase font-semibold">YouTube Video</label>
+                <div className="flex items-center gap-1 font-bold">
+                  <span className="text-zinc-400">₹</span>
+                  <input
+                    type="number"
+                    value={videoRate}
+                    onChange={(e) => setVideoRate(Number(e.target.value))}
+                    className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1">
+                <label className="text-[10px] text-zinc-400 uppercase font-semibold">Story Sequence</label>
+                <div className="flex items-center gap-1 font-bold">
+                  <span className="text-zinc-400">₹</span>
+                  <input
+                    type="number"
+                    value={storyRate}
+                    onChange={(e) => setStoryRate(Number(e.target.value))}
+                    className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-1">
+                <label className="text-[10px] text-zinc-400 uppercase font-semibold">Whitelisting/mo</label>
+                <div className="flex items-center gap-1 font-bold">
+                  <span className="text-zinc-400">₹</span>
+                  <input
+                    type="number"
+                    value={whitelistingRate}
+                    onChange={(e) => setWhitelistingRate(Number(e.target.value))}
+                    className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Social Profiles & Links */}
+          <div className="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+            <h4 className="font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              <Globe size={13} className="text-indigo-500" /> Verified Social Links
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="relative">
+                <Instagram size={14} className="absolute left-3 top-3 text-pink-500" />
+                <input
+                  type="text"
+                  value={igUrl}
+                  onChange={(e) => setIgUrl(e.target.value)}
+                  placeholder="https://instagram.com/yourhandle"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="relative">
+                <Youtube size={14} className="absolute left-3 top-3 text-red-500" />
+                <input
+                  type="text"
+                  value={ytUrl}
+                  onChange={(e) => setYtUrl(e.target.value)}
+                  placeholder="https://youtube.com/@yourchannel"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="relative">
+                <Twitter size={14} className="absolute left-3 top-3 text-sky-400" />
+                <input
+                  type="text"
+                  value={twitterUrl}
+                  onChange={(e) => setTwitterUrl(e.target.value)}
+                  placeholder="https://x.com/yourhandle"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="relative">
+                <Globe size={14} className="absolute left-3 top-3 text-zinc-400" />
+                <input
+                  type="text"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://yourwebsite.com"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Feedback & Actions */}
           {error && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300">
-              {error}
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 flex items-center gap-2">
+              <AlertCircle size={14} className="shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
               <Check size={14} />
-              <span>Profile updated successfully!</span>
+              <span>Profile, commercials, and brand kit updated successfully!</span>
             </div>
           )}
 
-          {/* Core Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                Creator / Legal Name
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                Primary Handle
-              </label>
-              <input
-                type="text"
-                required
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 font-mono focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                Primary Platform Focus
-              </label>
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value as Platform)}
-                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
-              >
-                <option value="both">Both YouTube & Instagram</option>
-                <option value="youtube">YouTube Primary</option>
-                <option value="instagram">Instagram Primary</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                Content Niche / Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Bio */}
-          <div>
-            <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-              Creator Bio / Brand Pitch
-            </label>
-            <textarea
-              rows={3}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Highlight audience demographics, top regions, and creative style..."
-              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 resize-none leading-relaxed"
-            />
-          </div>
-
-          {/* Brand Contact & Phone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                Official Creator Email
-              </label>
-              <input
-                type="email"
-                disabled
-                value={user.email}
-                className="w-full bg-zinc-100 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl px-3 py-2 text-zinc-500 font-mono cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                Brand Partnerships Phone / WhatsApp
-              </label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-          </div>
-
-          {/* Baseline Commercial Rate Card */}
-          <div className="space-y-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-                <DollarSign size={13} className="text-emerald-500" /> Baseline Rate Card Defaults (Auto-Prefills Deals)
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
-                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Standard Reel</label>
-                <input
-                  type="number"
-                  value={reelRate}
-                  onChange={(e) => setReelRate(Number(e.target.value))}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 font-mono font-semibold text-zinc-900 dark:text-zinc-100"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Dedicated Video</label>
-                <input
-                  type="number"
-                  value={videoRate}
-                  onChange={(e) => setVideoRate(Number(e.target.value))}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 font-mono font-semibold text-zinc-900 dark:text-zinc-100"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Instagram Story</label>
-                <input
-                  type="number"
-                  value={storyRate}
-                  onChange={(e) => setStoryRate(Number(e.target.value))}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 font-mono font-semibold text-zinc-900 dark:text-zinc-100"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Whitelisting (30d)</label>
-                <input
-                  type="number"
-                  value={whitelistingRate}
-                  onChange={(e) => setWhitelistingRate(Number(e.target.value))}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 font-mono font-semibold text-zinc-900 dark:text-zinc-100"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Social Profiles */}
-          <div className="space-y-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-            <span className="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
-              Public Channels & Social Links
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative">
-                <Instagram size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500" />
-                <input
-                  type="text"
-                  placeholder="Instagram URL"
-                  value={igUrl}
-                  onChange={(e) => setIgUrl(e.target.value)}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-zinc-900 dark:text-zinc-100 font-mono text-[11px]"
-                />
-              </div>
-
-              <div className="relative">
-                <Youtube size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500" />
-                <input
-                  type="text"
-                  placeholder="YouTube Channel URL"
-                  value={ytUrl}
-                  onChange={(e) => setYtUrl(e.target.value)}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-zinc-900 dark:text-zinc-100 font-mono text-[11px]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Footer */}
-          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2.5">
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-200 dark:border-zinc-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-semibold transition-colors"
+              className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 font-semibold"
             >
-              Cancel
+              Close
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-md shadow-indigo-600/20 active:scale-95 disabled:opacity-50 transition-all"
+              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50"
             >
-              <Save size={14} />
-              <span>{saving ? 'Saving...' : 'Save Profile Changes'}</span>
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>

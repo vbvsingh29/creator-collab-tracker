@@ -6,7 +6,8 @@ import {
   ShieldAlert, 
   Building2, 
   Settings, 
-  Sparkles 
+  Sparkles,
+  Bot
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
@@ -16,6 +17,7 @@ interface MobileBottomNavProps {
   onOpenExclusivity: () => void;
   onOpenBrands: () => void;
   onOpenSettings: () => void;
+  onOpenPitch?: () => void;
   conflictCount: number;
 }
 
@@ -26,6 +28,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenExclusivity,
   onOpenBrands,
   onOpenSettings,
+  onOpenPitch,
   conflictCount
 }) => {
   return (
@@ -61,14 +64,24 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <Plus size={20} strokeWidth={2.5} />
         </button>
 
-        {/* Brand CRM */}
-        <button
-          onClick={onOpenBrands}
-          className="flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg active:scale-95 transition-all text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-        >
-          <Building2 size={18} />
-          <span>Brands</span>
-        </button>
+        {/* AI Pitch Studio */}
+        {onOpenPitch ? (
+          <button
+            onClick={onOpenPitch}
+            className="flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg active:scale-95 transition-all text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold"
+          >
+            <Bot size={18} />
+            <span>AI Pitch</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenBrands}
+            className="flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg active:scale-95 transition-all text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            <Building2 size={18} />
+            <span>Brands</span>
+          </button>
+        )}
 
         {/* Settings */}
         <button

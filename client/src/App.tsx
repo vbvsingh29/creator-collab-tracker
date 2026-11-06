@@ -109,6 +109,11 @@ export function App() {
   const [isMediaKitOpen, setIsMediaKitOpen] = useState<boolean>(false);
   const { setTheme, resolvedTheme } = useTheme();
 
+  const handleOpenPitch = (collab?: Collab | null) => {
+    setPitchCollab(collab || null);
+    setIsPitchOpen(true);
+  };
+
   // Fetch creator's private data
   const loadData = async () => {
     if (!token) return;
@@ -365,7 +370,7 @@ export function App() {
       // Shortcut: 'm' => Creator Media Kit
       if (e.key.toLowerCase() === 'm') {
         e.preventDefault();
-        if (user) setIsMediaKitOpen(true);
+        setIsMediaKitOpen(true);
         return;
       }
 
@@ -377,6 +382,13 @@ export function App() {
         } else {
           handleSetSimpleLayout(simpleLayout === 'cards' ? 'table' : 'cards');
         }
+        return;
+      }
+
+      // Shortcut: 'a' => AI Sponsor Pitch Studio
+      if (e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        handleOpenPitch(filteredCollabs[0] || collabs[0]);
         return;
       }
 
@@ -404,7 +416,7 @@ export function App() {
       // Shortcut: 'p' => Creator Profile & Kit
       if (e.key.toLowerCase() === 'p') {
         e.preventDefault();
-        if (user) setIsProfileOpen(true);
+        setIsProfileOpen(true);
         return;
       }
 
@@ -481,6 +493,8 @@ export function App() {
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
         onOpenPricing={() => setIsPricingOpen(true)}
         onOpenMediaKit={() => setIsMediaKitOpen(true)}
+        onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
+
       />
 
       {/* Main Content Area */}
@@ -540,6 +554,8 @@ export function App() {
           totalCount={collabs.length}
           onExportCSV={() => exportCollabsToCSV(filteredCollabs, currency)}
           onOpenMediaKit={() => setIsMediaKitOpen(true)}
+        onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
+
           onOpenPitchGenerator={() => {
             setPitchCollab(filteredCollabs[0] || collabs[0] || null);
             setIsPitchOpen(true);
@@ -688,11 +704,15 @@ export function App() {
       )}
 
       {/* Complete Creator Profile & Brand Kit Modal */}
-      {isProfileOpen && user && (
+      {isProfileOpen && (
         <ProfileModal
           user={user}
           isOpen={isProfileOpen}
           onClose={() => setIsProfileOpen(false)}
+          onOpenAuth={() => {
+            setIsProfileOpen(false);
+            setIsAuthModalOpen(true);
+          }}
           onProfileUpdated={(updatedUser) => {
             if (setSession && token) {
               setSession(token, updatedUser);
@@ -711,6 +731,14 @@ export function App() {
         setAppMode={handleSetAppMode}
         simpleLayout={simpleLayout}
         setSimpleLayout={handleSetSimpleLayout}
+        onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
+        onOpenIntegrations={() => setIsIntegrationsOpen(true)}
+        onOpenMediaKit={() => setIsMediaKitOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenRateCard={() => setIsRateCardOpen(true)}
+        onOpenExclusivity={() => setIsExclusivityOpen(true)}
+        onOpenBrands={() => setIsBrandsOpen(true)}
+        onOpenPricing={() => setIsPricingOpen(true)}
       />
 
       {/* Auth Modal (Log in / Sign up / 1-Click Demo Profiles) */}
@@ -735,6 +763,7 @@ export function App() {
         onOpenExclusivity={() => setIsExclusivityOpen(true)}
         onOpenBrands={() => setIsBrandsOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
         conflictCount={conflictCount}
       />
 
@@ -787,6 +816,10 @@ export function App() {
         currency={currency}
         isOpen={isMediaKitOpen}
         onClose={() => setIsMediaKitOpen(false)}
+        onOpenAuth={() => {
+          setIsMediaKitOpen(false);
+          setIsAuthModalOpen(true);
+        }}
       />
 
       {/* Keyboard Shortcuts Cheat Sheet Modal */}
@@ -802,3 +835,7 @@ export function App() {
 }
 
 export default App;
+
+
+
+
