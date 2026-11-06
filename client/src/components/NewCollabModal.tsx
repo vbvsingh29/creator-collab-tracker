@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Instagram, Youtube, Layers, Zap, ShieldAlert, Check, Calendar, DollarSign, Sparkles, Link as LinkIcon } from 'lucide-react';
+import { X, Plus, Instagram, Youtube, Layers, Zap, ShieldAlert, Check, Calendar, DollarSign, Sparkles, Link as LinkIcon, SlidersHorizontal } from 'lucide-react';
 import { Collab, Platform, DeliverableFormat, CommercialType, Currency, PaymentTerms } from '../types';
 import { previewMediaUrl } from '../services/api';
 
@@ -25,6 +25,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   initialData
 }) => {
   const [formMode, setFormMode] = useState<'simple' | 'advanced'>(defaultMode);
+  const [showMoreDetails, setShowMoreDetails] = useState<boolean>(false);
   const [title, setTitle] = useState(initialData?.title || '');
   const [brandName, setBrandName] = useState('');
   const [brandCategory, setBrandCategory] = useState('Tech & Consumer Electronics');
@@ -489,17 +490,83 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
             </div>
           )}
 
-          {/* Simple Mode Note */}
+          {/* Simple Mode: Inline Expandable Extra Details Accordion */}
           {formMode === 'simple' && (
-            <div className="p-3 bg-zinc-900/40 rounded-xl border border-dashed border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
-              <span>Quick Add applies standard terms (Net 30, no whitelisting). Need custom usage rights or payment milestones?</span>
+            <div className="space-y-3 pt-1">
               <button
                 type="button"
-                onClick={() => setFormMode('advanced')}
-                className="text-indigo-400 hover:text-indigo-300 font-semibold ml-2 whitespace-nowrap"
+                onClick={() => setShowMoreDetails(!showMoreDetails)}
+                className="w-full py-2 px-3 rounded-xl border border-dashed border-zinc-700 hover:border-zinc-500 bg-zinc-900/40 text-xs text-zinc-400 hover:text-zinc-200 flex items-center justify-between transition-colors"
               >
-                Switch to Advanced Mode →
+                <span className="flex items-center gap-1.5 font-medium">
+                  <SlidersHorizontal size={13} className="text-indigo-400" />
+                  {showMoreDetails ? 'Hide Extra Details' : '+ Add More Details (Due Date, Terms, Promo Code & Notes)'}
+                </span>
+                <span className="text-[10px] text-zinc-500 font-semibold">
+                  {showMoreDetails ? '▲ Collapse' : '▼ Expand'}
+                </span>
               </button>
+
+              {showMoreDetails && (
+                <div className="p-3.5 bg-zinc-900/60 rounded-xl border border-zinc-800 space-y-3 animate-in fade-in duration-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                        Payment Terms
+                      </label>
+                      <select
+                        value={paymentTerms}
+                        onChange={(e) => setPaymentTerms(e.target.value as PaymentTerms)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="net_30">Net 30 Days</option>
+                        <option value="net_15">Net 15 Days</option>
+                        <option value="net_45">Net 45 Days</option>
+                        <option value="50_advance_50_post">50% Advance / 50% Post</option>
+                        <option value="100_upfront">100% Upfront</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                        Publish Date
+                      </label>
+                      <input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                        Promo Code
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. SAVE20"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                      Notes / Talking Points
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Key talking points or campaign deliverables..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

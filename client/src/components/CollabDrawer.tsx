@@ -56,6 +56,7 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   onOpenPitchGenerator
 }) => {
   const [drawerMode, setDrawerMode] = useState<'simple' | 'advanced'>(appMode);
+  const [showDeepDetails, setShowDeepDetails] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [liveUrlInput, setLiveUrlInput] = useState(collab?.live_post_url || '');
   const [showEmbedPlayer, setShowEmbedPlayer] = useState(false);
@@ -271,7 +272,7 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
               </div>
             </div>
 
-            {drawerMode === 'advanced' && (
+            {(drawerMode === 'advanced' || showDeepDetails) && (
               collab.has_ads_whitelisting ? (
                 <div className="text-right">
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
@@ -320,8 +321,8 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
               </div>
             </div>
 
-            {/* True Take Home Split (TDS & Agency Fee) - Advanced Only */}
-            {drawerMode === 'advanced' && collab.commercial_type !== 'barter' && collab.deal_amount > 0 && (
+            {/* True Take Home Split (TDS & Agency Fee) - Visible in Advanced or Expanded */}
+            {(drawerMode === 'advanced' || showDeepDetails) && collab.commercial_type !== 'barter' && collab.deal_amount > 0 && (
               <div className="mt-3 pt-2 bg-zinc-950/60 rounded-lg p-3 border border-zinc-800/80">
                 <div className="text-[11px] font-semibold text-emerald-400 flex items-center justify-between mb-2">
                   <span className="flex items-center gap-1">
@@ -349,8 +350,8 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
               </div>
             )}
 
-            {/* Payment terms row - Advanced Only */}
-            {drawerMode === 'advanced' && (
+            {/* Payment terms row - Visible in Advanced or Expanded */}
+            {(drawerMode === 'advanced' || showDeepDetails) && (
               <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-zinc-800/60 text-xs">
                 <div>
                   <span className="text-[10px] text-zinc-500 block uppercase">Payment Terms</span>
@@ -536,8 +537,8 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
               </div>
             )}
 
-            {/* Campaign Codes & Links - Advanced Only */}
-            {drawerMode === 'advanced' && (
+            {/* Campaign Codes & Links - Visible in Advanced or Expanded */}
+            {(drawerMode === 'advanced' || showDeepDetails) && (
               <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
                 <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
                   <span className="text-[10px] text-zinc-500 block uppercase font-medium">Coupon Promo Code</span>
@@ -555,61 +556,60 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
             )}
           </div>
 
-          {/* Simple Mode Switch Prompt */}
+          {/* Simple Mode Deep Details Accordion Button */}
           {drawerMode === 'simple' && (
-            <div className="p-4 rounded-xl bg-zinc-900/40 border border-dashed border-zinc-800 text-center space-y-2">
-              <p className="text-xs text-zinc-400">
-                Viewing <span className="text-emerald-400 font-semibold">Essential Details</span>
-              </p>
-              <p className="text-[11px] text-zinc-500 max-w-sm mx-auto">
-                Need the TDS tax ledger, deliverables checklist, ad whitelisting terms, or brand contact?
-              </p>
+            <div className="pt-1">
               <button
-                onClick={() => setDrawerMode('advanced')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all"
+                type="button"
+                onClick={() => setShowDeepDetails(!showDeepDetails)}
+                className="w-full py-2.5 px-3.5 rounded-xl border border-dashed border-zinc-700 hover:border-zinc-500 bg-zinc-900/40 text-xs text-zinc-300 hover:text-white flex items-center justify-between transition-colors shadow-xs"
               >
-                <Zap size={12} /> Switch to Advanced Breakdown
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Sparkles size={13} className="text-amber-400" />
+                  {showDeepDetails ? 'Hide Deep Deal Analytics' : '+ View Commercial Economics (CPM, Net Take-Home, Tax TDS & Terms)'}
+                </span>
+                <span className="text-[10px] text-zinc-400 font-semibold">
+                  {showDeepDetails ? '▲ Collapse' : '▼ Expand'}
+                </span>
               </button>
             </div>
           )}
 
-          {/* Interactive Deliverables Checklist - Advanced Only */}
-          {drawerMode === 'advanced' && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-3 flex items-center gap-1.5">
-                <CheckSquare size={13} className="text-indigo-400" />
-                Contract Deliverables Checklist
-              </h3>
+          {/* Interactive Deliverables Checklist - Available in Both Modes */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-3 flex items-center gap-1.5">
+              <CheckSquare size={13} className="text-indigo-400" />
+              Contract Deliverables Checklist
+            </h3>
 
-              {collab.deliverables_checklist.length === 0 ? (
-                <p className="text-xs text-zinc-500">No checklist items defined.</p>
-              ) : (
-                <div className="space-y-2">
-                  {collab.deliverables_checklist.map((item, index) => (
-                    <div
-                      key={item.id || index}
-                      onClick={() => handleToggleChecklist(index)}
-                      className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-zinc-850 cursor-pointer transition-colors text-xs"
-                    >
-                      <button className="mt-0.5 text-indigo-400 hover:text-indigo-300">
-                        {item.completed ? (
-                          <CheckSquare size={15} className="text-emerald-400" />
-                        ) : (
-                          <Square size={15} className="text-zinc-600" />
-                        )}
-                      </button>
-                      <span className={`${item.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
-                        {item.task}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            {collab.deliverables_checklist.length === 0 ? (
+              <p className="text-xs text-zinc-500">No checklist items defined.</p>
+            ) : (
+              <div className="space-y-2">
+                {collab.deliverables_checklist.map((item, index) => (
+                  <div
+                    key={item.id || index}
+                    onClick={() => handleToggleChecklist(index)}
+                    className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-zinc-850 cursor-pointer transition-colors text-xs"
+                  >
+                    <button className="mt-0.5 text-indigo-400 hover:text-indigo-300">
+                      {item.completed ? (
+                        <CheckSquare size={15} className="text-emerald-400" />
+                      ) : (
+                        <Square size={15} className="text-zinc-600" />
+                      )}
+                    </button>
+                    <span className={`${item.completed ? 'line-through text-zinc-500' : 'text-zinc-200'}`}>
+                      {item.task}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {/* Brand Contact & Notes - Advanced Only */}
-          {drawerMode === 'advanced' && (
+          {/* Brand Contact & Notes - Visible in Advanced or Expanded */}
+          {(drawerMode === 'advanced' || showDeepDetails) && (
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 space-y-2.5 text-xs">
               <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                 <Mail size={13} className="text-zinc-400" />

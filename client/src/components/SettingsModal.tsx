@@ -30,8 +30,8 @@ interface SettingsModalProps {
   setCurrency: (c: Currency) => void;
   appMode: 'simple' | 'advanced';
   setAppMode: (m: 'simple' | 'advanced') => void;
-  simpleLayout: 'cards' | 'table';
-  setSimpleLayout: (l: 'cards' | 'table') => void;
+  simpleLayout: 'cards' | 'detailed' | 'table';
+  setSimpleLayout: (l: 'cards' | 'detailed' | 'table') => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -428,10 +428,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <label className="text-[10px] text-zinc-500 uppercase block mb-1">Simple Layout</label>
                 <select
                   value={simpleLayout}
-                  onChange={(e) => setSimpleLayout(e.target.value as 'cards' | 'table')}
+                  onChange={(e) => setSimpleLayout(e.target.value as 'cards' | 'detailed' | 'table')}
                   className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 font-semibold focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="cards">Cards Grid View</option>
+                  <option value="cards">Clean Cards Grid</option>
+                  <option value="detailed">Detailed Cards (Checklist, Due Date & Actions)</option>
                   <option value="table">9-Column Simple Table</option>
                 </select>
               </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   DollarSign, 
   Clock, 
@@ -6,8 +6,10 @@ import {
   Zap, 
   Gift, 
   Wallet,
-  CheckCircle2,
-  Percent
+  CheckCircle2, 
+  Percent,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { Currency, StatsSummary } from '../types';
 import { formatCurrency } from '../utils/formatters';
@@ -27,6 +29,8 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
   onFilterOverdue,
   activeFilterOverdue
 }) => {
+  const [showTaxBreakdown, setShowTaxBreakdown] = useState(false);
+
   if (!stats) return null;
 
   const isINR = currency === 'INR';
@@ -41,53 +45,117 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
   const estimatedAgencyFee = totalRevenue * 0.15;
   const trueNetCash = Math.max(0, totalRevenue - estimatedTax - estimatedAgencyFee);
 
-  // If in SIMPLE MODE: show only 3 clean essential metrics
+  // If in SIMPLE MODE: show 3 clean essential metrics + expandable breakdown
   if (mode === 'simple') {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
-        {/* 1. Total Deals Value */}
-        <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Total Collaborations</span>
-            <div className="text-xl font-extrabold text-zinc-900 dark:text-white mt-1">
-              {formatCurrency(totalRevenue, currency)}
+      <div className="mb-6 space-y-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          {/* 1. Total Deals Value */}
+          <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Total Collaborations</span>
+              <div className="text-xl font-extrabold text-zinc-900 dark:text-white mt-1">
+                {formatCurrency(totalRevenue, currency)}
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-0.5">{stats.total_deals} active brand deals</p>
             </div>
-            <p className="text-[11px] text-zinc-500 mt-0.5">{stats.total_deals} active brand deals</p>
+            <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              <DollarSign size={18} />
+            </div>
           </div>
-          <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-            <DollarSign size={18} />
+
+          {/* 2. Received / Paid in Bank */}
+          <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Paid in Bank</span>
+              <div className="text-xl font-extrabold text-emerald-500 dark:text-emerald-400 mt-1">
+                {formatCurrency(totalPaid, currency)}
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Cleared creator payments</p>
+            </div>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <CheckCircle2 size={18} />
+            </div>
+          </div>
+
+          {/* 3. Pending Payouts */}
+          <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Pending Payouts</span>
+              <div className="text-xl font-extrabold text-amber-500 dark:text-amber-400 mt-1">
+                {formatCurrency(totalPending, currency)}
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                {stats.overdue_count > 0 ? `${stats.overdue_count} overdue invoice(s)` : 'Awaiting scheduled terms'}
+              </p>
+            </div>
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Clock size={18} />
+            </div>
           </div>
         </div>
 
-        {/* 2. Received / Paid in Bank */}
-        <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Paid in Bank</span>
-            <div className="text-xl font-extrabold text-emerald-400 mt-1">
-              {formatCurrency(totalPaid, currency)}
-            </div>
-            <p className="text-[11px] text-zinc-500 mt-0.5">Cleared creator payments</p>
-          </div>
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <CheckCircle2 size={18} />
-          </div>
+        {/* Clean Accordion for Starter Users to inspect Net Cash & Barter */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowTaxBreakdown(!showTaxBreakdown)}
+            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-850"
+          >
+            <Percent size={11} className="text-emerald-500" />
+            <span>{showTaxBreakdown ? 'Hide Financial Breakdown' : 'Show Net Take-Home & Barter Breakdown'}</span>
+            {showTaxBreakdown ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          </button>
         </div>
 
-        {/* 3. Pending Payouts */}
-        <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Pending Payouts</span>
-            <div className="text-xl font-extrabold text-amber-400 mt-1">
-              {formatCurrency(totalPending, currency)}
+        {showTaxBreakdown && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 animate-in fade-in duration-150">
+            {/* Net Cash */}
+            <div className="p-3 bg-white dark:bg-zinc-950/80 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-0.5">
+                Estimated Net In-Pocket
+              </span>
+              <div className="text-lg font-bold text-emerald-500">
+                {formatCurrency(trueNetCash, currency)}
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                After ~10% TDS (-{formatCurrency(estimatedTax, currency)}) & ~15% agency cut (-{formatCurrency(estimatedAgencyFee, currency)})
+              </p>
             </div>
-            <p className="text-[11px] text-zinc-500 mt-0.5">
-              {stats.overdue_count > 0 ? `${stats.overdue_count} overdue invoice(s)` : 'Awaiting scheduled terms'}
-            </p>
+
+            {/* Barter Product Retail Value */}
+            <div className="p-3 bg-white dark:bg-zinc-950/80 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-400 block mb-0.5">
+                Barter Product Value
+              </span>
+              <div className="text-lg font-bold text-violet-500">
+                {formatCurrency(barterValue, currency)}
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                Free gifted gear, phones & apparel
+              </p>
+            </div>
+
+            {/* Overdue Alert */}
+            <div 
+              onClick={onFilterOverdue}
+              className={`p-3 bg-white dark:bg-zinc-950/80 rounded-lg border cursor-pointer transition-colors ${
+                activeFilterOverdue
+                  ? 'border-red-500 bg-red-50/20 dark:bg-red-950/20'
+                  : 'border-zinc-200 dark:border-zinc-800 hover:border-red-500/40'
+              }`}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-red-600 dark:text-red-400 block mb-0.5">
+                Overdue Receivables
+              </span>
+              <div className="text-lg font-bold text-red-500">
+                {formatCurrency(overdueAmount, currency)}
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                {stats.overdue_count > 0 ? `${stats.overdue_count} overdue deal(s) • Tap to filter` : 'Zero overdue payments 🎉'}
+              </p>
+            </div>
           </div>
-          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <Clock size={18} />
-          </div>
-        </div>
+        )}
       </div>
     );
   }
