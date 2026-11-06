@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Building2, Star, Clock, DollarSign, Mail, Phone } from 'lucide-react';
+import { X, Building2, Star, Clock, DollarSign, Mail, Sparkles } from 'lucide-react';
 import { Brand, Currency } from '../types';
 import { formatCurrency } from '../utils/formatters';
 
@@ -9,7 +9,65 @@ interface BrandDirectoryModalProps {
   onClose: () => void;
 }
 
-export const BrandDirectoryModal: React.FC<BrandDirectoryModalProps> = ({ brands, currency, onClose }) => {
+const DEMO_BRANDS: Brand[] = [
+  {
+    id: 'demo-b1',
+    name: 'Keychron India',
+    category: 'Computer Hardware',
+    contact_person: 'Rohan Mehta (Marketing Lead)',
+    contact_email: 'rohan@keychron.in',
+    avg_payment_speed_days: 14,
+    rating: 5,
+    notes: 'Prompt NET-15 payments. Values mechanical keyboard detail shots and dedicated link stickers.',
+    collabs_count: 2,
+    total_spent: 95000,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-b2',
+    name: 'Nothing Tech',
+    category: 'Consumer Electronics',
+    contact_person: 'Sarah Jenkins (PR & Talent)',
+    contact_email: 'sarah@nothing.tech',
+    avg_payment_speed_days: 21,
+    rating: 5,
+    notes: 'Strict aesthetic guidelines (minimalist, clean dark frames). High-volume sponsor.',
+    collabs_count: 1,
+    total_spent: 110000,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-b3',
+    name: 'NordVPN',
+    category: 'Cybersecurity SaaS',
+    contact_person: 'Liam O’Connor (Affiliate Lead)',
+    contact_email: 'creator-partners@nordvpn.com',
+    avg_payment_speed_days: 7,
+    rating: 4,
+    notes: 'Requires 60-day cookie window and pinned link in YouTube/IG bio.',
+    collabs_count: 3,
+    total_spent: 70000,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-b4',
+    name: 'boAt Lifestyle',
+    category: 'Audio & Wearables',
+    contact_person: 'Vikram Sethi (Influencer Lead)',
+    contact_email: 'campaigns@boat-lifestyle.com',
+    avg_payment_speed_days: 30,
+    rating: 4,
+    notes: 'Fast approvals on scripts. NET-30 payment via bank transfer.',
+    collabs_count: 2,
+    total_spent: 45000,
+    created_at: new Date().toISOString()
+  }
+];
+
+export const BrandDirectoryModal: React.FC<BrandDirectoryModalProps> = ({ brands = [], currency, onClose }) => {
+  const isDemo = !brands || brands.length === 0;
+  const activeBrands = isDemo ? DEMO_BRANDS : brands;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -39,9 +97,16 @@ export const BrandDirectoryModal: React.FC<BrandDirectoryModalProps> = ({ brands
           </button>
         </div>
 
+        {isDemo && (
+          <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 flex items-center gap-2">
+            <Sparkles size={14} className="text-amber-400 shrink-0" />
+            <span>Viewing Demo Brand Partner Directory. Sign in to link contacts and log deals with your personal brands.</span>
+          </div>
+        )}
+
         {/* Brand Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[480px] overflow-y-auto">
-          {brands.map((b) => (
+          {activeBrands.map((b) => (
             <div
               key={b.id}
               className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 flex flex-col justify-between hover:border-zinc-700 transition-colors text-xs"

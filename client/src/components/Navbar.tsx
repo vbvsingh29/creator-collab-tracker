@@ -21,7 +21,8 @@ import {
   Settings,
   Keyboard,
   Crown,
-  ListFilter
+  ListFilter,
+  Bot
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -50,6 +51,7 @@ interface NavbarProps {
   onOpenShortcuts?: () => void;
   onOpenPricing?: () => void;
   onOpenMediaKit?: () => void;
+  onOpenPitch?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -62,6 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenShortcuts,
   onOpenPricing,
   onOpenMediaKit,
+  onOpenPitch,
   appMode,
   setAppMode,
   currentView,
@@ -249,6 +252,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Tools (Only visible in Advanced Mode to avoid clutter in Simple Mode) */}
         {appMode === 'advanced' && (
           <>
+            {/* AI Pitch Studio Button */}
+            {onOpenPitch && (
+              <button
+                onClick={onOpenPitch}
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors shadow-xs"
+                title="AI Sponsor Pitch & Multi-Tier Package Studio"
+              >
+                <Bot size={13} className="text-purple-500" />
+                <span className="hidden sm:inline">AI Pitch</span>
+              </button>
+            )}
+
             {/* Live Integrations Health Status Pill */}
             <button
               onClick={onOpenIntegrations}
@@ -399,6 +414,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 )}
 
+                {onOpenPitch && (
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenPitch();
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors flex items-center gap-2"
+                  >
+                    <Bot size={13} className="text-purple-500" />
+                    <span>AI Sponsor Pitch Studio</span>
+                  </button>
+                )}
+
                 {onOpenMediaKit && (
                   <button
                     onClick={() => {
@@ -502,6 +530,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
+            {onOpenMediaKit && (
+              <button
+                onClick={onOpenMediaKit}
+                className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-pink-500/30 bg-pink-500/10 text-xs font-semibold text-pink-700 dark:text-pink-300 hover:bg-pink-500/20 transition-all shadow-xs"
+                title="Creator Media Kit Preview"
+              >
+                <Sparkles size={12} className="text-pink-500" />
+                <span>Media Kit</span>
+              </button>
+            )}
             <button
               onClick={() => onDemoLogin?.('aarav@tech.com')}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500/15 to-purple-500/15 hover:from-indigo-500/25 hover:to-purple-500/25 border border-indigo-500/30 text-xs font-semibold text-indigo-600 dark:text-indigo-300 transition-all shadow-xs"

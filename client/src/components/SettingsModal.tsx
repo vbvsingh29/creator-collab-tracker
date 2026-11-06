@@ -16,7 +16,15 @@ import {
   Save,
   Lock,
   Fingerprint,
-  Smartphone
+  Smartphone,
+  Bot,
+  Sparkles,
+  Radio,
+  Building2,
+  Calculator,
+  ShieldAlert,
+  Crown,
+  User as UserIcon
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Currency } from '../types';
@@ -32,6 +40,14 @@ interface SettingsModalProps {
   setAppMode: (m: 'simple' | 'advanced') => void;
   simpleLayout: 'cards' | 'detailed' | 'table';
   setSimpleLayout: (l: 'cards' | 'detailed' | 'table') => void;
+  onOpenPitch?: () => void;
+  onOpenIntegrations?: () => void;
+  onOpenMediaKit?: () => void;
+  onOpenProfile?: () => void;
+  onOpenRateCard?: () => void;
+  onOpenExclusivity?: () => void;
+  onOpenBrands?: () => void;
+  onOpenPricing?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -42,7 +58,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   appMode,
   setAppMode,
   simpleLayout,
-  setSimpleLayout
+  setSimpleLayout,
+  onOpenPitch,
+  onOpenIntegrations,
+  onOpenMediaKit,
+  onOpenProfile,
+  onOpenRateCard,
+  onOpenExclusivity,
+  onOpenBrands,
+  onOpenPricing
 }) => {
   const { theme, setTheme } = useTheme();
   const {
@@ -156,6 +180,106 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <X size={16} />
           </button>
+        </div>
+
+        {/* Quick Launchpad to all App Pages / Tools */}
+        <div className="p-4 mx-6 mt-4 rounded-2xl bg-zinc-100/80 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles size={13} className="text-amber-500" /> Quick Launch Workspace Pages
+            </span>
+            <span className="text-[10px] text-zinc-400">1-click direct navigation</span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {onOpenPitch && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenPitch(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:bg-purple-500/20 transition-colors shadow-xs"
+              >
+                <Bot size={13} className="text-purple-500" />
+                <span>AI Pitch Studio</span>
+              </button>
+            )}
+
+            {onOpenIntegrations && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenIntegrations(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition-colors shadow-xs"
+              >
+                <Radio size={13} className="text-emerald-500" />
+                <span>Live Integrations Status</span>
+              </button>
+            )}
+
+            {onOpenMediaKit && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenMediaKit(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-pink-500/30 bg-pink-500/10 text-pink-700 dark:text-pink-300 text-xs font-semibold hover:bg-pink-500/20 transition-colors shadow-xs"
+              >
+                <Sparkles size={13} className="text-pink-500" />
+                <span>Creator Media Kit</span>
+              </button>
+            )}
+
+            {onOpenProfile && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenProfile(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-500/20 transition-colors shadow-xs"
+              >
+                <UserIcon size={13} className="text-indigo-500" />
+                <span>Profile & Rates</span>
+              </button>
+            )}
+
+            {onOpenRateCard && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenRateCard(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                <Calculator size={13} className="text-indigo-500" />
+                <span>Rate Card Calculator</span>
+              </button>
+            )}
+
+            {onOpenExclusivity && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenExclusivity(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                <ShieldAlert size={13} className="text-amber-500" />
+                <span>Exclusivity Radar</span>
+              </button>
+            )}
+
+            {onOpenBrands && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenBrands(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                <Building2 size={13} className="text-zinc-500" />
+                <span>Brand Directory</span>
+              </button>
+            )}
+
+            {onOpenPricing && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenPricing(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition-colors shadow-xs"
+              >
+                <Crown size={13} className="text-amber-500" />
+                <span>Upgrade Pro</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Settings Body */}
@@ -526,3 +650,5 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     </div>
   );
 };
+
+

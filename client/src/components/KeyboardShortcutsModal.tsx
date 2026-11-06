@@ -25,6 +25,8 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['r'], description: 'Open Dynamic Rate Card Calculator', category: 'Actions & Tools' },
   { keys: ['e'], description: 'Open Exclusivity Collision Radar', category: 'Actions & Tools' },
   { keys: ['b'], description: 'Open Brands & Agency CRM Directory', category: 'Actions & Tools' },
+  { keys: ['a'], description: 'Open AI Sponsor Pitch & Package Studio', category: 'Actions & Tools' },
+  { keys: ['m'], description: 'Open Creator Media Kit & Rate Card', category: 'Actions & Tools' },
 
   // Preferences
   { keys: ['t'], description: 'Toggle Light / Dark Theme', category: 'Preferences' },

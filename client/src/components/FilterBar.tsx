@@ -8,6 +8,7 @@ import {
   Filter, 
   Download, 
   Sparkles, 
+  Bot,
   FileText,
   AlertTriangle,
   Zap,
@@ -35,6 +36,9 @@ interface FilterBarProps {
   onExportCSV?: () => void;
   onOpenMediaKit?: () => void;
   onOpenPitchGenerator?: () => void;
+  onOpenPitch?: () => void;
+
+
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -53,9 +57,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   totalCount,
   onExportCSV,
   onOpenMediaKit,
-  onOpenPitchGenerator
+  onOpenPitchGenerator,
+  onOpenPitch
 }) => {
   const [showSimpleQuickFilters, setShowSimpleQuickFilters] = useState(false);
+  const handleOpenPitch = onOpenPitchGenerator || onOpenPitch;
   const isFiltered = search !== '' || selectedPlatform !== 'all' || selectedCommercial !== 'all' || filterOverdueOnly || filterWhitelistingOnly;
 
   const handleReset = () => {
@@ -151,6 +157,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {handleOpenPitch && (
+              <button
+                onClick={handleOpenPitch}
+                className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-xs font-semibold transition-colors"
+                title="AI Sponsor Pitch & Multi-Tier Package Studio"
+              >
+                <Bot size={11} className="text-purple-500" />
+                <span>AI Pitch</span>
+              </button>
+            )}
+
             {onOpenMediaKit && (
               <button
                 onClick={onOpenMediaKit}
@@ -345,6 +362,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Right: Actions, Clear & Count */}
       <div className="flex items-center gap-2.5">
+        {handleOpenPitch && (
+          <button
+            onClick={handleOpenPitch}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-xs font-semibold transition-colors shadow-xs"
+            title="AI Sponsor Pitch & Multi-Tier Package Studio"
+          >
+            <Bot size={13} className="text-purple-500" />
+            <span>AI Pitch Studio</span>
+          </button>
+        )}
+
         {onOpenMediaKit && (
           <button
             onClick={onOpenMediaKit}
@@ -383,3 +411,5 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     </div>
   );
 };
+
+
