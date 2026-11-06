@@ -1,4 +1,4 @@
-import { Collab, Brand, StatsSummary, User } from '../types';
+﻿import { Collab, Brand, StatsSummary, User } from '../types';
 import {
   getLocalCollabs,
   saveLocalCollabs,
@@ -8,6 +8,7 @@ import {
   computeLocalStats,
   parseMediaUrlOffline,
   generateClientAIPitch,
+  getAdminTelemetryOffline,
   DEMO_USER_AARAV
 } from './mockStorage';
 
@@ -587,6 +588,18 @@ export async function apiGenerateAIPitch(payload: any): Promise<any> {
     },
     async () => {
       return generateClientAIPitch(payload);
+    }
+  ).then(res => ((res as any)?.data ? (res as any).data : res));
+}
+
+
+export async function fetchAdminMetrics(): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/metrics`,
+    { headers: getHeaders() },
+    async () => {
+      const { getAdminTelemetryOffline } = await import('./mockStorage');
+      return getAdminTelemetryOffline();
     }
   ).then(res => ((res as any)?.data ? (res as any).data : res));
 }

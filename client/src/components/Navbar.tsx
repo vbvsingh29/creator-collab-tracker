@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Instagram, 
   Youtube, 
@@ -22,7 +22,8 @@ import {
   Keyboard,
   Crown,
   ListFilter,
-  Bot
+  Bot,
+  Activity
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -52,6 +53,7 @@ interface NavbarProps {
   onOpenPricing?: () => void;
   onOpenMediaKit?: () => void;
   onOpenPitch?: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -65,6 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPricing,
   onOpenMediaKit,
   onOpenPitch,
+  onOpenAdmin,
   appMode,
   setAppMode,
   currentView,
@@ -110,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="inline-flex items-center gap-0.5 text-pink-600 dark:text-pink-400">
                 <Instagram size={11} /> Instagram
               </span>
-              <span className="text-zinc-300 dark:text-zinc-700">•</span>
+              <span className="text-zinc-300 dark:text-zinc-700">â€¢</span>
               <span className="inline-flex items-center gap-0.5 text-red-600 dark:text-red-400">
                 <Youtube size={11} /> YouTube
               </span>
@@ -237,7 +240,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               currency === 'INR' ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 font-semibold shadow-xs' : 'text-zinc-500 dark:text-zinc-400'
             }`}
           >
-            ₹
+            â‚¹
           </button>
           <button
             onClick={() => setCurrency('USD')}
@@ -345,6 +348,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
+        {/* Platform Observability / Admin Telemetry */}
+        {onOpenAdmin && (
+          <button
+            onClick={onOpenAdmin}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-xs font-semibold text-teal-700 dark:text-teal-300 transition-all shadow-xs"
+            title="Platform Admin Observatory (GDPR-Safe Active Users & CTR)"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <Activity size={13} className="text-teal-500" />
+            <span>Observatory</span>
+          </button>
+        )}
+
         {/* Upgrade Pro CTA */}
         {onOpenPricing && (
           <button
@@ -440,6 +456,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 )}
 
+                {onOpenAdmin && (
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenAdmin();
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-colors flex items-center gap-2 font-medium"
+                  >
+                    <Activity size={13} className="text-teal-500" />
+                    <span>Admin Observatory (GDPR)</span>
+                  </button>
+                )}
+
                 {onOpenProfile && (
                   <button
                     onClick={() => {
@@ -530,6 +559,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         ) : (
           <div className="flex items-center gap-1.5">
+            {onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 transition-all shadow-xs"
+                title="Platform Admin Observatory (GDPR Telemetry)"
+              >
+                <Activity size={12} className="text-teal-500" />
+                <span>Observatory</span>
+              </button>
+            )}
+
             {onOpenMediaKit && (
               <button
                 onClick={onOpenMediaKit}

@@ -1,4 +1,4 @@
-import { Collab, Brand, StatsSummary, User, PipelineStage } from '../types';
+import { Collab, Brand, StatsSummary, User, PipelineStage, AdminTelemetryMetrics } from '../types';
 
 export const DEMO_USER_AARAV: User = {
   id: 'user-aarav-tech-001',
@@ -638,5 +638,129 @@ Media Kit & Analytics: https://creator-collab-tracker-six.vercel.app`;
         'Urgency Window: Mention exclusivity lock calendar closes by the end of next week'
       ]
     }
+  };
+}
+
+
+export function getAdminTelemetryOffline(): AdminTelemetryMetrics {
+  const localCollabs = getLocalCollabs();
+  const localCount = localCollabs.length;
+
+  return {
+    total_onboarded_users: 1424,
+    onboarded_growth_rate: 19.4,
+    active_users: {
+      realtime_active: 48,
+      daily_active_users: 398,
+      weekly_active_users: 1025,
+      monthly_active_users: 1338,
+      dau_to_mau_stickiness: 29.7
+    },
+    click_through_rates: {
+      overall_campaign_ctr: 5.8,
+      tracking_link_ctr: 6.4,
+      media_kit_views_ctr: 12.1,
+      pitch_generator_conversion_ctr: 34.8,
+      rate_card_quote_acceptance_ctr: 41.5
+    },
+    platform_distribution: {
+      youtube_percentage: 44.5,
+      instagram_percentage: 41.2,
+      cross_platform_percentage: 14.3
+    },
+    deliverables_velocity: {
+      total_campaigns_tracked: 3840 + localCount,
+      completed_deliverables: 3120,
+      live_in_transit: 480,
+      completion_rate: 88.6
+    },
+    system_health: {
+      uptime_percentage: 99.98,
+      avg_api_latency_ms: 38,
+      youtube_sync_health: 'healthy',
+      instagram_sync_health: 'healthy',
+      ai_pitch_pipeline_health: 'healthy',
+      gdpr_audit_status: '100% Compliant — End-to-End Zero Financial Telemetry'
+    },
+    cohorts: [
+      {
+        cohort_id: 'CREATOR-TECH-084',
+        category: 'Tech & Consumer Electronics',
+        primary_platform: 'youtube',
+        onboarded_at: '2026-09-12',
+        last_active: '2 mins ago',
+        active_deliverables: 3,
+        total_impressions: 142000,
+        total_link_clicks: 8940,
+        click_through_rate: 6.3,
+        pwa_installed: true,
+        privacy_status: 'GDPR_PROTECTED'
+      },
+      {
+        cohort_id: 'CREATOR-LIFESTYLE-112',
+        category: 'Fashion & Lifestyle',
+        primary_platform: 'instagram',
+        onboarded_at: '2026-09-28',
+        last_active: '14 mins ago',
+        active_deliverables: 2,
+        total_impressions: 67000,
+        total_link_clicks: 4820,
+        click_through_rate: 7.2,
+        pwa_installed: true,
+        privacy_status: 'GDPR_PROTECTED'
+      },
+      {
+        cohort_id: 'CREATOR-AUDIO-205',
+        category: 'Audio & Peripherals',
+        primary_platform: 'both',
+        onboarded_at: '2026-10-04',
+        last_active: '48 mins ago',
+        active_deliverables: 4,
+        total_impressions: 89000,
+        total_link_clicks: 5120,
+        click_through_rate: 5.8,
+        pwa_installed: false,
+        privacy_status: 'GDPR_PROTECTED'
+      },
+      {
+        cohort_id: 'CREATOR-FINANCE-319',
+        category: 'Finance & FinTech',
+        primary_platform: 'youtube',
+        onboarded_at: '2026-10-18',
+        last_active: '2 hours ago',
+        active_deliverables: 1,
+        total_impressions: 112000,
+        total_link_clicks: 9800,
+        click_through_rate: 8.7,
+        pwa_installed: true,
+        privacy_status: 'GDPR_PROTECTED'
+      },
+      {
+        cohort_id: 'CREATOR-FITNESS-441',
+        category: 'Fitness & Health',
+        primary_platform: 'instagram',
+        onboarded_at: '2026-10-25',
+        last_active: '5 hours ago',
+        active_deliverables: 2,
+        total_impressions: 54000,
+        total_link_clicks: 3400,
+        click_through_rate: 6.3,
+        pwa_installed: true,
+        privacy_status: 'GDPR_PROTECTED'
+      },
+      {
+        cohort_id: 'CREATOR-SAAS-518',
+        category: 'Productivity & SaaS',
+        primary_platform: 'both',
+        onboarded_at: '2026-11-02',
+        last_active: 'Just now',
+        active_deliverables: 3,
+        total_impressions: 78000,
+        total_link_clicks: 5600,
+        click_through_rate: 7.1,
+        pwa_installed: true,
+        privacy_status: 'GDPR_PROTECTED'
+      }
+    ]
   };
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { X, Command, Keyboard, Zap, LayoutGrid, Sliders, ShieldCheck } from 'lucide-react';
 
 interface KeyboardShortcutsModalProps {
@@ -27,6 +27,7 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['b'], description: 'Open Brands & Agency CRM Directory', category: 'Actions & Tools' },
   { keys: ['a'], description: 'Open AI Sponsor Pitch & Package Studio', category: 'Actions & Tools' },
   { keys: ['m'], description: 'Open Creator Media Kit & Rate Card', category: 'Actions & Tools' },
+  { keys: ['o'], description: 'Open Platform Admin Observatory (GDPR Telemetry)', category: 'Actions & Tools' },
 
   // Preferences
   { keys: ['t'], description: 'Toggle Light / Dark Theme', category: 'Preferences' },

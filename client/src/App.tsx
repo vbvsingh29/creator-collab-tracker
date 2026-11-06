@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from './context/AuthContext';
 import { 
@@ -37,6 +37,7 @@ import { InvoiceModal } from './components/InvoiceModal';
 import { PitchGeneratorModal } from './components/PitchGeneratorModal';
 import { ProPricingModal } from './components/ProPricingModal';
 import { MediaKitModal } from './components/MediaKitModal';
+import { AdminPortalModal } from './components/AdminPortalModal';
 import { exportCollabsToCSV } from './utils/csvExport';
 import { useTheme } from './context/ThemeContext';
 
@@ -107,6 +108,7 @@ export function App() {
   const [isPitchOpen, setIsPitchOpen] = useState<boolean>(false);
   const [isPricingOpen, setIsPricingOpen] = useState<boolean>(false);
   const [isMediaKitOpen, setIsMediaKitOpen] = useState<boolean>(false);
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const { setTheme, resolvedTheme } = useTheme();
 
   const handleOpenPitch = (collab?: Collab | null) => {
@@ -399,6 +401,13 @@ export function App() {
         return;
       }
 
+      // Shortcut: 'o' => Platform Admin Observatory (GDPR Telemetry)
+      if (e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        setIsAdminOpen(true);
+        return;
+      }
+
       // Shortcut: 'e' => Exclusivity Collision Radar
       if (e.key.toLowerCase() === 'e') {
         e.preventDefault();
@@ -494,6 +503,7 @@ export function App() {
         onOpenPricing={() => setIsPricingOpen(true)}
         onOpenMediaKit={() => setIsMediaKitOpen(true)}
         onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
+        onOpenAdmin={() => setIsAdminOpen(true)}
 
       />
 
@@ -517,13 +527,13 @@ export function App() {
         {appMode === 'simple' && (
           <div className="md:hidden mb-3.5 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
             <span className="flex items-center gap-1.5 font-medium">
-              📱 <strong>Mobile View</strong>: Fast card tracking & 1-tap payouts
+              ðŸ“± <strong>Mobile View</strong>: Fast card tracking & 1-tap payouts
             </span>
             <button
               onClick={() => handleSetAppMode('advanced')}
               className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 underline shrink-0 ml-2"
             >
-              Agency Mode →
+              Agency Mode â†’
             </button>
           </div>
         )}
@@ -555,7 +565,6 @@ export function App() {
           onExportCSV={() => exportCollabsToCSV(filteredCollabs, currency)}
           onOpenMediaKit={() => setIsMediaKitOpen(true)}
         onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
-
           onOpenPitchGenerator={() => {
             setPitchCollab(filteredCollabs[0] || collabs[0] || null);
             setIsPitchOpen(true);
@@ -739,6 +748,7 @@ export function App() {
         onOpenExclusivity={() => setIsExclusivityOpen(true)}
         onOpenBrands={() => setIsBrandsOpen(true)}
         onOpenPricing={() => setIsPricingOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
       {/* Auth Modal (Log in / Sign up / 1-Click Demo Profiles) */}
@@ -826,6 +836,12 @@ export function App() {
       <KeyboardShortcutsModal
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
+      />
+
+      {/* Platform Admin Observatory & Telemetry Portal (GDPR Safe) */}
+      <AdminPortalModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
       />
 
       {/* Biometric & 4-Digit Security PIN App Lock */}

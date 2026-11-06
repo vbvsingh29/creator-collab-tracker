@@ -158,3 +158,57 @@ export interface StatsSummary {
     hybrid: number;
   };
 }
+
+
+export interface AnonymizedCreatorCohort {
+  cohort_id: string;
+  category: string;
+  primary_platform: 'youtube' | 'instagram' | 'both';
+  onboarded_at: string;
+  last_active: string;
+  active_deliverables: number;
+  total_impressions: number;
+  total_link_clicks: number;
+  click_through_rate: number;
+  pwa_installed: boolean;
+  privacy_status: 'GDPR_PROTECTED';
+}
+
+export interface AdminTelemetryMetrics {
+  total_onboarded_users: number;
+  onboarded_growth_rate: number;
+  active_users: {
+    realtime_active: number;
+    daily_active_users: number;
+    weekly_active_users: number;
+    monthly_active_users: number;
+    dau_to_mau_stickiness: number;
+  };
+  click_through_rates: {
+    overall_campaign_ctr: number;
+    tracking_link_ctr: number;
+    media_kit_views_ctr: number;
+    pitch_generator_conversion_ctr: number;
+    rate_card_quote_acceptance_ctr: number;
+  };
+  platform_distribution: {
+    youtube_percentage: number;
+    instagram_percentage: number;
+    cross_platform_percentage: number;
+  };
+  deliverables_velocity: {
+    total_campaigns_tracked: number;
+    completed_deliverables: number;
+    live_in_transit: number;
+    completion_rate: number;
+  };
+  system_health: {
+    uptime_percentage: number;
+    avg_api_latency_ms: number;
+    youtube_sync_health: 'healthy' | 'degraded';
+    instagram_sync_health: 'healthy' | 'degraded';
+    ai_pitch_pipeline_health: 'healthy' | 'degraded';
+    gdpr_audit_status: string;
+  };
+  cohorts: AnonymizedCreatorCohort[];
+}

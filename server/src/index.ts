@@ -8,6 +8,7 @@ import { collabsRouter } from './routes/collabs';
 import { brandsRouter } from './routes/brands';
 import { statsRouter } from './routes/stats';
 import { integrationsRouter } from './routes/integrations';
+import { adminRouter } from './routes/admin';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/collabs', collabsRouter);
 app.use('/api/brands', brandsRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {

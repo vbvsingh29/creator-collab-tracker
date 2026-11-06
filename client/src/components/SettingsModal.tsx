@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Settings, 
@@ -24,7 +24,8 @@ import {
   Calculator,
   ShieldAlert,
   Crown,
-  User as UserIcon
+  User as UserIcon,
+  Activity
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Currency } from '../types';
@@ -48,6 +49,7 @@ interface SettingsModalProps {
   onOpenExclusivity?: () => void;
   onOpenBrands?: () => void;
   onOpenPricing?: () => void;
+  onOpenAdmin?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -66,7 +68,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenRateCard,
   onOpenExclusivity,
   onOpenBrands,
-  onOpenPricing
+  onOpenPricing,
+  onOpenAdmin
 }) => {
   const { theme, setTheme } = useTheme();
   const {
@@ -279,6 +282,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>Upgrade Pro</span>
               </button>
             )}
+
+            {onOpenAdmin && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenAdmin(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition-colors shadow-xs"
+              >
+                <Activity size={13} className="text-teal-500" />
+                <span>Platform Observatory (GDPR Safe)</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -410,7 +424,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <input
                         type="password"
                         maxLength={4}
-                        placeholder="••••"
+                        placeholder="â€¢â€¢â€¢â€¢"
                         value={newPin}
                         onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
                         className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center text-lg font-mono tracking-widest text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
@@ -421,7 +435,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <input
                         type="password"
                         maxLength={4}
-                        placeholder="••••"
+                        placeholder="â€¢â€¢â€¢â€¢"
                         value={confirmPin}
                         onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
                         className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center text-lg font-mono tracking-widest text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
@@ -522,7 +536,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       currency === 'INR' ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-xs' : 'text-zinc-400'
                     }`}
                   >
-                    ₹ INR (Lakhs)
+                    â‚¹ INR (Lakhs)
                   </button>
                   <button
                     type="button"
