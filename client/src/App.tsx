@@ -65,9 +65,9 @@ export function App() {
     return (saved === 'simple' || saved === 'advanced') ? saved : 'simple';
   });
   const [currentView, setCurrentView] = useState<'kanban' | 'table' | 'cards'>('kanban');
-  const [simpleLayout, setSimpleLayout] = useState<'cards' | 'table'>(() => {
+  const [simpleLayout, setSimpleLayout] = useState<'cards' | 'detailed' | 'table'>(() => {
     const saved = localStorage.getItem('collabflow_simple_layout');
-    return (saved === 'cards' || saved === 'table') ? saved : 'cards';
+    return (saved === 'cards' || saved === 'detailed' || saved === 'table') ? (saved as 'cards' | 'detailed' | 'table') : 'cards';
   });
   const [currency, setCurrency] = useState<Currency>('INR');
 
@@ -76,7 +76,7 @@ export function App() {
     localStorage.setItem('collabflow_app_mode', mode);
   };
 
-  const handleSetSimpleLayout = (layout: 'cards' | 'table') => {
+  const handleSetSimpleLayout = (layout: 'cards' | 'detailed' | 'table') => {
     setSimpleLayout(layout);
     localStorage.setItem('collabflow_simple_layout', layout);
   };
@@ -569,6 +569,8 @@ export function App() {
             onSelectCollab={(c) => setSelectedCollab(c)}
             onQuickMarkPaid={handleQuickMarkPaid}
             onOpenNewCollab={() => setIsNewCollabOpen(true)}
+            onOpenInvoice={(c) => setInvoiceCollab(c)}
+            onOpenPitch={(c) => setPitchCollab(c)}
           />
         ) : currentView === 'kanban' ? (
           <KanbanBoard
@@ -584,6 +586,8 @@ export function App() {
             onSelectCollab={(c) => setSelectedCollab(c)}
             onQuickMarkPaid={handleQuickMarkPaid}
             onDeleteCollab={handleDeleteCollab}
+            onOpenInvoice={(c) => setInvoiceCollab(c)}
+            onOpenPitch={(c) => setPitchCollab(c)}
           />
         ) : (
           <SimpleView
@@ -594,6 +598,8 @@ export function App() {
             onSelectCollab={(c) => setSelectedCollab(c)}
             onQuickMarkPaid={handleQuickMarkPaid}
             onOpenNewCollab={() => setIsNewCollabOpen(true)}
+            onOpenInvoice={(c) => setInvoiceCollab(c)}
+            onOpenPitch={(c) => setPitchCollab(c)}
           />
         )}
       </main>

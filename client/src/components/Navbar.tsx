@@ -20,7 +20,8 @@ import {
   Monitor,
   Settings,
   Keyboard,
-  Crown
+  Crown,
+  ListFilter
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -33,8 +34,8 @@ interface NavbarProps {
   setAppMode: (mode: 'simple' | 'advanced') => void;
   currentView: 'kanban' | 'table' | 'cards';
   setCurrentView: (view: 'kanban' | 'table' | 'cards') => void;
-  simpleLayout?: 'cards' | 'table';
-  setSimpleLayout?: (layout: 'cards' | 'table') => void;
+  simpleLayout?: 'cards' | 'detailed' | 'table';
+  setSimpleLayout?: (layout: 'cards' | 'detailed' | 'table') => void;
   currency: Currency;
   setCurrency: (c: Currency) => void;
   onOpenNewCollab: () => void;
@@ -153,30 +154,44 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
-        {/* View Switcher in Simple Mode: Cards vs Simple Table */}
+        {/* View Switcher in Simple Mode: Cards vs Detailed Cards vs Simple Table */}
         {appMode === 'simple' && setSimpleLayout && (
           <div className="ml-6 hidden sm:flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-0.5 rounded-lg text-xs">
             <button
               onClick={() => setSimpleLayout('cards')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
                 simpleLayout === 'cards'
                   ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs font-semibold'
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
+              title="Clean starter cards"
             >
               <LayoutGrid size={13} />
-              Cards
+              <span>Cards</span>
+            </button>
+            <button
+              onClick={() => setSimpleLayout('detailed')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+                simpleLayout === 'detailed'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs font-semibold'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+              }`}
+              title="Detailed cards with checklists, promo codes & quick actions"
+            >
+              <ListFilter size={13} />
+              <span>Detailed</span>
             </button>
             <button
               onClick={() => setSimpleLayout('table')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
                 simpleLayout === 'table'
                   ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs font-semibold'
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
+              title="Clean spreadsheet data table"
             >
               <TableProperties size={13} />
-              Simple Table
+              <span>Table</span>
             </button>
           </div>
         )}
