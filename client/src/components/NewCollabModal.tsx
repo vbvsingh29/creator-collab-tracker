@@ -146,7 +146,8 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       tracking_link: trackingLink.trim(),
       scheduled_post_date: scheduledDate || undefined,
       notes: notes.trim(),
-      pipeline_stage: 'pitch_inquiry',
+      live_post_url: autoFillUrl.trim() || undefined,
+      pipeline_stage: autoFillUrl.trim() ? 'posted_live' : 'pitch_inquiry',
       deliverables_checklist: standardChecklist,
     });
 

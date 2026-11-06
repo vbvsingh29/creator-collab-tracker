@@ -264,3 +264,26 @@ export async function fetchStats(): Promise<StatsSummary> {
   const json = await res.json();
   return json.data;
 }
+
+
+export async function apiTestMediaUrl(url: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/integrations/test-media`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ url }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to verify content URL');
+  return data;
+}
+
+export async function apiGenerateAIPitch(payload: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/integrations/ai-pitch`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to generate AI pitch and reel summary');
+  return data.data;
+}

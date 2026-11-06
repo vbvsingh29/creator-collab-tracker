@@ -104,6 +104,7 @@ export function App() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [invoiceCollab, setInvoiceCollab] = useState<Collab | null>(null);
   const [pitchCollab, setPitchCollab] = useState<Collab | null>(null);
+  const [isPitchOpen, setIsPitchOpen] = useState<boolean>(false);
   const [isPricingOpen, setIsPricingOpen] = useState<boolean>(false);
   const [isMediaKitOpen, setIsMediaKitOpen] = useState<boolean>(false);
   const { setTheme, resolvedTheme } = useTheme();
@@ -289,7 +290,7 @@ export function App() {
           return;
         }
         if (invoiceCollab) { setInvoiceCollab(null); return; }
-        if (pitchCollab) { setPitchCollab(null); return; }
+        if (isPitchOpen || pitchCollab) { setIsPitchOpen(false); setPitchCollab(null); return; }
         if (isPricingOpen) { setIsPricingOpen(false); return; }
         if (isMediaKitOpen) { setIsMediaKitOpen(false); return; }
         if (proofCollab) { setProofCollab(null); return; }
@@ -539,7 +540,10 @@ export function App() {
           totalCount={collabs.length}
           onExportCSV={() => exportCollabsToCSV(filteredCollabs, currency)}
           onOpenMediaKit={() => setIsMediaKitOpen(true)}
-          onOpenPitchGenerator={() => setPitchCollab(filteredCollabs[0] || collabs[0] || null)}
+          onOpenPitchGenerator={() => {
+            setPitchCollab(filteredCollabs[0] || collabs[0] || null);
+            setIsPitchOpen(true);
+          }}
         />
 
         {/* View Component: Simple Cards, Kanban Board, or Data Table */}
@@ -570,7 +574,7 @@ export function App() {
             onQuickMarkPaid={handleQuickMarkPaid}
             onOpenNewCollab={() => setIsNewCollabOpen(true)}
             onOpenInvoice={(c) => setInvoiceCollab(c)}
-            onOpenPitch={(c) => setPitchCollab(c)}
+            onOpenPitch={(c) => { setPitchCollab(c); setIsPitchOpen(true); }}
           />
         ) : currentView === 'kanban' ? (
           <KanbanBoard
@@ -587,7 +591,7 @@ export function App() {
             onQuickMarkPaid={handleQuickMarkPaid}
             onDeleteCollab={handleDeleteCollab}
             onOpenInvoice={(c) => setInvoiceCollab(c)}
-            onOpenPitch={(c) => setPitchCollab(c)}
+            onOpenPitch={(c) => { setPitchCollab(c); setIsPitchOpen(true); }}
           />
         ) : (
           <SimpleView
@@ -599,7 +603,7 @@ export function App() {
             onQuickMarkPaid={handleQuickMarkPaid}
             onOpenNewCollab={() => setIsNewCollabOpen(true)}
             onOpenInvoice={(c) => setInvoiceCollab(c)}
-            onOpenPitch={(c) => setPitchCollab(c)}
+            onOpenPitch={(c) => { setPitchCollab(c); setIsPitchOpen(true); }}
           />
         )}
       </main>
@@ -616,7 +620,7 @@ export function App() {
           onOpenFollowUp={(c) => setFollowUpCollab(c)}
           onMarkPaid={(c) => handleQuickMarkPaid(c.id)}
           onOpenInvoice={(c) => setInvoiceCollab(c)}
-          onOpenPitchGenerator={(c) => setPitchCollab(c)}
+          onOpenPitchGenerator={(c) => { setPitchCollab(c); setIsPitchOpen(true); }}
         />
       )}
 
@@ -756,11 +760,16 @@ export function App() {
       )}
 
       {/* AI Sponsor Pitch & Counter-Offer Generator Modal */}
-      {pitchCollab && (
+      {isPitchOpen && (
         <PitchGeneratorModal
           collab={pitchCollab}
-          isOpen={!!pitchCollab}
-          onClose={() => setPitchCollab(null)}
+          collabs={collabs}
+          user={user}
+          isOpen={isPitchOpen}
+          onClose={() => {
+            setIsPitchOpen(false);
+            setPitchCollab(null);
+          }}
           currency={currency}
         />
       )}

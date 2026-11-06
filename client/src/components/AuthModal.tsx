@@ -390,6 +390,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
                       }}
                       className="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors"
                     >
+                      <KeyRound size={11} className="inline mr-1" />
                       Forgot password?
                     </button>
                   )}
@@ -412,6 +413,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
           {/* Mode: Forgot Password (Step 1) */}
           {mode === 'forgot' && (
             <div className="space-y-3">
+              <div className="p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between text-[11px]">
+                <span className="text-zinc-300">Quick Test:</span>
+                <button
+                  type="button"
+                  onClick={() => setResetEmail('tech.creator@example.com')}
+                  className="text-indigo-400 hover:text-indigo-300 font-bold underline"
+                >
+                  Use Demo Account (Instant OTP)
+                </button>
+              </div>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 Enter your registered creator email. We will generate a secure 6-digit verification code to reset your password.
               </p>
