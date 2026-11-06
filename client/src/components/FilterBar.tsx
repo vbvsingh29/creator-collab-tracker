@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Instagram, Youtube, Layers, X, Filter } from 'lucide-react';
+import { Search, Instagram, Youtube, Layers, X, Filter, Download, Sparkles, FileText } from 'lucide-react';
 import { Platform, CommercialType } from '../types';
 
 interface FilterBarProps {
@@ -16,6 +16,9 @@ interface FilterBarProps {
   setFilterWhitelistingOnly: (b: boolean) => void;
   totalFilteredCount: number;
   totalCount: number;
+  onExportCSV?: () => void;
+  onOpenMediaKit?: () => void;
+  onOpenPitchGenerator?: () => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -31,7 +34,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   filterWhitelistingOnly,
   setFilterWhitelistingOnly,
   totalFilteredCount,
-  totalCount
+  totalCount,
+  onExportCSV,
+  onOpenMediaKit,
+  onOpenPitchGenerator
 }) => {
   const isFiltered = search !== '' || selectedPlatform !== 'all' || selectedCommercial !== 'all' || filterOverdueOnly || filterWhitelistingOnly;
 
@@ -52,19 +58,25 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <div className="relative flex-1 max-w-sm">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
             <input
+              id="global-search-input"
               type="text"
               placeholder="Search by brand name or collab title..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-8 py-1.5 text-xs text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
             />
-            {search && (
+            {search ? (
               <button
                 onClick={() => setSearch('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                title="Clear search (Esc)"
               >
                 <X size={12} />
               </button>
+            ) : (
+              <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-semibold px-1 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-500 border border-zinc-300 dark:border-zinc-700 pointer-events-none">
+                /
+              </kbd>
             )}
           </div>
 
@@ -106,6 +118,28 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
+          {onOpenMediaKit && (
+            <button
+              onClick={onOpenMediaKit}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-xs font-semibold transition-colors"
+              title="1-Click Creator Media Kit & Rate Card"
+            >
+              <Sparkles size={11} className="text-amber-500" />
+              <span>Media Kit</span>
+            </button>
+          )}
+
+          {onExportCSV && (
+            <button
+              onClick={onExportCSV}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 text-xs font-semibold transition-colors"
+              title="Export deals to CSV/Excel for accounting"
+            >
+              <Download size={11} />
+              <span>CSV</span>
+            </button>
+          )}
+
           {isFiltered && (
             <button
               onClick={handleReset}
@@ -133,19 +167,25 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         <div className="relative flex-1 max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
           <input
+            id="global-search-input"
             type="text"
             placeholder="Search deals, brands, promo codes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-8 py-1.5 text-xs text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
           />
-          {search && (
+          {search ? (
             <button
               onClick={() => setSearch('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              title="Clear search (Esc)"
             >
               <X size={12} />
             </button>
+          ) : (
+            <kbd className="hidden sm:inline-block absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-semibold px-1 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-500 border border-zinc-300 dark:border-zinc-700 pointer-events-none">
+              /
+            </kbd>
           )}
         </div>
 
@@ -235,6 +275,42 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         >
           ⚡ Whitelisting
         </button>
+
+        {/* Media Kit One-Pager */}
+        {onOpenMediaKit && (
+          <button
+            onClick={onOpenMediaKit}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-xs font-semibold transition-colors"
+            title="1-Click Creator Media Kit & Rate Card"
+          >
+            <Sparkles size={12} className="text-amber-500" />
+            <span>Media Kit</span>
+          </button>
+        )}
+
+        {/* AI Pitch Generator */}
+        {onOpenPitchGenerator && (
+          <button
+            onClick={onOpenPitchGenerator}
+            className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 text-xs font-semibold transition-colors"
+            title="AI Sponsor Pitch & Counter-Offer Generator"
+          >
+            <FileText size={12} className="text-indigo-500" />
+            <span>AI Pitch</span>
+          </button>
+        )}
+
+        {/* Export to CSV */}
+        {onExportCSV && (
+          <button
+            onClick={onExportCSV}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 text-xs font-semibold transition-colors"
+            title="Export deals to CSV/Excel for accounting"
+          >
+            <Download size={12} />
+            <span>Export CSV</span>
+          </button>
+        )}
 
         {isFiltered && (
           <button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, ExternalLink, Share2, CheckCircle2 } from 'lucide-react';
 import { Collab } from '../types';
 
@@ -31,6 +31,14 @@ Please review the live content and confirm receipt.
 Best regards,
 Creator Team`;
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(proofMessage);
     setCopied(true);
@@ -38,7 +46,7 @@ Creator Team`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div onClick={onClose} className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
       <div 
         className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4"
         onClick={(e) => e.stopPropagation()}

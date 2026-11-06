@@ -30,6 +30,15 @@ import { IntegrationsModal } from './components/IntegrationsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { SettingsModal } from './components/SettingsModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { SecurityLockModal } from './components/SecurityLockModal';
+import { InstallPwaBanner } from './components/InstallPwaBanner';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { InvoiceModal } from './components/InvoiceModal';
+import { PitchGeneratorModal } from './components/PitchGeneratorModal';
+import { ProPricingModal } from './components/ProPricingModal';
+import { MediaKitModal } from './components/MediaKitModal';
+import { exportCollabsToCSV } from './utils/csvExport';
+import { useTheme } from './context/ThemeContext';
 
 const STAGES: PipelineStage[] = [
   'pitch_inquiry',
@@ -92,6 +101,12 @@ export function App() {
     const [newCollabPrefill, setNewCollabPrefill] = useState<any>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [invoiceCollab, setInvoiceCollab] = useState<Collab | null>(null);
+  const [pitchCollab, setPitchCollab] = useState<Collab | null>(null);
+  const [isPricingOpen, setIsPricingOpen] = useState<boolean>(false);
+  const [isMediaKitOpen, setIsMediaKitOpen] = useState<boolean>(false);
+  const { setTheme, resolvedTheme } = useTheme();
 
   // Fetch creator's private data
   const loadData = async () => {
@@ -255,6 +270,182 @@ export function App() {
     setIsNewCollabOpen(true);
   };
 
+
+  // Global Keyboard Shortcuts (Linear / Superhuman / Raycast style)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInputActive = activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.tagName === 'SELECT' || 
+        (activeEl as HTMLElement).isContentEditable
+      );
+
+      // Escape key handles input blur or top-most modal close (LIFO Stack)
+      if (e.key === 'Escape') {
+        if (isInputActive) {
+          (activeEl as HTMLElement).blur();
+          return;
+        }
+        if (invoiceCollab) { setInvoiceCollab(null); return; }
+        if (pitchCollab) { setPitchCollab(null); return; }
+        if (isPricingOpen) { setIsPricingOpen(false); return; }
+        if (isMediaKitOpen) { setIsMediaKitOpen(false); return; }
+        if (proofCollab) { setProofCollab(null); return; }
+        if (followUpCollab) { setFollowUpCollab(null); return; }
+        if (isShortcutsOpen) { setIsShortcutsOpen(false); return; }
+        if (isSettingsOpen) { setIsSettingsOpen(false); return; }
+        if (isProfileOpen) { setIsProfileOpen(false); return; }
+        if (isIntegrationsOpen) { setIsIntegrationsOpen(false); return; }
+        if (isBrandsOpen) { setIsBrandsOpen(false); return; }
+        if (isExclusivityOpen) { setIsExclusivityOpen(false); return; }
+        if (isRateCardOpen) { setIsRateCardOpen(false); return; }
+        if (isNewCollabOpen) { setIsNewCollabOpen(false); return; }
+        if (selectedCollab) { setSelectedCollab(null); return; }
+        if (isAuthModalOpen && user) { setIsAuthModalOpen(false); return; }
+        if (search) { setSearch(''); return; }
+        return;
+      }
+
+      // Do NOT trigger letter/number shortcuts if actively typing in inputs
+      if (isInputActive) return;
+
+      // Do NOT trigger if a modal is open
+      const isAnyModalOpen = isShortcutsOpen || isSettingsOpen || isProfileOpen || isAuthModalOpen || 
+        isIntegrationsOpen || isBrandsOpen || isExclusivityOpen || isRateCardOpen || isNewCollabOpen || 
+        proofCollab !== null || followUpCollab !== null || selectedCollab !== null;
+      if (isAnyModalOpen) return;
+
+      // Shortcut: '?' => Keyboard Shortcuts Modal
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setIsShortcutsOpen(true);
+        return;
+      }
+
+      // Shortcut: '/' or 's' => Focus Search
+      if (e.key === '/' || e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        const searchInput = document.getElementById('global-search-input') as HTMLInputElement | null;
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+        return;
+      }
+
+      // Shortcut: 'c' or 'n' => New Collab
+      if (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        if (!user) {
+          setIsAuthModalOpen(true);
+        } else {
+          setNewCollabPrefill(null);
+          setIsNewCollabOpen(true);
+        }
+        return;
+      }
+
+      // Shortcut: '1' => Simple View Mode
+      if (e.key === '1') {
+        e.preventDefault();
+        handleSetAppMode('simple');
+        return;
+      }
+
+      // Shortcut: '2' => Advanced View Mode
+      if (e.key === '2') {
+        e.preventDefault();
+        handleSetAppMode('advanced');
+        return;
+      }
+
+      // Shortcut: 'm' => Creator Media Kit
+      if (e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        if (user) setIsMediaKitOpen(true);
+        return;
+      }
+
+      // Shortcut: 'k' => Toggle Kanban Board vs Table View
+      if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (appMode === 'advanced') {
+          setCurrentView((prev) => (prev === 'kanban' ? 'table' : 'kanban'));
+        } else {
+          handleSetSimpleLayout(simpleLayout === 'cards' ? 'table' : 'cards');
+        }
+        return;
+      }
+
+      // Shortcut: 'r' => Rate Card Calculator
+      if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        setIsRateCardOpen(true);
+        return;
+      }
+
+      // Shortcut: 'e' => Exclusivity Collision Radar
+      if (e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setIsExclusivityOpen(true);
+        return;
+      }
+
+      // Shortcut: 'b' => Brands CRM Directory
+      if (e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setIsBrandsOpen(true);
+        return;
+      }
+
+      // Shortcut: 'p' => Creator Profile & Kit
+      if (e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        if (user) setIsProfileOpen(true);
+        return;
+      }
+
+      // Shortcut: ',' => Workspace Settings
+      if (e.key === ',') {
+        e.preventDefault();
+        setIsSettingsOpen(true);
+        return;
+      }
+
+      // Shortcut: 't' => Toggle Light / Dark Theme
+      if (e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [
+    user,
+    appMode,
+    currentView,
+    simpleLayout,
+    search,
+    resolvedTheme,
+    setTheme,
+    isShortcutsOpen,
+    isSettingsOpen,
+    isProfileOpen,
+    isAuthModalOpen,
+    isIntegrationsOpen,
+    isBrandsOpen,
+    isExclusivityOpen,
+    isRateCardOpen,
+    isNewCollabOpen,
+    proofCollab,
+    followUpCollab,
+    selectedCollab,
+  ]);
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-150">
       {/* Top Navigation with Creator Profile */}
@@ -286,6 +477,9 @@ export function App() {
         conflictCount={conflictCount}
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        onOpenPricing={() => setIsPricingOpen(true)}
+        onOpenMediaKit={() => setIsMediaKitOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -301,6 +495,21 @@ export function App() {
             <div className="text-[11px] text-zinc-500 hidden sm:block">
               Only your private brand deals and revenues are shown.
             </div>
+          </div>
+        )}
+
+        {/* Mobile View Recommendation Pill */}
+        {appMode === 'simple' && (
+          <div className="md:hidden mb-3.5 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-medium">
+              📱 <strong>Mobile View</strong>: Fast card tracking & 1-tap payouts
+            </span>
+            <button
+              onClick={() => handleSetAppMode('advanced')}
+              className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 underline shrink-0 ml-2"
+            >
+              Agency Mode →
+            </button>
           </div>
         )}
 
@@ -328,6 +537,9 @@ export function App() {
           setFilterWhitelistingOnly={setFilterWhitelistingOnly}
           totalFilteredCount={filteredCollabs.length}
           totalCount={collabs.length}
+          onExportCSV={() => exportCollabsToCSV(filteredCollabs, currency)}
+          onOpenMediaKit={() => setIsMediaKitOpen(true)}
+          onOpenPitchGenerator={() => setPitchCollab(filteredCollabs[0] || collabs[0] || null)}
         />
 
         {/* View Component: Simple Cards, Kanban Board, or Data Table */}
@@ -397,6 +609,8 @@ export function App() {
           onOpenProofCard={(c) => setProofCollab(c)}
           onOpenFollowUp={(c) => setFollowUpCollab(c)}
           onMarkPaid={(c) => handleQuickMarkPaid(c.id)}
+          onOpenInvoice={(c) => setInvoiceCollab(c)}
+          onOpenPitchGenerator={(c) => setPitchCollab(c)}
         />
       )}
 
@@ -513,6 +727,61 @@ export function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         conflictCount={conflictCount}
       />
+
+      {/* PWA 1-Click Install Banner for Mobile */}
+      <InstallPwaBanner />
+
+      {/* 1-Click Professional Brand Invoice Modal */}
+      {invoiceCollab && (
+        <InvoiceModal
+          collab={invoiceCollab}
+          isOpen={!!invoiceCollab}
+          onClose={() => setInvoiceCollab(null)}
+          currency={currency}
+          onMarkInvoiced={(id, invoiceNumber, invoiceDate, dueDate) => {
+            handleUpdateCollab(id, {
+              payment_status: 'invoiced',
+              invoice_number: invoiceNumber,
+              invoice_date: invoiceDate,
+              payment_due_date: dueDate,
+            });
+          }}
+        />
+      )}
+
+      {/* AI Sponsor Pitch & Counter-Offer Generator Modal */}
+      {pitchCollab && (
+        <PitchGeneratorModal
+          collab={pitchCollab}
+          isOpen={!!pitchCollab}
+          onClose={() => setPitchCollab(null)}
+          currency={currency}
+        />
+      )}
+
+      {/* Commercial SaaS Pro / Agency Pricing Modal */}
+      <ProPricingModal
+        isOpen={isPricingOpen}
+        onClose={() => setIsPricingOpen(false)}
+        currency={currency}
+      />
+
+      {/* 1-Click Creator Media Kit & Rate Card One-Pager Modal */}
+      <MediaKitModal
+        user={user}
+        currency={currency}
+        isOpen={isMediaKitOpen}
+        onClose={() => setIsMediaKitOpen(false)}
+      />
+
+      {/* Keyboard Shortcuts Cheat Sheet Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+      />
+
+      {/* Biometric & 4-Digit Security PIN App Lock */}
+      <SecurityLockModal onLogoutFallback={logout} />
     </div>
   );
 }

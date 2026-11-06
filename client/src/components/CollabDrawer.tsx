@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Instagram, 
@@ -23,7 +23,8 @@ import {
   Check, 
   ChevronRight,
   TrendingUp,
-  FileText
+  FileText,
+  Sparkles
 } from 'lucide-react';
 import { Collab, Currency, PipelineStage } from '../types';
 import { formatCurrency, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
@@ -38,6 +39,8 @@ interface CollabDrawerProps {
   onOpenProofCard: (collab: Collab) => void;
   onOpenFollowUp: (collab: Collab) => void;
   onMarkPaid: (collab: Collab) => void;
+  onOpenInvoice?: (collab: Collab) => void;
+  onOpenPitchGenerator?: (collab: Collab) => void;
 }
 
 export const CollabDrawer: React.FC<CollabDrawerProps> = ({
@@ -48,7 +51,9 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   onUpdateCollab,
   onOpenProofCard,
   onOpenFollowUp,
-  onMarkPaid
+  onMarkPaid,
+  onOpenInvoice,
+  onOpenPitchGenerator
 }) => {
   const [drawerMode, setDrawerMode] = useState<'simple' | 'advanced'>(appMode);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -70,6 +75,10 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
     ? ((collab.likes_count / collab.views_count) * 100).toFixed(1)
     : null;
 
+  const views = collab.views_count && collab.views_count > 0 ? collab.views_count : 45000;
+  const cpm = Math.round((collab.deal_amount / views) * 1000);
+  const cpv = (collab.deal_amount / views).toFixed(2);
+
   const formatInfo = getDeliverableLabel(collab.deliverable_format);
   const paymentBadge = getPaymentBadge(collab.payment_status);
   const stageConfig = getStageConfig(collab.pipeline_stage);
@@ -79,6 +88,14 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   const tdsEstimate = amount * 0.10;
   const agencyCommission = amount * 0.15;
   const netTakeHome = Math.max(0, amount - tdsEstimate - agencyCommission);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -103,7 +120,7 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end">
+    <div onClick={onClose} className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end">
       <div 
         className="w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 h-full overflow-y-auto flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -167,6 +184,28 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                   Proof Card
                 </button>
 
+                {onOpenInvoice && (
+                  <button
+                    onClick={() => onOpenInvoice(collab)}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium transition-colors"
+                    title="Generate PDF Brand Invoice"
+                  >
+                    <FileText size={12} className="text-indigo-400" />
+                    Invoice
+                  </button>
+                )}
+
+                {onOpenPitchGenerator && (
+                  <button
+                    onClick={() => onOpenPitchGenerator(collab)}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-500/30 text-indigo-300 font-medium transition-colors"
+                    title="AI Sponsor Counter-Offer & Pitch Generator"
+                  >
+                    <Sparkles size={12} className="text-amber-400" />
+                    AI Pitch
+                  </button>
+                )}
+
                 {/* Follow-up button if overdue or invoiced */}
                 {(collab.payment_status === 'overdue' || collab.payment_status === 'invoiced') && (
                   <button
@@ -203,6 +242,20 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
           </div>
 
           {/* Deliverable Integration Depth Badge */}
+          {collab.commercial_type !== 'barter' && (
+            <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">Unit Economics:</span>
+                <span className="font-mono text-zinc-300">
+                  Est. CPM: <strong className="text-emerald-400 font-bold">{formatCurrency(cpm, currency)}</strong> / 1k views
+                </span>
+              </div>
+              <span className="text-[10px] text-zinc-400 font-mono">
+                CPV: {formatCurrency(Number(cpv), currency)}
+              </span>
+            </div>
+          )}
+
           <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between">
             <div>
               <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block mb-1">
