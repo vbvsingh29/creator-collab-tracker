@@ -764,3 +764,72 @@ export function getAdminTelemetryOffline(): AdminTelemetryMetrics {
     ]
   };
 }
+
+
+// Dynamic Admin Challenge & Awareness Audit Log (No Static Passwords)
+let mockActiveChallenge: { code: string; expiresAt: number } | null = null;
+const mockAuditLogs = [
+  {
+    id: 'audit-demo-001',
+    timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    operator: 'aarav@tech.com (Workspace Owner)',
+    action: 'ADMIN_OBSERVATORY_UNLOCKED',
+    ip: '127.0.0.1 (Local Session)'
+  }
+];
+
+export function generateMockAdminChallenge() {
+  const dynamicCode = Math.floor(100000 + Math.random() * 900000).toString();
+  mockActiveChallenge = {
+    code: dynamicCode,
+    expiresAt: Date.now() + 60000
+  };
+  return {
+    success: true,
+    challenge_id: `ch_${Date.now()}`,
+    dynamic_code: dynamicCode,
+    expires_in_seconds: 60,
+    notice: 'Dynamic 60-second time-decaying security passkey generated. Zero static passwords.',
+    timestamp: new Date().toISOString()
+  };
+}
+
+export function verifyMockAdminChallenge(code: string, operator?: string) {
+  if (!mockActiveChallenge || Date.now() > mockActiveChallenge.expiresAt) {
+    // Generate fresh challenge if expired
+    const fresh = generateMockAdminChallenge();
+    if (code === fresh.dynamic_code) {
+      return recordMockAuditSuccess(operator);
+    }
+    throw new Error('Dynamic passkey expired. Please generate a fresh time-synced code.');
+  }
+
+  if (code.trim() !== mockActiveChallenge.code) {
+    throw new Error('Invalid dynamic challenge passkey.');
+  }
+
+  return recordMockAuditSuccess(operator);
+}
+
+function recordMockAuditSuccess(operator?: string) {
+  const entry = {
+    id: `audit-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    operator: operator || 'aarav@tech.com',
+    action: 'ADMIN_OBSERVATORY_UNLOCKED',
+    ip: 'Verified Client Browser Session'
+  };
+  mockAuditLogs.unshift(entry);
+  sessionStorage.setItem('collabflow_admin_session', `active_${Date.now()}`);
+  return {
+    success: true,
+    session_token: `admin_session_${Date.now()}`,
+    expires_in_minutes: 15,
+    audit_logged: true,
+    log_entry: entry
+  };
+}
+
+export function getMockAdminAuditLogs() {
+  return mockAuditLogs;
+}

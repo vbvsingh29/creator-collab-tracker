@@ -9,6 +9,9 @@ import {
   parseMediaUrlOffline,
   generateClientAIPitch,
   getAdminTelemetryOffline,
+  generateMockAdminChallenge,
+  verifyMockAdminChallenge,
+  getMockAdminAuditLogs,
   DEMO_USER_AARAV
 } from './mockStorage';
 
@@ -602,4 +605,45 @@ export async function fetchAdminMetrics(): Promise<any> {
       return getAdminTelemetryOffline();
     }
   ).then(res => ((res as any)?.data ? (res as any).data : res));
+}
+
+
+export async function apiGetAdminChallenge(): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/challenge`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+    },
+    async () => {
+      const { generateMockAdminChallenge } = await import('./mockStorage');
+      return generateMockAdminChallenge();
+    }
+  );
+}
+
+export async function apiVerifyAdminChallenge(code: string, operator?: string): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/verify-challenge`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ code, operator }),
+    },
+    async () => {
+      const { verifyMockAdminChallenge } = await import('./mockStorage');
+      return verifyMockAdminChallenge(code, operator);
+    }
+  );
+}
+
+export async function apiGetAdminAuditLogs(): Promise<any[]> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/audit-logs`,
+    { headers: getHeaders() },
+    async () => {
+      const { getMockAdminAuditLogs } = await import('./mockStorage');
+      return getMockAdminAuditLogs();
+    }
+  ).then(res => ((res as any)?.logs ? (res as any).logs : res));
 }
