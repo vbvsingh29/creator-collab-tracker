@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Instagram, 
@@ -80,6 +80,14 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   const agencyCommission = amount * 0.15;
   const netTakeHome = Math.max(0, amount - tdsEstimate - agencyCommission);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedLink(true);
@@ -103,7 +111,7 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end">
+    <div onClick={onClose} className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm flex justify-end">
       <div 
         className="w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 h-full overflow-y-auto flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
         onClick={(e) => e.stopPropagation()}

@@ -18,7 +18,8 @@ import {
   Sun,
   Moon,
   Monitor,
-  Settings
+  Settings,
+  Keyboard
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -44,6 +45,7 @@ interface NavbarProps {
   onDemoLogin?: (email: string) => void;
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
+  onOpenShortcuts?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -53,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onDemoLogin,
   onOpenProfile,
   onOpenSettings,
+  onOpenShortcuts,
   appMode,
   setAppMode,
   currentView,
@@ -289,9 +292,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onOpenSettings}
             className="hidden md:flex p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shadow-xs"
-            title="Workspace Settings"
+            title="Workspace Settings (,)"
           >
             <Settings size={15} />
+          </button>
+        )}
+
+        {/* Keyboard Shortcuts Button */}
+        {onOpenShortcuts && (
+          <button
+            onClick={onOpenShortcuts}
+            className="hidden lg:flex items-center gap-1 px-2 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shadow-xs text-xs font-medium"
+            title="Keyboard Shortcuts (?)"
+          >
+            <Keyboard size={14} />
+            <span className="text-[10px] font-mono font-bold text-zinc-400">?</span>
           </button>
         )}
 
@@ -357,6 +372,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <Settings size={13} className="text-zinc-400" />
                     <span>Workspace Settings</span>
+                  </button>
+                )}
+
+                {onOpenShortcuts && (
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenShortcuts();
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Keyboard size={13} className="text-zinc-400" />
+                      <span>Keyboard Shortcuts</span>
+                    </div>
+                    <kbd className="text-[10px] font-mono bg-zinc-200 dark:bg-zinc-800 px-1 py-0.5 rounded text-zinc-400">?</kbd>
                   </button>
                 )}
 
