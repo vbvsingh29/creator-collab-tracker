@@ -30,6 +30,8 @@ import { IntegrationsModal } from './components/IntegrationsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { SettingsModal } from './components/SettingsModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { SecurityLockModal } from './components/SecurityLockModal';
+import { InstallPwaBanner } from './components/InstallPwaBanner';
 
 const STAGES: PipelineStage[] = [
   'pitch_inquiry',
@@ -304,6 +306,21 @@ export function App() {
           </div>
         )}
 
+        {/* Mobile View Recommendation Pill */}
+        {appMode === 'simple' && (
+          <div className="md:hidden mb-3.5 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-medium">
+              📱 <strong>Mobile View</strong>: Fast card tracking & 1-tap payouts
+            </span>
+            <button
+              onClick={() => handleSetAppMode('advanced')}
+              className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 underline shrink-0 ml-2"
+            >
+              Agency Mode →
+            </button>
+          </div>
+        )}
+
         {/* Statistics & Financial Radar */}
         <MetricsRadar
           stats={stats}
@@ -513,6 +530,12 @@ export function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         conflictCount={conflictCount}
       />
+
+      {/* PWA 1-Click Install Banner for Mobile */}
+      <InstallPwaBanner />
+
+      {/* Biometric & 4-Digit Security PIN App Lock */}
+      <SecurityLockModal onLogoutFallback={logout} />
     </div>
   );
 }

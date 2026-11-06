@@ -13,11 +13,15 @@ import {
   Trash2, 
   Database, 
   FileText, 
-  Save 
+  Save,
+  Lock,
+  Fingerprint,
+  Smartphone
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Currency } from '../types';
-import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
+import { useAppLock } from '../context/AppLockContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -40,13 +44,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   simpleLayout,
   setSimpleLayout
 }) => {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const {
+    isPinEnabled,
+    isBiometricsEnabled,
+    hasBiometricHardware,
+    autoLockTimeout,
+    enablePinLock,
+    disablePinLock,
+    setAutoLockTimeout,
+    lockApp
+  } = useAppLock();
 
   // Invoicing defaults stored in localStorage
   const [legalName, setLegalName] = useState(() => localStorage.getItem('collabflow_biz_name') || 'Creator Studio');
   const [taxId, setTaxId] = useState(() => localStorage.getItem('collabflow_biz_tax') || 'GSTIN / PAN / Tax ID');
   const [bankInfo, setBankInfo] = useState(() => localStorage.getItem('collabflow_biz_bank') || 'HDFC Bank | A/C: 50200012345678 | IFSC: HDFC0000123 | UPI: creator@okaxis');
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Security App Lock State
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [currentPinToRemove, setCurrentPinToRemove] = useState('');
+  const [pinFeedback, setPinFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [bioToggle, setBioToggle] = useState(isBiometricsEnabled);
 
   if (!isOpen) return null;
 
@@ -61,6 +82,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setSavedSuccess(false);
       onClose();
     }, 1000);
+  };
+
+  const handleSetPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinFeedback(null);
+    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      setPinFeedback({ type: 'error', text: 'PIN must be exactly 4 digits.' });
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setPinFeedback({ type: 'error', text: 'PINs do not match.' });
+      return;
+    }
+
+    await enablePinLock(newPin, bioToggle);
+    setPinFeedback({ type: 'success', text: '4-digit PIN lock activated successfully!' });
+    setNewPin('');
+    setConfirmPin('');
+    confetti({ particleCount: 30, spread: 40 });
+  };
+
+  const handleDisablePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinFeedback(null);
+    const success = disablePinLock(currentPinToRemove);
+    if (success) {
+      setPinFeedback({ type: 'success', text: 'PIN lock disabled.' });
+      setCurrentPinToRemove('');
+    } else {
+      setPinFeedback({ type: 'error', text: 'Incorrect current PIN.' });
+    }
   };
 
   const handleClearCache = () => {
@@ -87,7 +139,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-sm">Workspace Settings</h3>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Configure theme appearance, financial defaults, and invoicing</p>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Configure theme appearance, security, and financial defaults</p>
             </div>
           </div>
           <button 
@@ -129,7 +181,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <div>
                   <div className="font-bold text-xs">Light Mode</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">Crisp, clean & bright</div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">Crisp & bright</div>
                 </div>
               </button>
 
@@ -148,11 +200,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <div>
                   <div className="font-bold text-xs">Dark Mode</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">High-contrast charcoal</div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">Obsidian aesthetic</div>
                 </div>
               </button>
 
-              {/* Auto / System Mode */}
+              {/* Auto / System */}
               <button
                 type="button"
                 onClick={() => setTheme('auto')}
@@ -162,40 +214,196 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400'
                 }`}
               >
-                <div className="w-8 h-8 rounded-full bg-zinc-500/10 text-zinc-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
                   <Monitor size={16} />
                 </div>
                 <div>
-                  <div className="font-bold text-xs">Auto System</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">Sync with OS ({resolvedTheme})</div>
+                  <div className="font-bold text-xs">Auto Mode</div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5">Syncs with OS</div>
                 </div>
               </button>
             </div>
           </div>
 
-          {/* 2. Workspace Defaults */}
+          {/* 2. Mobile App Lock & Biometrics */}
+          <div className="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                Security & Biometric App Lock
+              </label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                isPinEnabled 
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
+                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 border-zinc-300 dark:border-zinc-700'
+              }`}>
+                {isPinEnabled ? 'PIN & Biometrics Active' : 'No App Lock'}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-100/70 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
+                  <Lock size={18} />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-xs">Mobile PWA App Lock</h4>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    Protect private brand deal values, contracts, and revenue stats from prying eyes when sharing your phone.
+                  </p>
+                  {hasBiometricHardware && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium pt-0.5">
+                      <Fingerprint size={12} />
+                      <span>Biometric hardware (Touch ID / Face ID / Fingerprint) detected</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {pinFeedback && (
+                <div className={`p-2.5 rounded-xl text-xs flex items-center gap-1.5 ${
+                  pinFeedback.type === 'success'
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400'
+                }`}>
+                  <span>{pinFeedback.text}</span>
+                </div>
+              )}
+
+              {/* Set PIN if not enabled */}
+              {!isPinEnabled ? (
+                <form onSubmit={handleSetPin} className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-zinc-500 uppercase block mb-1">New 4-Digit PIN</label>
+                      <input
+                        type="password"
+                        maxLength={4}
+                        placeholder="••••"
+                        value={newPin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center text-lg font-mono tracking-widest text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-zinc-500 uppercase block mb-1">Confirm 4-Digit PIN</label>
+                      <input
+                        type="password"
+                        maxLength={4}
+                        placeholder="••••"
+                        value={confirmPin}
+                        onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center text-lg font-mono tracking-widest text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-[11px] text-zinc-700 dark:text-zinc-300 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={bioToggle}
+                      onChange={(e) => setBioToggle(e.target.checked)}
+                      className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 focus:ring-0"
+                    />
+                    <span>Allow 1-tap unlock with Face ID / Touch ID / Fingerprint</span>
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors shadow-xs"
+                  >
+                    Set 4-Digit App PIN
+                  </button>
+                </form>
+              ) : (
+                /* Manage existing PIN */
+                <div className="space-y-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-zinc-200/50 dark:bg-zinc-800/40 border border-zinc-300 dark:border-zinc-700">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-emerald-500" />
+                      <span className="font-semibold text-xs">App Lock is Active</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        lockApp();
+                      }}
+                      className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs"
+                    >
+                      Lock App Now
+                    </button>
+                  </div>
+
+                  {/* Auto-Lock Inactivity Timeout */}
+                  <div>
+                    <label className="text-[10px] text-zinc-500 uppercase block mb-1">Auto-Lock Inactivity Period</label>
+                    <select
+                      value={autoLockTimeout}
+                      onChange={(e) => setAutoLockTimeout(parseInt(e.target.value, 10))}
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value={0}>Immediately when app is closed / backgrounded</option>
+                      <option value={1}>After 1 minute of inactivity</option>
+                      <option value={5}>After 5 minutes (Recommended)</option>
+                      <option value={15}>After 15 minutes</option>
+                      <option value={-1}>Never auto-lock (Manual lock only)</option>
+                    </select>
+                  </div>
+
+                  {/* Disable PIN Form */}
+                  <form onSubmit={handleDisablePin} className="pt-2 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="Enter current PIN"
+                      value={currentPinToRemove}
+                      onChange={(e) => setCurrentPinToRemove(e.target.value.replace(/\D/g, ''))}
+                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-red-500"
+                    />
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 rounded-xl border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 text-xs font-semibold transition-colors shrink-0"
+                    >
+                      Disable PIN
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 3. Workspace Financial Defaults */}
           <div className="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
             <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
-              Workspace & Financial Preferences
+              Financial & View Defaults
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Currency Selector */}
               <div>
-                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Primary Currency</label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as Currency)}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 font-semibold focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="INR">₹ INR (Indian Rupee)</option>
-                  <option value="USD">$ USD (US Dollar)</option>
-                  <option value="EUR">€ EUR (Euro)</option>
-                  <option value="GBP">£ GBP (British Pound)</option>
-                </select>
+                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Default Currency</label>
+                <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrency('INR')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      currency === 'INR' ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-xs' : 'text-zinc-400'
+                    }`}
+                  >
+                    ₹ INR (Lakhs)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrency('USD')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      currency === 'USD' ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-xs' : 'text-zinc-400'
+                    }`}
+                  >
+                    $ USD
+                  </button>
+                </div>
               </div>
 
-              {/* Default App Mode */}
               <div>
                 <label className="text-[10px] text-zinc-500 uppercase block mb-1">Default View Mode</label>
                 <select
@@ -204,13 +412,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-zinc-900 dark:text-zinc-100 font-semibold focus:outline-none focus:border-indigo-500"
                 >
                   <option value="simple">Simple Mode (Quick & Minimal)</option>
-                  <option value="advanced">Advanced Mode (Full Pipeline & Radar)</option>
+                  <option value="advanced">Advanced Mode (Agency Suite)</option>
                 </select>
               </div>
 
-              {/* Simple Mode Layout */}
               <div>
-                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Simple Mode Layout</label>
+                <label className="text-[10px] text-zinc-500 uppercase block mb-1">Simple Layout</label>
                 <select
                   value={simpleLayout}
                   onChange={(e) => setSimpleLayout(e.target.value as 'cards' | 'table')}
@@ -223,7 +430,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Invoicing Defaults Form */}
+          {/* 4. Invoicing Defaults Form */}
           <form onSubmit={handleSaveDefaults} className="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
@@ -270,7 +477,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </form>
 
-          {/* 4. Security & Data Management */}
+          {/* 5. Security & Data Management */}
           <div className="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
             <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
               Security & Workspace Data
