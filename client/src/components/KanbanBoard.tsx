@@ -40,7 +40,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onAdvanceStage
 }) => {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-6 pt-1 min-h-[calc(100vh-280px)] select-none">
+    <div className="flex gap-3 overflow-x-auto pb-6 pt-1 min-h-[calc(100vh-280px)] select-none snap-x snap-mandatory scroll-smooth -mx-3 px-3 sm:mx-0 sm:px-0">
       {STAGES.map((stageKey) => {
         const stageConfig = getStageConfig(stageKey);
         const stageCollabs = collabs.filter((c) => c.pipeline_stage === stageKey);
@@ -55,10 +55,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         return (
           <div
             key={stageKey}
-            className="w-72 shrink-0 flex flex-col bg-zinc-900/40 border border-zinc-800/80 rounded-xl overflow-hidden"
+            className="w-[85vw] sm:w-72 shrink-0 snap-center sm:snap-align-none flex flex-col bg-zinc-100/70 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 rounded-xl overflow-hidden"
           >
             {/* Column Header */}
-            <div className="px-3.5 py-3 border-b border-zinc-800/80 bg-zinc-900/80 flex items-center justify-between">
+            <div className="px-3.5 py-3 border-b border-zinc-200 dark:border-zinc-800/80 bg-zinc-200/50 dark:bg-zinc-900/80 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${
                   stageKey === 'posted_live' || stageKey === 'completed'
@@ -67,15 +67,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     ? 'bg-purple-500'
                     : 'bg-indigo-500'
                 }`} />
-                <h3 className="font-semibold text-xs text-zinc-200">
+                <h3 className="font-semibold text-xs text-zinc-800 dark:text-zinc-200">
                   {stageConfig.label}
                 </h3>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-zinc-800 text-zinc-400">
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                   {stageCollabs.length}
                 </span>
               </div>
               {stageTotal > 0 && (
-                <span className="text-[11px] font-medium text-zinc-400">
+                <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
                   {formatCurrency(stageTotal, currency)}
                 </span>
               )}
@@ -84,7 +84,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             {/* Column Cards */}
             <div className="p-2.5 flex-1 flex flex-col gap-2.5 overflow-y-auto max-h-[calc(100vh-340px)]">
               {stageCollabs.length === 0 ? (
-                <div className="h-28 flex items-center justify-center border border-dashed border-zinc-800/60 rounded-lg text-[11px] text-zinc-600">
+                <div className="h-28 flex items-center justify-center border border-dashed border-zinc-300 dark:border-zinc-800/60 rounded-lg text-[11px] text-zinc-400 dark:text-zinc-600">
                   No deals in this stage
                 </div>
               ) : (
@@ -96,11 +96,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     <div
                       key={collab.id}
                       onClick={() => onSelectCollab(collab)}
-                      className="group bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700/90 rounded-lg p-3 transition-all cursor-pointer shadow-sm relative hover:shadow-md hover:-translate-y-0.5"
+                      className="group bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700/90 rounded-lg p-3 transition-all cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 relative"
                     >
                       {/* Top Row: Brand & Platform */}
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider truncate">
+                        <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider truncate">
                           {collab.brand_name}
                         </span>
 
@@ -124,7 +124,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       </div>
 
                       {/* Title */}
-                      <h4 className="text-xs font-semibold text-zinc-100 leading-snug line-clamp-2 mb-2">
+                      <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2 mb-2">
                         {collab.title}
                       </h4>
 
@@ -144,7 +144,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             </span>
                           )}
                           {collab.has_category_exclusivity && (
-                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 font-medium">
+                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-medium">
                               <ShieldAlert size={10} /> Exclusive
                             </span>
                           )}
@@ -160,7 +160,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       )}
 
                       {/* Commercial & Payment Status Row */}
-                      <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
+                      <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                         <div>
                           {collab.commercial_type === 'barter' ? (
                             <div className="text-xs font-bold text-violet-400">
@@ -179,14 +179,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       </div>
 
                       {/* Stage advancement arrow controls */}
-                      <div className="mt-2.5 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-500">
+                      <div className="mt-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between text-[11px] text-zinc-500">
                         <button
                           disabled={currentIndex === 0}
                           onClick={(e) => {
                             e.stopPropagation();
                             onAdvanceStage(collab.id, stageKey, 'prev');
                           }}
-                          className={`p-1 rounded hover:bg-zinc-800 hover:text-zinc-200 transition-colors ${
+                          className={`p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors ${
                             currentIndex === 0 ? 'opacity-20 cursor-not-allowed' : ''
                           }`}
                           title="Move back"
@@ -194,7 +194,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                           <ChevronLeft size={13} />
                         </button>
 
-                        <span className="text-[10px] text-zinc-400">
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
                           Step {stageConfig.step}/8
                         </span>
 
@@ -204,7 +204,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             e.stopPropagation();
                             onAdvanceStage(collab.id, stageKey, 'next');
                           }}
-                          className={`p-1 rounded hover:bg-zinc-800 hover:text-zinc-200 transition-colors ${
+                          className={`p-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors ${
                             currentIndex === STAGES.length - 1 ? 'opacity-20 cursor-not-allowed' : ''
                           }`}
                           title="Advance to next stage"

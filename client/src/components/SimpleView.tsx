@@ -59,7 +59,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
           Showing <span className="text-zinc-200">{collabs.length}</span> {collabs.length === 1 ? 'deal' : 'deals'}
         </span>
 
-        <div className="flex items-center bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg text-xs font-medium">
+        <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-0.5 rounded-lg text-xs font-medium">
           <button
             onClick={() => handleSwitchLayout('cards')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all ${
@@ -86,7 +86,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
       </div>
 
       {collabs.length === 0 ? (
-        <div className="py-16 text-center space-y-3 bg-zinc-900/30 border border-zinc-800/60 rounded-2xl">
+        <div className="py-16 text-center space-y-3 bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl">
           <p className="text-zinc-400 text-sm font-medium">No collaborations found.</p>
           <p className="text-zinc-500 text-xs max-w-sm mx-auto">
             Track your Instagram and YouTube brand deals, barter gifts, and payment terms in one place.
@@ -105,7 +105,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
         <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-950/80 text-zinc-400 border-b border-zinc-800 uppercase tracking-wider text-[10px] font-semibold">
+              <thead className="bg-zinc-50 dark:bg-zinc-950/80 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800 uppercase tracking-wider text-[10px] font-semibold">
                 <tr>
                   <th className="py-3 px-4">Brand</th>
                   <th className="py-3 px-4">Campaign Title</th>
@@ -118,7 +118,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/60 text-zinc-200">
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800/60 text-zinc-800 dark:text-zinc-200">
                 {collabs.map((collab) => {
                   const formatInfo = getDeliverableLabel(collab.deliverable_format);
                   const paymentBadge = getPaymentBadge(collab.payment_status);
@@ -129,7 +129,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                     <tr
                       key={collab.id}
                       onClick={() => onSelectCollab(collab)}
-                      className="hover:bg-zinc-850/60 cursor-pointer transition-colors group"
+                      className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60 cursor-pointer transition-colors group"
                     >
                       {/* Brand */}
                       <td className="py-3 px-4 font-bold text-indigo-400 group-hover:text-indigo-300">
@@ -137,7 +137,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                       </td>
 
                       {/* Title */}
-                      <td className="py-3 px-4 font-medium text-zinc-100 max-w-[220px] truncate">
+                      <td className="py-3 px-4 font-medium text-zinc-900 dark:text-zinc-100 max-w-[220px] truncate">
                         {collab.title}
                       </td>
 
@@ -162,14 +162,14 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
 
                       {/* Deliverable Format */}
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 text-[11px]">
+                        <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 text-[11px]">
                           {formatInfo.label}
                         </span>
                       </td>
 
                       {/* Pipeline Stage */}
                       <td className="py-3 px-4 text-zinc-400">
-                        <span className="px-2 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-zinc-800 text-[10px]">
+                        <span className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 text-[10px]">
                           {stageConfig.label}
                         </span>
                       </td>
@@ -212,7 +212,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                         {!isPaid && collab.commercial_type !== 'barter' ? (
                           <button
                             onClick={(e) => onQuickMarkPaid(collab.id, e)}
-                            className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-emerald-500/20 text-zinc-300 hover:text-emerald-400 text-[11px] font-medium transition-colors"
+                            className="px-2.5 py-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-500/20 text-zinc-700 dark:text-zinc-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-[11px] font-medium transition-colors"
                           >
                             Mark Paid
                           </button>
@@ -242,7 +242,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
               <div
                 key={collab.id}
                 onClick={() => onSelectCollab(collab)}
-                className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between group"
+                className="p-4 rounded-xl bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between group"
               >
                 <div>
                   {/* Top Bar: Brand, Platform & Status */}
@@ -271,23 +271,23 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                   </div>
 
                   {/* Deal Title */}
-                  <h3 className="font-semibold text-sm text-zinc-100 group-hover:text-indigo-300 transition-colors line-clamp-2 mb-2">
+                  <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors line-clamp-2 mb-2">
                     {collab.title}
                   </h3>
 
                   {/* Format & Stage Tags */}
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+                    <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                       {formatInfo.label}
                     </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-zinc-800">
+                    <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800">
                       {stageConfig.label}
                     </span>
                   </div>
                 </div>
 
                 {/* Bottom Row: Amount & Actions */}
-                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+                <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                   <div>
                     {collab.commercial_type === 'barter' ? (
                       <span className="text-sm font-bold text-violet-400">
@@ -310,7 +310,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                     {!isPaid && collab.commercial_type !== 'barter' && (
                       <button
                         onClick={(e) => onQuickMarkPaid(collab.id, e)}
-                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 text-[11px] font-medium transition-colors"
+                        className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-500/20 text-zinc-600 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-[11px] font-medium transition-colors"
                         title="Mark as Paid"
                       >
                         Mark Paid
@@ -321,7 +321,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
 
                 {/* Live Post Link & Views if available */}
                 {collab.live_post_url && (
-                  <div className="mt-2.5 pt-2 border-t border-zinc-850 flex items-center justify-between text-[11px]">
+                  <div className="mt-2.5 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[11px]">
                     <a
                       href={collab.live_post_url}
                       target="_blank"

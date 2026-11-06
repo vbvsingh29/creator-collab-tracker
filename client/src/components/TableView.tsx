@@ -33,7 +33,7 @@ export const TableView: React.FC<TableViewProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           {/* Header */}
-          <thead className="bg-zinc-950/80 text-zinc-400 border-b border-zinc-800 uppercase tracking-wider text-[10px] font-semibold">
+          <thead className="bg-zinc-50 dark:bg-zinc-950/80 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800 uppercase tracking-wider text-[10px] font-semibold">
             <tr>
               <th className="py-3 px-4">Platform & Title</th>
               <th className="py-3 px-4">Brand / Category</th>
@@ -48,7 +48,7 @@ export const TableView: React.FC<TableViewProps> = ({
           </thead>
 
           {/* Rows */}
-          <tbody className="divide-y divide-zinc-800/60 text-zinc-200">
+          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800/60 text-zinc-800 dark:text-zinc-200">
             {collabs.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-12 text-center text-zinc-500 text-xs">
@@ -65,7 +65,7 @@ export const TableView: React.FC<TableViewProps> = ({
                   <tr
                     key={collab.id}
                     onClick={() => onSelectCollab(collab)}
-                    className="hover:bg-zinc-850/60 transition-colors cursor-pointer group"
+                    className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60 transition-colors cursor-pointer group"
                   >
                     {/* Platform & Title */}
                     <td className="py-3 px-4 max-w-xs">
@@ -85,7 +85,7 @@ export const TableView: React.FC<TableViewProps> = ({
                             <Layers size={14} />
                           </div>
                         )}
-                        <span className="font-medium text-zinc-100 line-clamp-1 group-hover:text-indigo-300 transition-colors">
+                        <span className="font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
                           {collab.title}
                         </span>
                       </div>
@@ -93,7 +93,7 @@ export const TableView: React.FC<TableViewProps> = ({
 
                     {/* Brand */}
                     <td className="py-3 px-4">
-                      <div className="font-semibold text-zinc-200">{collab.brand_name}</div>
+                      <div className="font-semibold text-zinc-800 dark:text-zinc-200">{collab.brand_name}</div>
                       <div className="text-[10px] text-zinc-500">{collab.brand_category}</div>
                     </td>
 
@@ -176,7 +176,7 @@ export const TableView: React.FC<TableViewProps> = ({
 
                     {/* Stage */}
                     <td className="py-3 px-4">
-                      <span className="text-[11px] font-medium text-zinc-300">
+                      <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
                         {stageConfig.label}
                       </span>
                     </td>
@@ -187,7 +187,7 @@ export const TableView: React.FC<TableViewProps> = ({
                         {collab.payment_status !== 'paid' && collab.commercial_type !== 'barter' && (
                           <button
                             onClick={(e) => onQuickMarkPaid(collab.id, e)}
-                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 transition-colors"
+                            className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-500/20 text-zinc-600 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                             title="Mark as Paid"
                           >
                             <CheckCircle2 size={13} />
@@ -195,7 +195,7 @@ export const TableView: React.FC<TableViewProps> = ({
                         )}
                         <button
                           onClick={(e) => onDeleteCollab(collab.id, e)}
-                          className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-colors"
+                          className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-red-500/20 text-zinc-600 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                           title="Delete Collaboration"
                         >
                           <Trash2 size={13} />
