@@ -12,7 +12,8 @@ import {
   KeyRound, 
   CheckCircle2, 
   Sparkles,
-  ShieldCheck 
+  ShieldCheck,
+  Activity
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
@@ -23,9 +24,10 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose?: () => void;
   canClose?: boolean;
+  onOpenAdmin?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose = true }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose = true, onOpenAdmin }) => {
   const { login, register, demoLogin, setSession } = useAuth() as any;
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>('login');
 
@@ -540,6 +542,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
             </button>
           )}
         </form>
+
+        {onOpenAdmin && (
+          <div className="pt-3 mt-1 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+            <span className="text-[11px] text-zinc-400 flex items-center gap-1.5">
+              <ShieldCheck size={13} className="text-emerald-500" />
+              <span>Platform Operator:</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                onClose?.();
+                onOpenAdmin();
+              }}
+              className="text-teal-400 hover:text-teal-300 font-semibold text-[11px] flex items-center gap-1 hover:underline transition-colors"
+            >
+              <Activity size={12} />
+              <span>Admin Observatory Gate &rarr;</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

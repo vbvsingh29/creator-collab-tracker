@@ -352,12 +352,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         {onOpenAdmin && (
           <button
             onClick={onOpenAdmin}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-xs font-semibold text-teal-700 dark:text-teal-300 transition-all shadow-xs"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-xs font-semibold text-teal-700 dark:text-teal-300 transition-all shadow-xs"
             title="Platform Admin Observatory (GDPR-Safe Active Users & CTR)"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <Activity size={13} className="text-teal-500" />
-            <span>Observatory</span>
+            <span className="hidden sm:inline">Observatory</span>
+            <span className="sm:hidden">Admin</span>
           </button>
         )}
 
@@ -562,11 +563,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onOpenAdmin && (
               <button
                 onClick={onOpenAdmin}
-                className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 transition-all shadow-xs"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 text-xs font-semibold text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 transition-all shadow-xs"
                 title="Platform Admin Observatory (GDPR Telemetry)"
               >
                 <Activity size={12} className="text-teal-500" />
-                <span>Observatory</span>
+                <span className="hidden sm:inline">Observatory</span>
+                <span className="sm:hidden">Admin</span>
               </button>
             )}
 

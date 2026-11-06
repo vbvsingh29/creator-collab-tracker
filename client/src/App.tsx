@@ -756,6 +756,10 @@ export function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         canClose={!!user}
+        onOpenAdmin={() => {
+          setIsAuthModalOpen(false);
+          setIsAdminOpen(true);
+        }}
       />
 
       {/* Mobile Bottom Navigation Bar (md:hidden) */}
