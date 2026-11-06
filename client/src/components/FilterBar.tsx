@@ -46,7 +46,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   // SIMPLE MODE FILTER BAR: Minimal, clear search + platform filter
   if (appMode === 'simple') {
     return (
-      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-3 mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 rounded-xl p-3 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           {/* Simple Search Input */}
           <div className="relative flex-1 max-w-sm">
@@ -56,7 +56,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               placeholder="Search by brand name or collab title..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-8 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-8 py-1.5 text-xs text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
             />
             {search && (
               <button
@@ -69,13 +69,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           {/* Simple Platform Buttons */}
-          <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 text-xs">
+          <div className="flex items-center bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 text-xs">
             <button
               onClick={() => setSelectedPlatform('all')}
               className={`px-3 py-1 rounded-md font-medium transition-colors ${
                 selectedPlatform === 'all'
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
               All
@@ -109,14 +109,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           {isFiltered && (
             <button
               onClick={handleReset}
-              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded hover:bg-zinc-800/60"
+              className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
             >
               <X size={12} /> Clear Filter
             </button>
           )}
 
           <div className="text-[11px] text-zinc-500">
-            Showing <span className="font-semibold text-zinc-300">{totalFilteredCount}</span> of {totalCount} collabs
+            Showing <span className="font-semibold text-zinc-800 dark:text-zinc-300">{totalFilteredCount}</span> of {totalCount} collabs
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   // ADVANCED MODE FILTER BAR: Comprehensive multi-attribute filtering
 
   return (
-    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-3 mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 rounded-xl p-3 mb-6 flex flex-wrap items-center justify-between gap-3 shadow-xs">
       {/* Left: Search & Platform Pills */}
       <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
         {/* Search Input */}
@@ -137,7 +137,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             placeholder="Search deals, brands, promo codes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500 transition-colors"
           />
           {search && (
             <button
@@ -150,13 +150,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
 
         {/* Platform Filter Buttons */}
-        <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 text-xs">
+        <div className="flex items-center bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 text-xs">
           <button
             onClick={() => setSelectedPlatform('all')}
             className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
               selectedPlatform === 'all'
-                ? 'bg-zinc-800 text-white'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
+                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             All Platforms
@@ -200,7 +200,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         <select
           value={selectedCommercial}
           onChange={(e) => setSelectedCommercial(e.target.value)}
-          className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500"
+          className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-500"
         >
           <option value="all">All Deal Types</option>
           <option value="paid">Paid Cash Deals</option>
@@ -218,7 +218,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
             filterOverdueOnly
               ? 'bg-red-500/20 text-red-300 border-red-500/40 shadow-sm'
-              : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+              : 'bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
           }`}
         >
           ⚠️ Overdue Only
@@ -230,7 +230,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
             filterWhitelistingOnly
               ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 shadow-sm'
-              : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+              : 'bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
           }`}
         >
           ⚡ Whitelisting
@@ -246,7 +246,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         )}
 
         <div className="text-[11px] text-zinc-500 pl-1">
-          Showing <span className="font-semibold text-zinc-300">{totalFilteredCount}</span> of {totalCount}
+          Showing <span className="font-semibold text-zinc-800 dark:text-zinc-300">{totalFilteredCount}</span> of {totalCount}
         </div>
       </div>
     </div>

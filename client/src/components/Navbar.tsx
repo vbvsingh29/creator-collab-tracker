@@ -86,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <h1 className="font-bold text-base tracking-tight text-zinc-900 dark:text-white flex items-center gap-1.5">
                 CollabFlow
               </h1>
-              <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+              <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border hidden sm:inline-flex ${
                 appMode === 'simple'
                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                   : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
@@ -180,7 +180,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-0.5 rounded-lg text-xs font-medium">
           <button
             onClick={() => setAppMode('simple')}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md transition-colors ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-md transition-colors ${
               appMode === 'simple'
                 ? 'bg-emerald-600 text-white font-semibold shadow-xs'
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
@@ -191,15 +191,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
           <button
             onClick={() => setAppMode('advanced')}
-            className={`flex items-center gap-1 px-3 py-1 rounded-md transition-colors ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-md transition-colors ${
               appMode === 'advanced'
                 ? 'bg-indigo-600 text-white font-semibold shadow-xs'
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
             title="Full agency suite: Whitelisting, Exclusivity Radar, Rate Calculator, Kanban"
           >
-            <Zap size={11} />
-            <span>Advanced</span>
+            <Zap size={11} className="hidden sm:inline" />
+            <span>Adv<span className="hidden sm:inline">anced</span></span>
           </button>
         </div>
 
@@ -229,7 +229,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Live Integrations Health Status Pill */}
             <button
               onClick={onOpenIntegrations}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
               title="Live YouTube & Instagram API Health Status"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -239,7 +239,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Exclusivity Collision Radar Button */}
             <button
               onClick={onOpenExclusivity}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors relative"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors relative"
               title="Exclusivity Conflict Scanner"
             >
               <ShieldAlert size={14} className={conflictCount > 0 ? "text-amber-500" : "text-zinc-400"} />
@@ -252,7 +252,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Dynamic Rate Card Calculator */}
             <button
               onClick={onOpenRateCard}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
               title="Dynamic Scope & Rate Card Calculator"
             >
               <Calculator size={14} className="text-indigo-500" />
@@ -262,7 +262,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Brand Directory */}
             <button
               onClick={onOpenBrands}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
               title="Brand CRM Directory"
             >
               <Building2 size={14} className="text-zinc-500 dark:text-zinc-400" />
@@ -288,7 +288,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {onOpenSettings && (
           <button
             onClick={onOpenSettings}
-            className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shadow-xs"
+            className="hidden md:flex p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shadow-xs"
             title="Workspace Settings"
           >
             <Settings size={15} />
@@ -298,11 +298,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* New Collab CTA */}
         <button
           onClick={onOpenNewCollab}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs transition-all shadow-indigo-600/20 active:scale-95"
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs transition-all shadow-indigo-600/20 active:scale-95"
         >
           <Plus size={14} />
-          <span className="hidden sm:inline">New Collab</span>
-          <span className="sm:hidden">New</span>
+          <span>New Collab</span>
         </button>
 
         {/* Creator Auth Profile / Switcher */}

@@ -29,6 +29,7 @@ import { AuthModal } from './components/AuthModal';
 import { IntegrationsModal } from './components/IntegrationsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { SettingsModal } from './components/SettingsModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 const STAGES: PipelineStage[] = [
   'pitch_inquiry',
@@ -288,16 +289,16 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 px-3 sm:px-6 py-3.5 sm:py-6 max-w-[1600px] w-full mx-auto">
+      <main className="flex-1 px-3 sm:px-6 py-3.5 sm:py-6 max-w-[1600px] w-full mx-auto pb-24 md:pb-6">
         {/* Creator Greeting Banner if logged in */}
         {user && (
-          <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-900 text-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 pb-2 border-b border-zinc-200 dark:border-zinc-800 text-xs gap-1">
             <div className="flex items-center gap-2">
-              <span className="text-zinc-400">Creator Workspace:</span>
-              <span className="font-bold text-zinc-200">{user.name}</span>
-              <span className="text-[11px] font-mono text-indigo-400">{user.handle}</span>
+              <span className="text-zinc-500 dark:text-zinc-400">Creator Workspace:</span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-200">{user.name}</span>
+              <span className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">{user.handle}</span>
             </div>
-            <div className="text-[11px] text-zinc-500">
+            <div className="text-[11px] text-zinc-500 hidden sm:block">
               Only your private brand deals and revenues are shown.
             </div>
           </div>
@@ -493,6 +494,24 @@ export function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         canClose={!!user}
+      />
+
+      {/* Mobile Bottom Navigation Bar (md:hidden) */}
+      <MobileBottomNav
+        appMode={appMode}
+        onOpenNewCollab={() => {
+          if (!user) {
+            setIsAuthModalOpen(true);
+            return;
+          }
+          setNewCollabPrefill(null);
+          setIsNewCollabOpen(true);
+        }}
+        onOpenRateCard={() => setIsRateCardOpen(true)}
+        onOpenExclusivity={() => setIsExclusivityOpen(true)}
+        onOpenBrands={() => setIsBrandsOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        conflictCount={conflictCount}
       />
     </div>
   );

@@ -46,23 +46,23 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
     return (
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-6">
         {/* 1. Total Deals Value */}
-        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Total Collaborations</span>
-            <div className="text-xl font-extrabold text-white mt-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Total Collaborations</span>
+            <div className="text-xl font-extrabold text-zinc-900 dark:text-white mt-1">
               {formatCurrency(totalRevenue, currency)}
             </div>
             <p className="text-[11px] text-zinc-500 mt-0.5">{stats.total_deals} active brand deals</p>
           </div>
-          <div className="p-2 rounded-xl bg-zinc-800 text-zinc-300">
+          <div className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
             <DollarSign size={18} />
           </div>
         </div>
 
         {/* 2. Received / Paid in Bank */}
-        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Paid in Bank</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Paid in Bank</span>
             <div className="text-xl font-extrabold text-emerald-400 mt-1">
               {formatCurrency(totalPaid, currency)}
             </div>
@@ -74,9 +74,9 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
         </div>
 
         {/* 3. Pending Payouts */}
-        <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between shadow-xs">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">Pending Payouts</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">Pending Payouts</span>
             <div className="text-xl font-extrabold text-amber-400 mt-1">
               {formatCurrency(totalPending, currency)}
             </div>
@@ -96,15 +96,15 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
       {/* 1. Gross Revenue Pipeline */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-700 transition-colors">
-        <div className="flex items-center justify-between text-zinc-400 mb-1">
+      <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors shadow-xs">
+        <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-1">
           <span className="text-[11px] font-medium uppercase tracking-wider">Gross Pipeline</span>
-          <div className="p-1 rounded bg-zinc-800 text-zinc-300">
+          <div className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
             <DollarSign size={13} />
           </div>
         </div>
         <div>
-          <div className="text-lg font-bold text-white tracking-tight">
+          <div className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
             {formatCurrency(totalRevenue, currency)}
           </div>
           <p className="text-[10px] text-zinc-400 mt-0.5">
@@ -114,9 +114,9 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
       </div>
 
       {/* 2. True Net Take-Home (Tax & Agency Adjusted) */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-700 transition-colors">
-        <div className="flex items-center justify-between text-zinc-400 mb-1">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+      <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors shadow-xs">
+        <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-1">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
             <Percent size={11} /> Net Take-Home
           </span>
           <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -134,9 +134,9 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
       </div>
 
       {/* 3. Pending Payouts */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-700 transition-colors">
-        <div className="flex items-center justify-between text-zinc-400 mb-1">
-          <span className="text-[11px] font-medium uppercase tracking-wider">Pending Inflow</span>
+      <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors shadow-xs">
+        <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-1">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">Pending Inflow</span>
           <div className="p-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <Clock size={13} />
           </div>
@@ -159,7 +159,7 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
             ? 'bg-red-950/40 border-red-500 ring-1 ring-red-500/50'
             : stats.overdue_count > 0 
               ? 'bg-red-950/20 border-red-500/40 hover:bg-red-950/30' 
-              : 'bg-zinc-900/90 border-zinc-800'
+              : 'bg-white dark:bg-zinc-900/90 border-zinc-200 dark:border-zinc-800 shadow-xs'
         }`}
       >
         <div className="flex items-center justify-between mb-1">
@@ -183,9 +183,9 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
       </div>
 
       {/* 5. Paid Ad Whitelisting Active */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-700 transition-colors">
-        <div className="flex items-center justify-between text-zinc-400 mb-1">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-indigo-400">Ad Whitelisting</span>
+      <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors shadow-xs">
+        <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-1">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Ad Whitelisting</span>
           <div className="p-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <Zap size={13} />
           </div>
@@ -201,9 +201,9 @@ export const MetricsRadar: React.FC<MetricsRadarProps> = ({
       </div>
 
       {/* 6. Barter / Gifting Fair Market Value */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-700 transition-colors">
-        <div className="flex items-center justify-between text-zinc-400 mb-1">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-violet-400">Barter Value</span>
+      <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors shadow-xs">
+        <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 mb-1">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-violet-600 dark:text-violet-400">Barter Value</span>
           <div className="p-1 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">
             <Gift size={13} />
           </div>
