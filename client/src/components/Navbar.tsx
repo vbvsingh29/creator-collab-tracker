@@ -19,7 +19,8 @@ import {
   Moon,
   Monitor,
   Settings,
-  Keyboard
+  Keyboard,
+  Crown
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -46,6 +47,8 @@ interface NavbarProps {
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
   onOpenShortcuts?: () => void;
+  onOpenPricing?: () => void;
+  onOpenMediaKit?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -56,6 +59,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenProfile,
   onOpenSettings,
   onOpenShortcuts,
+  onOpenPricing,
+  onOpenMediaKit,
   appMode,
   setAppMode,
   currentView,
@@ -310,6 +315,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
+        {/* Upgrade Pro CTA */}
+        {onOpenPricing && (
+          <button
+            onClick={onOpenPricing}
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-pink-500/10 to-indigo-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold transition-all shadow-xs"
+            title="SaaS Upgrade Plans ($19-$79/mo)"
+          >
+            <Crown size={13} className="text-amber-500" />
+            <span>Upgrade Pro</span>
+          </button>
+        )}
+
         {/* New Collab CTA */}
         <button
           onClick={onOpenNewCollab}
@@ -348,6 +365,37 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="text-[11px] text-zinc-500">{user.email}</div>
                   <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">{user.handle}</div>
                 </div>
+
+                {onOpenPricing && (
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenPricing();
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors flex items-center justify-between font-semibold"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Crown size={13} />
+                      <span>Upgrade to Pro / Agency</span>
+                    </div>
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-500">
+                      $19/mo
+                    </span>
+                  </button>
+                )}
+
+                {onOpenMediaKit && (
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenMediaKit();
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors flex items-center gap-2"
+                  >
+                    <Sparkles size={13} className="text-pink-500" />
+                    <span>Media Kit One-Pager</span>
+                  </button>
+                )}
 
                 {onOpenProfile && (
                   <button

@@ -33,6 +33,11 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { SecurityLockModal } from './components/SecurityLockModal';
 import { InstallPwaBanner } from './components/InstallPwaBanner';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { InvoiceModal } from './components/InvoiceModal';
+import { PitchGeneratorModal } from './components/PitchGeneratorModal';
+import { ProPricingModal } from './components/ProPricingModal';
+import { MediaKitModal } from './components/MediaKitModal';
+import { exportCollabsToCSV } from './utils/csvExport';
 import { useTheme } from './context/ThemeContext';
 
 const STAGES: PipelineStage[] = [
@@ -97,6 +102,10 @@ export function App() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [invoiceCollab, setInvoiceCollab] = useState<Collab | null>(null);
+  const [pitchCollab, setPitchCollab] = useState<Collab | null>(null);
+  const [isPricingOpen, setIsPricingOpen] = useState<boolean>(false);
+  const [isMediaKitOpen, setIsMediaKitOpen] = useState<boolean>(false);
   const { setTheme, resolvedTheme } = useTheme();
 
   // Fetch creator's private data
@@ -279,6 +288,10 @@ export function App() {
           (activeEl as HTMLElement).blur();
           return;
         }
+        if (invoiceCollab) { setInvoiceCollab(null); return; }
+        if (pitchCollab) { setPitchCollab(null); return; }
+        if (isPricingOpen) { setIsPricingOpen(false); return; }
+        if (isMediaKitOpen) { setIsMediaKitOpen(false); return; }
         if (proofCollab) { setProofCollab(null); return; }
         if (followUpCollab) { setFollowUpCollab(null); return; }
         if (isShortcutsOpen) { setIsShortcutsOpen(false); return; }
@@ -345,6 +358,13 @@ export function App() {
       if (e.key === '2') {
         e.preventDefault();
         handleSetAppMode('advanced');
+        return;
+      }
+
+      // Shortcut: 'm' => Creator Media Kit
+      if (e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        if (user) setIsMediaKitOpen(true);
         return;
       }
 
@@ -458,6 +478,8 @@ export function App() {
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        onOpenPricing={() => setIsPricingOpen(true)}
+        onOpenMediaKit={() => setIsMediaKitOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -515,6 +537,9 @@ export function App() {
           setFilterWhitelistingOnly={setFilterWhitelistingOnly}
           totalFilteredCount={filteredCollabs.length}
           totalCount={collabs.length}
+          onExportCSV={() => exportCollabsToCSV(filteredCollabs, currency)}
+          onOpenMediaKit={() => setIsMediaKitOpen(true)}
+          onOpenPitchGenerator={() => setPitchCollab(filteredCollabs[0] || collabs[0] || null)}
         />
 
         {/* View Component: Simple Cards, Kanban Board, or Data Table */}
@@ -584,6 +609,8 @@ export function App() {
           onOpenProofCard={(c) => setProofCollab(c)}
           onOpenFollowUp={(c) => setFollowUpCollab(c)}
           onMarkPaid={(c) => handleQuickMarkPaid(c.id)}
+          onOpenInvoice={(c) => setInvoiceCollab(c)}
+          onOpenPitchGenerator={(c) => setPitchCollab(c)}
         />
       )}
 
@@ -703,6 +730,49 @@ export function App() {
 
       {/* PWA 1-Click Install Banner for Mobile */}
       <InstallPwaBanner />
+
+      {/* 1-Click Professional Brand Invoice Modal */}
+      {invoiceCollab && (
+        <InvoiceModal
+          collab={invoiceCollab}
+          isOpen={!!invoiceCollab}
+          onClose={() => setInvoiceCollab(null)}
+          currency={currency}
+          onMarkInvoiced={(id, invoiceNumber, invoiceDate, dueDate) => {
+            handleUpdateCollab(id, {
+              payment_status: 'invoiced',
+              invoice_number: invoiceNumber,
+              invoice_date: invoiceDate,
+              payment_due_date: dueDate,
+            });
+          }}
+        />
+      )}
+
+      {/* AI Sponsor Pitch & Counter-Offer Generator Modal */}
+      {pitchCollab && (
+        <PitchGeneratorModal
+          collab={pitchCollab}
+          isOpen={!!pitchCollab}
+          onClose={() => setPitchCollab(null)}
+          currency={currency}
+        />
+      )}
+
+      {/* Commercial SaaS Pro / Agency Pricing Modal */}
+      <ProPricingModal
+        isOpen={isPricingOpen}
+        onClose={() => setIsPricingOpen(false)}
+        currency={currency}
+      />
+
+      {/* 1-Click Creator Media Kit & Rate Card One-Pager Modal */}
+      <MediaKitModal
+        user={user}
+        currency={currency}
+        isOpen={isMediaKitOpen}
+        onClose={() => setIsMediaKitOpen(false)}
+      />
 
       {/* Keyboard Shortcuts Cheat Sheet Modal */}
       <KeyboardShortcutsModal
