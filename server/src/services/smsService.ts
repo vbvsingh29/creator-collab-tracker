@@ -12,8 +12,8 @@ interface OtpRecord {
 // In-memory OTP storage with automatic expiry cleanup
 const otpStore = new Map<string, OtpRecord>();
 
-// Clean up expired OTPs periodically
-setInterval(() => {
+// Clean up expired OTPs periodically (unref so tests/processes exit cleanly)
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [phone, record] of otpStore.entries()) {
     if (record.expiresAt < now) {
@@ -21,6 +21,9 @@ setInterval(() => {
     }
   }
 }, 60 * 1000);
+if (cleanupTimer && typeof cleanupTimer.unref === 'function') {
+  cleanupTimer.unref();
+}
 
 export function normalizePhoneNumber(rawPhone: string): string {
   const cleaned = rawPhone.replace(/[^\d+]/g, '');

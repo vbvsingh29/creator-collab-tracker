@@ -24,13 +24,13 @@ export const LandingFaq: React.FC = () => {
   ];
 
   return (
-    <section id="faq" className="py-16 sm:py-20 border-b border-slate-200/80 bg-slate-50/50">
+    <section id="faq" className="py-16 sm:py-20 border-b border-slate-200/80 dark:border-zinc-850 bg-slate-50/50 dark:bg-zinc-950/70 transition-colors duration-200">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-xl mx-auto mb-10">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
             FAQ
           </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2 tracking-tight">
             Frequently Asked Questions
           </h2>
         </div>
@@ -41,21 +41,21 @@ export const LandingFaq: React.FC = () => {
             return (
               <div
                 key={idx}
-                className="rounded-xl border border-slate-200 bg-white overflow-hidden transition-all shadow-xs"
+                className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 overflow-hidden transition-colors shadow-xs"
               >
                 <button
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
-                  className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-900 hover:text-slate-700 transition-colors"
+                  className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-900 dark:text-white hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
                 >
                   <span>{faq.q}</span>
                   <ChevronDown
                     size={16}
-                    className={`text-slate-400 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-slate-900' : ''}`}
+                    className={`text-slate-400 dark:text-zinc-500 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-slate-900 dark:text-white' : ''}`}
                   />
                 </button>
                 {isOpen && (
-                  <div className="px-5 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                  <div className="px-5 pb-4 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed border-t border-slate-100 dark:border-zinc-800 pt-3">
                     {faq.a}
                   </div>
                 )}

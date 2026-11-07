@@ -39,14 +39,20 @@ interface AdminPortalModalProps {
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const operatorEmail = user?.email || 'aarav@tech.com';
+  const operatorEmail = user?.email || 'admin@collabflow.app';
+  const isAdminUser = user?.role === 'admin' || !!user?.email?.toLowerCase().includes('admin');
 
-  // Dynamic Session State (No static passwords)
+  // Dynamic Session State: Admins have direct access; other operators use awareness challenge
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
-    return !!sessionStorage.getItem('collabflow_admin_session');
+    return isAdminUser || !!sessionStorage.getItem('collabflow_admin_session');
   });
 
-  // Dynamic Challenge Gate State
+  useEffect(() => {
+    if (isAdminUser) {
+      setIsUnlocked(true);
+    }
+  }, [isAdminUser]);
+
   const [challengeCode, setChallengeCode] = useState<string>('');
   const [inputCode, setInputCode] = useState<string>('');
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);

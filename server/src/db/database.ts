@@ -114,6 +114,7 @@ export function initDB() {
   if (!colNames.includes('category')) db.exec("ALTER TABLE users ADD COLUMN category TEXT DEFAULT ''");
   if (!colNames.includes('rates_json')) db.exec("ALTER TABLE users ADD COLUMN rates_json TEXT DEFAULT '{}'");
   if (!colNames.includes('social_links_json')) db.exec("ALTER TABLE users ADD COLUMN social_links_json TEXT DEFAULT '{}'");
+  if (!colNames.includes('role')) db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'creator'");
 
   console.log('✓ Database initialized successfully at:', DB_PATH);
 

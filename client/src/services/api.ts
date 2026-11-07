@@ -100,13 +100,21 @@ export async function apiLogin(email: string, password: string): Promise<{ token
     },
     async () => {
       const localUser = getLocalUser();
-      if (email && email.toLowerCase() !== 'aarav@tech.com') {
-        localUser.email = email;
-        const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
+      const cleanEmail = (email || '').toLowerCase().trim();
+      if (cleanEmail.includes('admin') || cleanEmail === 'admin@collabflow.app') {
+        localUser.email = 'admin@collabflow.app';
+        localUser.name = 'Agency Admin';
+        localUser.handle = '@admin';
+        localUser.role = 'admin';
+        saveLocalUser(localUser);
+      } else if (cleanEmail && cleanEmail !== 'aarav@tech.com') {
+        localUser.email = cleanEmail;
+        const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
         localUser.name = namePart.replace(/\b\w/g, l => l.toUpperCase());
+        localUser.role = 'creator';
         saveLocalUser(localUser);
       }
-      const token = 'collabflow-demo-token-aarav';
+      const token = cleanEmail.includes('admin') ? 'collabflow-demo-token-admin' : 'collabflow-demo-token-aarav';
       setAuthToken(token);
       return { token, user: localUser };
     }

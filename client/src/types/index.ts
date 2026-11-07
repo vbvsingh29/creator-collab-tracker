@@ -6,6 +6,7 @@ export interface User {
   email: string;
   handle: string;
   platform: Platform;
+  role?: 'creator' | 'admin' | 'owner';
   avatar_url?: string;
   bio?: string;
   phone?: string;

@@ -17,8 +17,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onDemoLogin,
 }) => {
   return (
-    <div className="min-h-screen bg-white text-slate-900 flex flex-col antialiased selection:bg-slate-200 selection:text-slate-900">
-      {/* 1. Refined Minimal Navbar (Zero public admin links) */}
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col antialiased transition-colors duration-200 selection:bg-slate-200 dark:selection:bg-zinc-800 selection:text-slate-900 dark:selection:text-zinc-100">
+      {/* 1. Refined Minimal Navbar */}
       <LandingNavbar
         onOpenAuth={onOpenAuth}
         onDemoLogin={onDemoLogin}

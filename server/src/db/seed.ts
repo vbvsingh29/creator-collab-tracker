@@ -45,9 +45,25 @@ export function seed() {
     now
   );
 
-  console.log('✓ Created 2 Demo Creators:');
+  const userAdminId = uuidv4();
+  insertUser.run(
+    userAdminId,
+    'Agency Admin',
+    'admin@collabflow.app',
+    passwordHash,
+    '@admin',
+    'both',
+    'https://api.dicebear.com/7.x/initials/svg?seed=Agency%20Admin&backgroundColor=0f766e,115e59',
+    now
+  );
+  try {
+    db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(userAdminId);
+  } catch {}
+
+  console.log('✓ Created Demo Users (Creators + Admin):');
   console.log('   1. Aarav Sharma (Tech/YouTube): aarav@tech.com / password123');
   console.log('   2. Priya Mehta (Beauty/Instagram): priya@lifestyle.com / password123');
+  console.log('   3. Agency Admin: admin@collabflow.app / password123');
 
   // 2. Create Brands
   const brands = [

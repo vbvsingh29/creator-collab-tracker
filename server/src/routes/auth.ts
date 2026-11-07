@@ -123,6 +123,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       bio: user.bio || '',
       phone: user.phone || '',
       category: user.category || '',
+      role: user.role || (user.email.includes('admin') ? 'admin' : 'creator'),
       rates: user.rates_json ? JSON.parse(user.rates_json) : {},
       social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {},
       created_at: user.created_at
@@ -141,7 +142,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 // GET /api/auth/me (Current creator session)
 authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
   try {
-    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, created_at FROM users WHERE id = ?').get(req.userId) as any;
+    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, role, created_at FROM users WHERE id = ?').get(req.userId) as any;
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User account not found' });
