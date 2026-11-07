@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import { 
-  Instagram, 
-  Youtube, 
-  Sparkles, 
   Zap, 
   Sun, 
   Moon, 
   Activity, 
-  ArrowRight, 
   Menu, 
   X, 
-  ShieldCheck,
-  Calculator,
-  ChevronRight
+  User
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -28,7 +22,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
   onDemoLogin,
   onOpenAdmin,
 }) => {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollTo = (id: string) => {
@@ -40,62 +34,58 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800/80 transition-colors">
+    <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-b border-slate-200/90 dark:border-zinc-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand & Logo */}
         <div className="flex items-center gap-6">
           <a href="#" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 p-0.5 shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-white dark:bg-zinc-950 rounded-[10px] flex items-center justify-center">
-                <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent">
-                  CF
-                </span>
-              </div>
+            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-zinc-900 border border-slate-800 flex items-center justify-center text-white shadow-xs">
+              <span className="font-extrabold text-xs tracking-tight">CF</span>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-base tracking-tight text-zinc-900 dark:text-zinc-100">
+                <span className="font-bold text-base tracking-tight text-slate-900 dark:text-zinc-100">
                   CollabFlow
                 </span>
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
                   OS 2.5
                 </span>
               </div>
-              <span className="text-[10px] text-zinc-500 font-medium hidden sm:inline">
+              <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
                 Creator Sponsorship System
               </span>
             </div>
           </a>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-5 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+          <nav className="hidden md:flex items-center gap-5 text-xs font-semibold text-slate-600 dark:text-zinc-400">
             <button 
               onClick={() => scrollTo('features')} 
-              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
             >
               Features
             </button>
             <button 
               onClick={() => scrollTo('live-preview')} 
-              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
             >
-              Live Command Center
+              Live Preview
             </button>
             <button 
               onClick={() => scrollTo('calculator')} 
-              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
             >
-              Rate Estimator
+              Rate Calculator
             </button>
             <button 
               onClick={() => scrollTo('pricing')} 
-              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
             >
               Pricing
             </button>
             <button 
               onClick={() => scrollTo('faq')} 
-              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
             >
               FAQ
             </button>
@@ -107,51 +97,51 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
           {/* Admin Observatory Pill */}
           <button
             onClick={onOpenAdmin}
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500/20 text-xs font-semibold text-teal-700 dark:text-teal-300 transition-all shadow-xs"
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-500/10 hover:bg-teal-100 text-xs font-semibold text-teal-800 dark:text-teal-300 transition-all shadow-xs"
             title="Open Platform Telemetry & GDPR-Safe Monitoring"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <Activity size={12} className="text-teal-500" />
+            <Activity size={12} className="text-teal-600" />
             <span>Admin Gate</span>
           </button>
 
           {/* Theme Switcher */}
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            className="p-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
             title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} Mode`}
           >
             {resolvedTheme === 'dark' ? (
               <Sun size={15} className="text-amber-400" />
             ) : (
-              <Moon size={15} className="text-indigo-600" />
+              <Moon size={15} className="text-slate-700" />
             )}
           </button>
 
           {/* 1-Click Instant Demo Button */}
           <button
             onClick={() => onDemoLogin('aarav@tech.com')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-pink-500/15 hover:from-indigo-500/25 hover:to-pink-500/25 border border-indigo-500/30 text-xs font-bold text-indigo-700 dark:text-indigo-300 transition-all shadow-xs active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-800 transition-all shadow-xs active:scale-95"
             title="Experience the complete app instantly with pre-loaded sponsor deals"
           >
-            <Zap size={13} className="text-amber-500 fill-amber-500 animate-bounce" />
-            <span className="hidden sm:inline">1-Click Live Demo</span>
+            <Zap size={13} className="text-amber-500 fill-amber-500" />
+            <span className="hidden sm:inline">1-Click Demo</span>
             <span className="sm:hidden">Demo</span>
           </button>
 
-          {/* Standard Sign In */}
+          {/* Sign In Button */}
           <button
             onClick={onOpenAuth}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-semibold shadow-xs transition-all active:scale-95"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-all active:scale-95"
           >
+            <User size={13} />
             <span>Sign In</span>
-            <ChevronRight size={13} />
           </button>
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
+            className="md:hidden p-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
           >
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
@@ -160,54 +150,31 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl px-4 py-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="grid grid-cols-2 gap-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-            <button
-              onClick={() => scrollTo('features')}
-              className="p-2 text-left rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900"
-            >
-              ✨ Features
-            </button>
-            <button
-              onClick={() => scrollTo('live-preview')}
-              className="p-2 text-left rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900"
-            >
-              💻 Live Preview
-            </button>
-            <button
-              onClick={() => scrollTo('calculator')}
-              className="p-2 text-left rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900"
-            >
-              💰 Rate Estimator
-            </button>
-            <button
-              onClick={() => scrollTo('pricing')}
-              className="p-2 text-left rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900"
-            >
-              💳 Pricing Plans
-            </button>
-          </div>
-
-          <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+        <div className="md:hidden border-t border-slate-200 bg-white p-4 space-y-3 text-xs font-semibold text-slate-700 shadow-xl">
+          <button onClick={() => scrollTo('features')} className="block w-full text-left py-2 hover:text-slate-900">
+            Features
+          </button>
+          <button onClick={() => scrollTo('live-preview')} className="block w-full text-left py-2 hover:text-slate-900">
+            Live Preview
+          </button>
+          <button onClick={() => scrollTo('calculator')} className="block w-full text-left py-2 hover:text-slate-900">
+            Rate Calculator
+          </button>
+          <button onClick={() => scrollTo('pricing')} className="block w-full text-left py-2 hover:text-slate-900">
+            Pricing
+          </button>
+          <button onClick={() => scrollTo('faq')} className="block w-full text-left py-2 hover:text-slate-900">
+            FAQ
+          </button>
+          <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                onOpenAdmin();
+                onOpenAuth();
               }}
-              className="text-xs text-teal-600 dark:text-teal-400 font-semibold flex items-center gap-1.5"
+              className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-center font-semibold"
             >
-              <Activity size={13} />
-              <span>Admin Observatory</span>
-            </button>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onDemoLogin('priya@lifestyle.com');
-              }}
-              className="text-xs text-pink-600 dark:text-pink-400 font-semibold flex items-center gap-1"
-            >
-              <Instagram size={12} />
-              <span>Priya Demo</span>
+              Sign In / Register
             </button>
           </div>
         </div>

@@ -221,6 +221,65 @@ export async function apiResetPassword(email: string, code: string, newPassword:
   );
 }
 
+
+export async function apiSendSmsOtp(phone: string): Promise<{
+  success: boolean;
+  message: string;
+  preview_code?: string;
+  preview_mode?: boolean;
+  normalized_phone?: string;
+}> {
+  return safeJsonRequest(
+    `${API_BASE}/auth/send-sms-otp`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    },
+    async () => {
+      return {
+        success: true,
+        message: '6-digit SMS verification code generated (Sandbox preview: code 123456).',
+        preview_code: '123456',
+        preview_mode: true,
+        normalized_phone: phone
+      };
+    }
+  );
+}
+
+export async function apiVerifySmsOtp(
+  phone: string,
+  otp: string,
+  name?: string
+): Promise<{ success: boolean; token: string; user: User; message: string }> {
+  return safeJsonRequest(
+    `${API_BASE}/auth/verify-sms-otp`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, otp, name }),
+    },
+    async () => {
+      const existingUser = getLocalUser();
+      const updatedUser: User = {
+        ...existingUser,
+        phone,
+        name: name || existingUser.name || 'Mobile Creator',
+      };
+      saveLocalUser(updatedUser);
+      const token = 'collabflow-sms-token-' + phone.replace(/[^0-9]/g, '');
+      setAuthToken(token);
+      return {
+        success: true,
+        token,
+        user: updatedUser,
+        message: 'Phone verified successfully! You are logged in.'
+      };
+    }
+  );
+}
+
 export async function apiUpdateProfile(profileData: Partial<User>): Promise<{ success: boolean; user: User; message: string }> {
   return safeJsonRequest(
     `${API_BASE}/auth/profile`,

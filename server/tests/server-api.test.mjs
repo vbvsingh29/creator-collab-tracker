@@ -117,4 +117,36 @@ test('Backend API Security, Authentication & GDPR Suite', async (t) => {
     assert.equal(data.success, false);
     assert.equal(data.error, 'Endpoint not found.');
   });
+  await t.test('8. Phone SMS OTP flow: request OTP and verify OTP issues JWT token', async () => {
+    const testPhone = '+919988776655';
+    
+    // Step 1: Send SMS OTP
+    const sendRes = await fetch(`${baseUrl}/api/auth/send-sms-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: testPhone })
+    });
+    assert.equal(sendRes.status, 200);
+    const sendData = await sendRes.json();
+    assert.equal(sendData.success, true);
+    assert.ok(sendData.preview_code, 'Sandbox preview_code should be returned');
+    assert.equal(sendData.normalized_phone, testPhone);
+
+    // Step 2: Verify SMS OTP
+    const verifyRes = await fetch(`${baseUrl}/api/auth/verify-sms-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: testPhone,
+        otp: sendData.preview_code,
+        name: 'SMS Test Creator'
+      })
+    });
+    assert.equal(verifyRes.status, 200);
+    const verifyData = await verifyRes.json();
+    assert.equal(verifyData.success, true);
+    assert.ok(verifyData.token, 'Should issue JWT token upon phone verification');
+    assert.equal(verifyData.user.name, 'SMS Test Creator');
+    assert.equal(verifyData.user.phone, testPhone);
+  });
 });

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db/database';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { hashPassword, verifyPassword, signToken } from '../utils/security';
+import { generateAndSendPhoneOtp, verifyPhoneOtp, normalizePhoneNumber } from '../services/smsService';
 
 export const authRouter = Router();
 
@@ -362,5 +363,91 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/auth/send-sms-otp
+authRouter.post('/send-sms-otp', async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+    if (!phone || typeof phone !== 'string' || phone.trim().length < 8) {
+      return res.status(400).json({ success: false, error: 'Please provide a valid mobile phone number.' });
+    }
+
+    const result = await generateAndSendPhoneOtp(phone.trim());
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message || 'Failed to send SMS code.' });
+  }
+});
+
+// POST /api/auth/verify-sms-otp
+authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
+  try {
+    const { phone, otp, name } = req.body;
+    if (!phone || !otp) {
+      return res.status(400).json({ success: false, error: 'Phone number and 6-digit OTP code are required.' });
+    }
+
+    const cleanPhone = normalizePhoneNumber(phone.trim());
+    const isValid = verifyPhoneOtp(cleanPhone, otp.toString().trim());
+
+    if (!isValid) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired OTP code. Please try again.' });
+    }
+
+    // Check if user already exists with this phone
+    let user = db.prepare('SELECT * FROM users WHERE phone = ?').get(cleanPhone) as any;
+
+    if (!user) {
+      // Auto-register creator via phone
+      const userId = uuidv4();
+      const displayName = (name && name.trim()) ? name.trim() : 'Creator ' + cleanPhone.slice(-4);
+      const generatedEmail = 'user_' + cleanPhone.replace(/[^0-9]/g, '') + '@phone.collabflow.app';
+      const dummyPassHash = hashPassword(uuidv4());
+      const handle = '@creator_' + cleanPhone.slice(-4);
+      const now = new Date().toISOString();
+
+      db.prepare(`
+        INSERT INTO users (id, name, email, password_hash, handle, phone, platform, avatar_url, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        userId,
+        displayName,
+        generatedEmail,
+        dummyPassHash,
+        handle,
+        cleanPhone,
+        'both',
+        'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(displayName),
+        now
+      );
+
+      user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any;
+    }
+
+    const token = signToken({ userId: user.id, email: user.email, handle: user.handle });
+
+    return res.json({
+      success: true,
+      message: 'Phone verified successfully! You are logged in.',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        handle: user.handle,
+        platform: user.platform,
+        avatar_url: user.avatar_url,
+        bio: user.bio || '',
+        phone: user.phone || cleanPhone,
+        category: user.category || '',
+        rates: user.rates_json ? JSON.parse(user.rates_json) : {},
+        social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {},
+        created_at: user.created_at
+      }
+    });
+  } catch (error: any) {
+    return res.status(400).json({ success: false, error: error.message || 'Verification failed.' });
   }
 });
