@@ -18,7 +18,7 @@ import {
   Percent
 } from 'lucide-react';
 import { Collab, Currency } from '../types';
-import { formatCurrency, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
+import { formatCurrency, convertAmount, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
 
 interface TableViewProps {
   collabs: Collab[];
@@ -233,9 +233,16 @@ export const TableView: React.FC<TableViewProps> = ({
                       ) : (
                         <div>
                           <div className="flex items-baseline gap-1.5">
-                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                              {formatCurrency(collab.deal_amount, collab.currency)}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                {formatCurrency(collab.deal_amount, currency, collab.currency)}
+                              </span>
+                              {collab.currency !== currency && (
+                                <span className="text-[9px] text-slate-400 font-normal">
+                                  orig. {formatCurrency(collab.deal_amount, collab.currency)}
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[9px] font-mono px-1 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
                               CPM ~{formatCurrency(cpm, collab.currency)}
                             </span>

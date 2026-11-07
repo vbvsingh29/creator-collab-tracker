@@ -25,7 +25,7 @@ import {
   Tag
 } from 'lucide-react';
 import { Collab, Currency } from '../types';
-import { formatCurrency, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
+import { formatCurrency, convertAmount, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
 
 interface SimpleViewProps {
   collabs: Collab[];
@@ -232,7 +232,7 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                         {collab.commercial_type === 'barter' ? (
                           <span className="text-violet-500 dark:text-violet-400 font-bold">Barter</span>
                         ) : (
-                          formatCurrency(collab.deal_amount, collab.currency)
+                          formatCurrency(collab.deal_amount, currency, collab.currency)
                         )}
                       </td>
 
@@ -448,9 +448,16 @@ export const SimpleView: React.FC<SimpleViewProps> = ({
                       </span>
                     ) : (
                       <div className="flex items-baseline gap-1">
-                        <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(collab.deal_amount, collab.currency)}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(collab.deal_amount, currency, collab.currency)}
+                          </span>
+                          {collab.currency !== currency && (
+                            <span className="text-[10px] text-slate-400 font-normal">
+                              orig. {formatCurrency(collab.deal_amount, collab.currency)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

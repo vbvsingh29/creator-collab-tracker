@@ -1,16 +1,14 @@
 import React from 'react';
-import { ShieldCheck, Activity } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 interface LandingFooterProps {
   onOpenAuth: () => void;
   onDemoLogin: (email: string) => void;
-  onOpenAdmin: () => void;
 }
 
 export const LandingFooter: React.FC<LandingFooterProps> = ({
   onOpenAuth,
   onDemoLogin,
-  onOpenAdmin,
 }) => {
   return (
     <footer className="bg-white border-t border-slate-200 text-slate-500 text-xs py-10">
@@ -43,15 +41,6 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
             >
               Sign In
             </button>
-            {onOpenAdmin && (
-              <button
-                onClick={onOpenAdmin}
-                className="hover:text-teal-700 transition-colors flex items-center gap-1 text-teal-600"
-              >
-                <Activity size={12} />
-                <span>Admin Gate</span>
-              </button>
-            )}
           </div>
         </div>
 

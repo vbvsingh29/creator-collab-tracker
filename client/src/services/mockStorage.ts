@@ -337,28 +337,38 @@ export function computeLocalStats(collabs: Collab[]): StatsSummary {
 
   const now = new Date();
 
+  const USD_RATE = 86.0;
+
   collabs.forEach(c => {
     const isUsd = c.currency === 'USD';
     const amount = c.deal_amount || 0;
     const paid = c.amount_paid || (c.payment_status === 'paid' ? amount : 0);
     const pending = Math.max(0, amount - paid);
+    const barter = c.barter_estimated_value || 0;
 
-    if (isUsd) {
-      totalRevenueUsd += amount;
-      totalPaidUsd += paid;
-      totalPendingUsd += pending;
-      barterTotalUsd += c.barter_estimated_value || 0;
-    } else {
-      totalRevenueInr += amount;
-      totalPaidInr += paid;
-      totalPendingInr += pending;
-      barterTotalInr += c.barter_estimated_value || 0;
-    }
+    // Real-time bidirectional conversion so switching currency displays full converted workspace total
+    const amountInr = isUsd ? Math.round(amount * USD_RATE) : amount;
+    const amountUsd = isUsd ? amount : Math.round(amount / USD_RATE);
+    const paidInr = isUsd ? Math.round(paid * USD_RATE) : paid;
+    const paidUsd = isUsd ? paid : Math.round(paid / USD_RATE);
+    const pendingInr = isUsd ? Math.round(pending * USD_RATE) : pending;
+    const pendingUsd = isUsd ? pending : Math.round(pending / USD_RATE);
+    const barterInr = isUsd ? Math.round(barter * USD_RATE) : barter;
+    const barterUsd = isUsd ? barter : Math.round(barter / USD_RATE);
+
+    totalRevenueInr += amountInr;
+    totalRevenueUsd += amountUsd;
+    totalPaidInr += paidInr;
+    totalPaidUsd += paidUsd;
+    totalPendingInr += pendingInr;
+    totalPendingUsd += pendingUsd;
+    barterTotalInr += barterInr;
+    barterTotalUsd += barterUsd;
 
     if (c.payment_status !== 'paid' && c.payment_due_date && new Date(c.payment_due_date) < now) {
       overdueCount++;
-      if (isUsd) overdueAmountUsd += pending;
-      else overdueAmountInr += pending;
+      overdueAmountInr += pendingInr;
+      overdueAmountUsd += pendingUsd;
     }
 
     if (c.has_ads_whitelisting) {

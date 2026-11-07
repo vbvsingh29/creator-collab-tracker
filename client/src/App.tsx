@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from './context/AuthContext';
 import { 
@@ -505,17 +505,12 @@ export function App() {
             demoLogin(email);
             setShowLandingPreview(false);
           }}
-          onOpenAdmin={() => setIsAdminOpen(true)}
         />
 
         <AuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
           canClose={true}
-          onOpenAdmin={() => {
-            setIsAuthModalOpen(false);
-            setIsAdminOpen(true);
-          }}
         />
 
         <AdminPortalModal
@@ -815,10 +810,6 @@ export function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         canClose={!!user}
-        onOpenAdmin={() => {
-          setIsAuthModalOpen(false);
-          setIsAdminOpen(true);
-        }}
       />
 
       {/* Mobile Bottom Navigation Bar (md:hidden) */}

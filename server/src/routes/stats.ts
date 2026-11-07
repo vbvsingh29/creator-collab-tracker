@@ -71,31 +71,35 @@ statsRouter.get('/', (req: AuthRequest, res: Response) => {
         whitelisting_active_count++;
       }
 
+      const USD_RATE = 86.0;
+      const isUsd = c.currency === 'USD';
       const amount = Number(c.deal_amount) || 0;
       const paid = Number(c.amount_paid) || 0;
       const pending = Math.max(0, amount - paid);
       const barterVal = Number(c.barter_estimated_value) || 0;
 
-      if (c.currency === 'USD') {
-        total_revenue_usd += amount;
-        total_paid_usd += paid;
-        total_pending_usd += pending;
-        barter_total_value_usd += barterVal;
+      const amountInr = isUsd ? Math.round(amount * USD_RATE) : amount;
+      const amountUsd = isUsd ? amount : Math.round(amount / USD_RATE);
+      const paidInr = isUsd ? Math.round(paid * USD_RATE) : paid;
+      const paidUsd = isUsd ? paid : Math.round(paid / USD_RATE);
+      const pendingInr = isUsd ? Math.round(pending * USD_RATE) : pending;
+      const pendingUsd = isUsd ? pending : Math.round(pending / USD_RATE);
+      const barterInr = isUsd ? Math.round(barterVal * USD_RATE) : barterVal;
+      const barterUsd = isUsd ? barterVal : Math.round(barterVal / USD_RATE);
 
-        if (c.payment_status === 'overdue') {
-          overdue_count++;
-          overdue_amount_usd += pending;
-        }
-      } else {
-        total_revenue_inr += amount;
-        total_paid_inr += paid;
-        total_pending_inr += pending;
-        barter_total_value_inr += barterVal;
+      total_revenue_inr += amountInr;
+      total_revenue_usd += amountUsd;
+      total_paid_inr += paidInr;
+      total_paid_usd += paidUsd;
+      total_pending_inr += pendingInr;
+      total_pending_usd += pendingUsd;
+      barter_total_value_inr += barterInr;
+      barter_total_value_usd += barterUsd;
 
-        if (c.payment_status === 'overdue') {
-          overdue_count++;
-          overdue_amount_inr += pending;
-        }
+      if (c.payment_status === 'overdue') {
+        overdue_count++;
+        overdue_amount_inr += pendingInr;
+        overdue_amount_usd += pendingUsd;
       }
     }
 

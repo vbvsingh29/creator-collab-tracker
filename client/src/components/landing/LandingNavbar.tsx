@@ -3,7 +3,6 @@ import {
   Zap, 
   Sun, 
   Moon, 
-  Activity, 
   Menu, 
   X, 
   User
@@ -13,14 +12,11 @@ import { useTheme } from '../../context/ThemeContext';
 interface LandingNavbarProps {
   onOpenAuth: () => void;
   onDemoLogin: (email: string) => void;
-  onOpenAdmin: () => void;
-  onOpenRateCalculatorModal?: () => void;
 }
 
 export const LandingNavbar: React.FC<LandingNavbarProps> = ({
   onOpenAuth,
   onDemoLogin,
-  onOpenAdmin,
 }) => {
   const { setTheme, resolvedTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -66,12 +62,6 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
               Features
             </button>
             <button 
-              onClick={() => scrollTo('live-preview')} 
-              className="hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              Live Preview
-            </button>
-            <button 
               onClick={() => scrollTo('calculator')} 
               className="hover:text-slate-900 dark:hover:text-zinc-100 transition-colors"
             >
@@ -92,19 +82,8 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
           </nav>
         </div>
 
-        {/* Action Controls & CTAs */}
+        {/* Action Controls & CTAs (No public Admin link) */}
         <div className="flex items-center gap-2.5">
-          {/* Admin Observatory Pill */}
-          <button
-            onClick={onOpenAdmin}
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-500/10 hover:bg-teal-100 text-xs font-semibold text-teal-800 dark:text-teal-300 transition-all shadow-xs"
-            title="Open Platform Telemetry & GDPR-Safe Monitoring"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <Activity size={12} className="text-teal-600" />
-            <span>Admin Gate</span>
-          </button>
-
           {/* Theme Switcher */}
           <button
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
@@ -153,9 +132,6 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
         <div className="md:hidden border-t border-slate-200 bg-white p-4 space-y-3 text-xs font-semibold text-slate-700 shadow-xl">
           <button onClick={() => scrollTo('features')} className="block w-full text-left py-2 hover:text-slate-900">
             Features
-          </button>
-          <button onClick={() => scrollTo('live-preview')} className="block w-full text-left py-2 hover:text-slate-900">
-            Live Preview
           </button>
           <button onClick={() => scrollTo('calculator')} className="block w-full text-left py-2 hover:text-slate-900">
             Rate Calculator

@@ -10,21 +10,18 @@ import { LandingFooter } from '../components/landing/LandingFooter';
 interface LandingPageProps {
   onOpenAuth: () => void;
   onDemoLogin: (email: string) => void;
-  onOpenAdmin: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenAuth,
   onDemoLogin,
-  onOpenAdmin,
 }) => {
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col antialiased selection:bg-slate-200 selection:text-slate-900">
-      {/* 1. Refined Minimal Navbar */}
+      {/* 1. Refined Minimal Navbar (Zero public admin links) */}
       <LandingNavbar
         onOpenAuth={onOpenAuth}
         onDemoLogin={onDemoLogin}
-        onOpenAdmin={onOpenAdmin}
       />
 
       {/* 2. Main Content Streamlined for Calm, Non-Slop Experience */}
@@ -60,7 +57,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <LandingFooter
         onOpenAuth={onOpenAuth}
         onDemoLogin={onDemoLogin}
-        onOpenAdmin={onOpenAdmin}
       />
     </div>
   );

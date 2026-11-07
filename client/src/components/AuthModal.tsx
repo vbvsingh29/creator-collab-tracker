@@ -26,10 +26,9 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose?: () => void;
   canClose?: boolean;
-  onOpenAdmin?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose = true, onOpenAdmin }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose = true }) => {
   const { login, register, demoLogin, setSession } = useAuth() as any;
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset' | 'phone_otp'>('login');
 
@@ -644,25 +643,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
           )}
         </form>
 
-        {onOpenAdmin && (
-          <div className="pt-3 mt-1 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs">
-            <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-emerald-600" />
-              <span>Platform Operator:</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                onClose?.();
-                onOpenAdmin();
-              }}
-              className="text-slate-700 hover:text-slate-900 font-semibold text-[11px] flex items-center gap-1 hover:underline transition-colors"
-            >
-              <Activity size={12} />
-              <span>Admin Observatory Gate &rarr;</span>
-            </button>
-          </div>
-        )}
+
       </div>
     </div>
   );

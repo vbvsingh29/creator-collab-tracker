@@ -13,7 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Collab, PipelineStage, Currency } from '../types';
-import { formatCurrency, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
+import { formatCurrency, convertAmount, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
 
 interface KanbanBoardProps {
   collabs: Collab[];
@@ -47,7 +47,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         const stageTotal = stageCollabs.reduce((sum, c) => {
           if (c.commercial_type === 'barter') return sum;
           // approximate conversion or sum
-          return sum + (c.currency === currency ? c.deal_amount : c.deal_amount);
+          return sum + convertAmount(c.deal_amount, c.currency, currency);
         }, 0);
 
         const currentIndex = STAGES.indexOf(stageKey);
@@ -167,8 +167,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                               Barter ({formatCurrency(collab.barter_estimated_value, collab.currency)})
                             </div>
                           ) : (
-                            <div className="text-xs font-bold text-emerald-400">
-                              {formatCurrency(collab.deal_amount, collab.currency)}
+                            <div className="flex flex-col">
+                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                {formatCurrency(collab.deal_amount, currency, collab.currency)}
+                              </span>
+                              {collab.currency !== currency && (
+                                <span className="text-[9px] text-slate-400 font-normal">
+                                  orig. {formatCurrency(collab.deal_amount, collab.currency)}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
