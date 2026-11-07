@@ -45,7 +45,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Initialize database
 initDB();
@@ -71,6 +71,27 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 CollabFlow Server running on http://localhost:${PORT}`);
+// 404 handler for unknown API routes
+app.use('/api/*', (_req: Request, res: Response) => {
+  res.status(404).json({ success: false, error: 'Endpoint not found.' });
 });
+
+// Centralized error handler
+app.use((err: any, _req: Request, res: Response, _next: express.NextFunction) => {
+  console.error('[CollabFlow Server Error]:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' 
+      ? 'An unexpected error occurred on the server.' 
+      : (err.message || 'Internal server error.')
+  });
+});
+
+export { app };
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`🚀 CollabFlow Server running on http://localhost:${PORT}`);
+  });
+}
+
