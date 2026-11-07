@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Instagram, Youtube, Layers, Zap, ShieldAlert, Check, Calendar, DollarSign, Sparkles, Link as LinkIcon, SlidersHorizontal } from 'lucide-react';
 import { Collab, Platform, DeliverableFormat, CommercialType, Currency, PaymentTerms } from '../types';
 import { previewMediaUrl } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 interface NewCollabModalProps {
   currency: Currency;
@@ -48,6 +49,10 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   const [trackingLink, setTrackingLink] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
   const [notes, setNotes] = useState('');
+
+  const { user } = useAuth();
+  const socialAccounts = user?.social_accounts || [];
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
 
   // Quick Auto-Fill URL state
   const [autoFillUrl, setAutoFillUrl] = useState('');
@@ -125,6 +130,8 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       { id: '3', task: 'Add promo code & trackable link in description / link in bio', completed: false },
     ];
 
+    const selectedAccount = socialAccounts.find(a => a.id === selectedAccountId);
+
     onCreateCollab({
       title: title.trim(),
       brand_name: brandName.trim(),
@@ -149,6 +156,8 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       live_post_url: autoFillUrl.trim() || undefined,
       pipeline_stage: autoFillUrl.trim() ? 'posted_live' : 'pitch_inquiry',
       deliverables_checklist: standardChecklist,
+      account_id: selectedAccount?.id,
+      account_label: selectedAccount ? `${selectedAccount.name} (${selectedAccount.handle})` : undefined,
     });
 
     onClose();
@@ -258,6 +267,34 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Target Connected Channel / Page Selector */}
+          {socialAccounts.length > 0 && (
+            <div>
+              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                Assign to Channel or Page
+              </label>
+              <select
+                value={selectedAccountId}
+                onChange={(e) => {
+                  setSelectedAccountId(e.target.value);
+                  const acc = socialAccounts.find(a => a.id === e.target.value);
+                  if (acc) {
+                    if (acc.platform === 'youtube') setPlatform('youtube');
+                    else if (acc.platform === 'instagram') setPlatform('instagram');
+                  }
+                }}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:border-indigo-500 text-xs"
+              >
+                <option value="">General / Primary Workspace</option>
+                {socialAccounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({acc.handle}) — {acc.platform.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Title & Brand */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -28,30 +28,7 @@ interface ProfileModalProps {
   onOpenAuth?: () => void;
 }
 
-const DEMO_CREATOR_PROFILE: User = {
-  id: 'demo-creator-aarav',
-  name: 'Aarav Sharma',
-  email: 'aarav@tech.com',
-  handle: '@aarav_tech',
-  platform: 'both',
-  category: 'Tech & Consumer Electronics',
-  bio: 'Top tech reviewer and digital creator sharing in-depth gadget breakdowns, smartphone camera tests, and setup builds.',
-  avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-  phone: '+91 98200 12345',
-  rates: {
-    reel_rate: 35000,
-    video_rate: 75000,
-    story_rate: 12000,
-    whitelisting_monthly_rate: 15000
-  },
-  social_links: {
-    instagram: 'https://instagram.com/aarav_tech',
-    youtube: 'https://youtube.com/@aarav_tech',
-    twitter: 'https://x.com/aarav_tech',
-    website: 'https://aaravtech.com'
-  },
-  created_at: new Date().toISOString()
-};
+// No static demo user
 
 const CATEGORIES = [
   'Tech & Consumer Electronics',
@@ -75,32 +52,64 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const activeUser = user || DEMO_CREATOR_PROFILE;
+  if (!user) {
+    return (
+      <div 
+        className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+        onClick={onClose}
+      >
+        <div 
+          className="w-full max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-in fade-in"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white">Sign In to Edit Your Profile</h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Create an account or sign in to customize your creator profile, set your baseline rate card, and link your social handles.
+            </p>
+          </div>
+          <div className="flex gap-2 justify-center pt-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-900">
+              Close
+            </button>
+            {onOpenAuth && (
+              <button onClick={() => { onClose(); onOpenAuth(); }} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs">
+                Log In / Register
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const activeUser = user;
 
   // Profile Form State
   const [name, setName] = useState(activeUser.name || '');
   const [handle, setHandle] = useState(activeUser.handle || '');
   const [platform, setPlatform] = useState<Platform>(activeUser.platform || 'both');
   const [category, setCategory] = useState(activeUser.category || 'Tech & Consumer Electronics');
-  const [bio, setBio] = useState(
-    activeUser.bio || 'Tech reviewer and digital creator sharing in-depth reviews, gadgets, and consumer software integrations.'
-  );
-  const [phone, setPhone] = useState(activeUser.phone || '+91 98200 12345');
+  const [bio, setBio] = useState(activeUser.bio || '');
+  const [phone, setPhone] = useState(activeUser.phone || '');
   const [avatarUrl, setAvatarUrl] = useState(
-    activeUser.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeUser.name)}`
+    activeUser.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeUser.name || 'creator')}`
   );
 
   // Baseline Rates State
-  const [reelRate, setReelRate] = useState<number>(activeUser.rates?.reel_rate || 35000);
-  const [videoRate, setVideoRate] = useState<number>(activeUser.rates?.video_rate || 75000);
-  const [storyRate, setStoryRate] = useState<number>(activeUser.rates?.story_rate || 12000);
-  const [whitelistingRate, setWhitelistingRate] = useState<number>(activeUser.rates?.whitelisting_monthly_rate || 15000);
+  const [reelRate, setReelRate] = useState<number>(activeUser.rates?.reel_rate || 0);
+  const [videoRate, setVideoRate] = useState<number>(activeUser.rates?.video_rate || 0);
+  const [storyRate, setStoryRate] = useState<number>(activeUser.rates?.story_rate || 0);
+  const [whitelistingRate, setWhitelistingRate] = useState<number>(activeUser.rates?.whitelisting_monthly_rate || 0);
 
   // Social Links State
-  const [igUrl, setIgUrl] = useState(activeUser.social_links?.instagram || `https://instagram.com/${activeUser.handle?.replace('@', '')}`);
-  const [ytUrl, setYtUrl] = useState(activeUser.social_links?.youtube || `https://youtube.com/@${activeUser.handle?.replace('@', '')}`);
-  const [twitterUrl, setTwitterUrl] = useState(activeUser.social_links?.twitter || `https://x.com/${activeUser.handle?.replace('@', '')}`);
-  const [websiteUrl, setWebsiteUrl] = useState(activeUser.social_links?.website || 'https://collabflow.app');
+  const [igUrl, setIgUrl] = useState(activeUser.social_links?.instagram || '');
+  const [ytUrl, setYtUrl] = useState(activeUser.social_links?.youtube || '');
+  const [twitterUrl, setTwitterUrl] = useState(activeUser.social_links?.twitter || '');
+  const [websiteUrl, setWebsiteUrl] = useState(activeUser.social_links?.website || '');
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -124,18 +133,31 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   }, [onClose]);
 
   useEffect(() => {
-    const u = user || DEMO_CREATOR_PROFILE;
-    setName(u.name || '');
-    setHandle(u.handle || '');
-    setPlatform(u.platform || 'both');
-    setCategory(u.category || 'Tech & Consumer Electronics');
-    setBio(u.bio || '');
-    setPhone(u.phone || '+91 98200 12345');
-    setAvatarUrl(u.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`);
-    setReelRate(u.rates?.reel_rate || 35000);
-    setVideoRate(u.rates?.video_rate || 75000);
-    setStoryRate(u.rates?.story_rate || 12000);
-    setWhitelistingRate(u.rates?.whitelisting_monthly_rate || 15000);
+    if (!user) {
+      setName('');
+      setHandle('');
+      setPlatform('both');
+      setCategory('Tech & Consumer Electronics');
+      setBio('');
+      setPhone('');
+      setAvatarUrl('');
+      setReelRate(0);
+      setVideoRate(0);
+      setStoryRate(0);
+      setWhitelistingRate(0);
+      return;
+    }
+    setName(user.name || '');
+    setHandle(user.handle || '');
+    setPlatform(user.platform || 'both');
+    setCategory(user.category || 'Tech & Consumer Electronics');
+    setBio(user.bio || '');
+    setPhone(user.phone || '');
+    setAvatarUrl(user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`);
+    setReelRate(user.rates?.reel_rate || 0);
+    setVideoRate(user.rates?.video_rate || 0);
+    setStoryRate(user.rates?.story_rate || 0);
+    setWhitelistingRate(user.rates?.whitelisting_monthly_rate || 0);
   }, [user, isOpen]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -215,27 +237,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
 
-        {/* Demo Notice Banner */}
-        {!user && (
-          <div className="px-6 py-2.5 bg-gradient-to-r from-indigo-500/15 via-purple-500/15 to-amber-500/15 border-b border-indigo-500/20 text-xs text-indigo-700 dark:text-indigo-300 flex items-center justify-between">
-            <span className="flex items-center gap-1.5 font-medium">
-              <Sparkles size={13} className="text-amber-500" />
-              Viewing Demo Profile (Aarav Sharma). Sign in to personalize and save your permanent rates.
-            </span>
-            {onOpenAuth && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenAuth();
-                }}
-                className="px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[11px] shadow-xs"
-              >
-                Sign In / Claim
-              </button>
-            )}
-          </div>
-        )}
+        
 
         {/* Modal Body */}
         <form onSubmit={handleSave} className="p-6 space-y-6 text-xs max-h-[82vh] overflow-y-auto">
@@ -293,7 +295,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Aarav Sharma"
+                  placeholder="e.g. Alex River"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
                 />
               </div>
@@ -305,7 +307,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   required
                   value={handle}
                   onChange={(e) => setHandle(e.target.value)}
-                  placeholder="e.g. @aarav_tech"
+                  placeholder="e.g. @creator_handle"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-zinc-900 dark:text-zinc-100"
                 />
               </div>

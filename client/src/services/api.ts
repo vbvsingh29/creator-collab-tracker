@@ -1,4 +1,4 @@
-﻿import { Collab, Brand, StatsSummary, User } from '../types';
+import { Collab, Brand, StatsSummary, User } from '../types';
 import {
   getLocalCollabs,
   saveLocalCollabs,
@@ -352,6 +352,54 @@ export async function apiGetDemoCreators(): Promise<User[]> {
       return u ? [u] : [];
     }
   ).then(res => (Array.isArray(res) ? res : (res as any)?.data || []));
+}
+
+export async function apiSendEmailVerify(): Promise<{ success: boolean; message: string; preview_code?: string }> {
+  return safeJsonRequest(
+    `${API_BASE}/auth/send-email-verify`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+    },
+    async () => ({
+      success: true,
+      message: 'Verification code generated: 123456',
+      preview_code: '123456'
+    })
+  );
+}
+
+export async function apiVerifyEmailCode(code: string): Promise<{ success: boolean; message: string; email_verified: boolean }> {
+  return safeJsonRequest(
+    `${API_BASE}/auth/verify-email-code`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ code }),
+    },
+    async () => ({
+      success: true,
+      message: 'Email verified successfully!',
+      email_verified: true
+    })
+  );
+}
+
+export async function apiVerifyAccountPhone(phone: string, otp: string): Promise<{ success: boolean; message: string; phone_verified: boolean; phone: string }> {
+  return safeJsonRequest(
+    `${API_BASE}/auth/verify-account-phone`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ phone, otp }),
+    },
+    async () => ({
+      success: true,
+      message: 'Phone verified successfully!',
+      phone_verified: true,
+      phone
+    })
+  );
 }
 
 // -------------------------------------------------------------

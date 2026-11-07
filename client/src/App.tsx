@@ -18,6 +18,7 @@ import { FilterBar } from './components/FilterBar';
 import { SimpleView } from './components/SimpleView';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TableView } from './components/TableView';
+import { CalendarView } from './components/CalendarView';
 import { CollabDrawer } from './components/CollabDrawer';
 import { NewCollabModal } from './components/NewCollabModal';
 import { RateCardModal } from './components/RateCardModal';
@@ -67,7 +68,10 @@ export function App() {
     const saved = localStorage.getItem('collabflow_app_mode');
     return (saved === 'simple' || saved === 'advanced') ? saved : 'simple';
   });
-  const [currentView, setCurrentView] = useState<'kanban' | 'table' | 'cards'>('kanban');
+  const [currentView, setCurrentView] = useState<'kanban' | 'table' | 'cards' | 'calendar'>(() => {
+    const savedMode = localStorage.getItem('collabflow_app_mode');
+    return savedMode === 'advanced' ? 'kanban' : 'cards';
+  });
   const [simpleLayout, setSimpleLayout] = useState<'cards' | 'detailed' | 'table'>(() => {
     const saved = localStorage.getItem('collabflow_simple_layout');
     return (saved === 'cards' || saved === 'detailed' || saved === 'table') ? (saved as 'cards' | 'detailed' | 'table') : 'cards';
@@ -77,6 +81,9 @@ export function App() {
   const handleSetAppMode = (mode: 'simple' | 'advanced') => {
     setAppMode(mode);
     localStorage.setItem('collabflow_app_mode', mode);
+    if (mode === 'simple' && currentView === 'kanban') {
+      setCurrentView('cards');
+    }
   };
 
   const handleSetSimpleLayout = (layout: 'cards' | 'detailed' | 'table') => {
@@ -90,6 +97,7 @@ export function App() {
   const [selectedCommercial, setSelectedCommercial] = useState('all');
   const [filterOverdueOnly, setFilterOverdueOnly] = useState(false);
   const [filterWhitelistingOnly, setFilterWhitelistingOnly] = useState(false);
+  const [selectedDateFilter, setSelectedDateFilter] = useState('all');
 
   // Modals & Drawers
   const [selectedCollab, setSelectedCollab] = useState<Collab | null>(null);
@@ -168,6 +176,20 @@ export function App() {
     }
     if (filterWhitelistingOnly && !c.has_ads_whitelisting) {
       return false;
+    }
+    if (selectedDateFilter === 'this_month') {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const matchesMonth = Boolean(
+        (c.scheduled_post_date && c.scheduled_post_date.startsWith(currentMonth)) ||
+        (c.actual_posted_date && c.actual_posted_date.startsWith(currentMonth))
+      );
+      if (!matchesMonth) return false;
+    } else if (selectedDateFilter === 'next_30_days') {
+      const now = new Date();
+      const future = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const postDate = c.scheduled_post_date ? new Date(c.scheduled_post_date) : null;
+      const matchesFuture = Boolean(postDate && postDate >= now && postDate <= future);
+      if (!matchesFuture) return false;
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -610,6 +632,9 @@ export function App() {
           setSelectedPlatform={setSelectedPlatform}
           selectedCommercial={selectedCommercial}
           setSelectedCommercial={setSelectedCommercial}
+          selectedDateFilter={selectedDateFilter}
+          setSelectedDateFilter={setSelectedDateFilter}
+          onViewCalendar={() => setCurrentView('calendar')}
           filterOverdueOnly={filterOverdueOnly}
           setFilterOverdueOnly={setFilterOverdueOnly}
           filterWhitelistingOnly={filterWhitelistingOnly}
@@ -643,24 +668,19 @@ export function App() {
               Log In / Select Creator Profile
             </button>
           </div>
-        ) : appMode === 'simple' ? (
-          <SimpleView
-            collabs={filteredCollabs}
-            currency={currency}
-            layout={simpleLayout}
-            setLayout={handleSetSimpleLayout}
-            onSelectCollab={(c) => setSelectedCollab(c)}
-            onQuickMarkPaid={handleQuickMarkPaid}
-            onOpenNewCollab={() => setIsNewCollabOpen(true)}
-            onOpenInvoice={(c) => setInvoiceCollab(c)}
-            onOpenPitch={(c) => { setPitchCollab(c); setIsPitchOpen(true); }}
-          />
-        ) : currentView === 'kanban' ? (
+        ) : appMode === 'advanced' && currentView === 'kanban' ? (
           <KanbanBoard
             collabs={filteredCollabs}
             currency={currency}
             onSelectCollab={(c) => setSelectedCollab(c)}
             onAdvanceStage={handleAdvanceStage}
+          />
+        ) : currentView === 'calendar' ? (
+          <CalendarView
+            collabs={filteredCollabs}
+            currency={currency}
+            onSelectCollab={(c) => setSelectedCollab(c)}
+            onOpenNewCollab={() => setIsNewCollabOpen(true)}
           />
         ) : currentView === 'table' ? (
           <TableView

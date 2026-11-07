@@ -125,8 +125,8 @@ export const PitchGeneratorModal: React.FC<PitchGeneratorModalProps> = ({
       }));
 
       const res = await apiGenerateAIPitch({
-        creatorName: user?.name || 'Aarav Sharma',
-        creatorHandle: user?.handle || '@aaravtech',
+        creatorName: user?.name || 'Creator',
+        creatorHandle: user?.handle || '@creator',
         creatorCategory: user?.category || 'Tech & Lifestyle',
         targetBrand: targetBrand.trim() || 'Brand Partner',
         strategy,

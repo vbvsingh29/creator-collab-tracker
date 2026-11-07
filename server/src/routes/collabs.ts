@@ -113,7 +113,7 @@ collabsRouter.post('/', (req: AuthRequest, res: Response) => {
         has_ads_whitelisting, whitelisting_duration_days, whitelisting_expiry_date,
         has_category_exclusivity, exclusivity_days, promo_code, tracking_link,
         pipeline_stage, scheduled_post_date, actual_posted_date, live_post_url,
-        views_count, likes_count, deliverables_checklist, notes, created_at, updated_at
+        views_count, likes_count, deliverables_checklist, notes, account_id, account_label, created_at, updated_at
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
@@ -122,7 +122,7 @@ collabsRouter.post('/', (req: AuthRequest, res: Response) => {
         ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?
       )
     `);
 
@@ -164,6 +164,8 @@ collabsRouter.post('/', (req: AuthRequest, res: Response) => {
       body.likes_count || 0,
       JSON.stringify(body.deliverables_checklist || []),
       body.notes || '',
+      body.account_id || '',
+      body.account_label || '',
       now,
       now
     );
@@ -175,18 +177,60 @@ collabsRouter.post('/', (req: AuthRequest, res: Response) => {
   }
 });
 
-// PUT /api/collabs/:id (Tenant isolated)
-collabsRouter.put('/:id', (req: AuthRequest, res: Response) => {
+// PUT & PATCH /api/collabs/:id (Tenant isolated partial & full update)
+const handleUpdateCollab = (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const body = req.body;
     const userId = req.userId;
     const now = new Date().toISOString();
 
-    const exists = db.prepare('SELECT id FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
-    if (!exists) {
+    const existing = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId) as any;
+    if (!existing) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
+
+    const merged = {
+      title: body.title !== undefined ? body.title : existing.title,
+      brand_id: body.brand_id !== undefined ? body.brand_id : existing.brand_id,
+      brand_name: body.brand_name !== undefined ? body.brand_name : existing.brand_name,
+      brand_category: body.brand_category !== undefined ? body.brand_category : existing.brand_category,
+      contact_person: body.contact_person !== undefined ? body.contact_person : existing.contact_person,
+      contact_email: body.contact_email !== undefined ? body.contact_email : existing.contact_email,
+      platform: body.platform !== undefined ? body.platform : existing.platform,
+      deliverable_format: body.deliverable_format !== undefined ? body.deliverable_format : existing.deliverable_format,
+      format_label: body.format_label !== undefined ? body.format_label : existing.format_label,
+      commercial_type: body.commercial_type !== undefined ? body.commercial_type : existing.commercial_type,
+      currency: body.currency !== undefined ? body.currency : existing.currency,
+      deal_amount: body.deal_amount !== undefined ? Number(body.deal_amount) : existing.deal_amount,
+      barter_estimated_value: body.barter_estimated_value !== undefined ? Number(body.barter_estimated_value) : existing.barter_estimated_value,
+      payment_terms: body.payment_terms !== undefined ? body.payment_terms : existing.payment_terms,
+      payment_status: body.payment_status !== undefined ? body.payment_status : existing.payment_status,
+      amount_paid: body.amount_paid !== undefined ? Number(body.amount_paid) : existing.amount_paid,
+      invoice_number: body.invoice_number !== undefined ? body.invoice_number : existing.invoice_number,
+      invoice_date: body.invoice_date !== undefined ? body.invoice_date : existing.invoice_date,
+      payment_due_date: body.payment_due_date !== undefined ? body.payment_due_date : existing.payment_due_date,
+      payment_received_date: body.payment_received_date !== undefined ? body.payment_received_date : existing.payment_received_date,
+      has_ads_whitelisting: body.has_ads_whitelisting !== undefined ? (body.has_ads_whitelisting ? 1 : 0) : existing.has_ads_whitelisting,
+      whitelisting_duration_days: body.whitelisting_duration_days !== undefined ? Number(body.whitelisting_duration_days) : existing.whitelisting_duration_days,
+      whitelisting_expiry_date: body.whitelisting_expiry_date !== undefined ? body.whitelisting_expiry_date : existing.whitelisting_expiry_date,
+      has_category_exclusivity: body.has_category_exclusivity !== undefined ? (body.has_category_exclusivity ? 1 : 0) : existing.has_category_exclusivity,
+      exclusivity_days: body.exclusivity_days !== undefined ? Number(body.exclusivity_days) : existing.exclusivity_days,
+      promo_code: body.promo_code !== undefined ? body.promo_code : existing.promo_code,
+      tracking_link: body.tracking_link !== undefined ? body.tracking_link : existing.tracking_link,
+      pipeline_stage: body.pipeline_stage !== undefined ? body.pipeline_stage : existing.pipeline_stage,
+      scheduled_post_date: body.scheduled_post_date !== undefined ? body.scheduled_post_date : existing.scheduled_post_date,
+      actual_posted_date: body.actual_posted_date !== undefined ? body.actual_posted_date : existing.actual_posted_date,
+      live_post_url: body.live_post_url !== undefined ? body.live_post_url : existing.live_post_url,
+      views_count: body.views_count !== undefined ? Number(body.views_count) : existing.views_count,
+      likes_count: body.likes_count !== undefined ? Number(body.likes_count) : existing.likes_count,
+      deliverables_checklist: body.deliverables_checklist !== undefined 
+        ? (typeof body.deliverables_checklist === 'string' ? body.deliverables_checklist : JSON.stringify(body.deliverables_checklist))
+        : existing.deliverables_checklist,
+      notes: body.notes !== undefined ? body.notes : existing.notes,
+      account_id: body.account_id !== undefined ? body.account_id : (existing.account_id || ''),
+      account_label: body.account_label !== undefined ? body.account_label : (existing.account_label || ''),
+    };
 
     const updateStmt = db.prepare(`
       UPDATE collabs SET
@@ -225,46 +269,50 @@ collabsRouter.put('/:id', (req: AuthRequest, res: Response) => {
         likes_count = ?,
         deliverables_checklist = ?,
         notes = ?,
+        account_id = ?,
+        account_label = ?,
         updated_at = ?
       WHERE id = ? AND user_id = ?
     `);
 
     updateStmt.run(
-      body.title,
-      body.brand_id || null,
-      body.brand_name,
-      body.brand_category,
-      body.contact_person || '',
-      body.contact_email || '',
-      body.platform,
-      body.deliverable_format,
-      body.format_label || '',
-      body.commercial_type,
-      body.currency,
-      body.deal_amount,
-      body.barter_estimated_value,
-      body.payment_terms,
-      body.payment_status,
-      body.amount_paid,
-      body.invoice_number || '',
-      body.invoice_date || null,
-      body.payment_due_date || null,
-      body.payment_received_date || null,
-      body.has_ads_whitelisting ? 1 : 0,
-      body.whitelisting_duration_days || 0,
-      body.whitelisting_expiry_date || null,
-      body.has_category_exclusivity ? 1 : 0,
-      body.exclusivity_days || 0,
-      body.promo_code || '',
-      body.tracking_link || '',
-      body.pipeline_stage,
-      body.scheduled_post_date || null,
-      body.actual_posted_date || null,
-      body.live_post_url || '',
-      body.views_count || 0,
-      body.likes_count || 0,
-      JSON.stringify(body.deliverables_checklist || []),
-      body.notes || '',
+      merged.title,
+      merged.brand_id || null,
+      merged.brand_name,
+      merged.brand_category,
+      merged.contact_person || '',
+      merged.contact_email || '',
+      merged.platform,
+      merged.deliverable_format,
+      merged.format_label || '',
+      merged.commercial_type,
+      merged.currency,
+      merged.deal_amount,
+      merged.barter_estimated_value,
+      merged.payment_terms,
+      merged.payment_status,
+      merged.amount_paid,
+      merged.invoice_number || '',
+      merged.invoice_date || null,
+      merged.payment_due_date || null,
+      merged.payment_received_date || null,
+      merged.has_ads_whitelisting,
+      merged.whitelisting_duration_days,
+      merged.whitelisting_expiry_date || null,
+      merged.has_category_exclusivity,
+      merged.exclusivity_days,
+      merged.promo_code || '',
+      merged.tracking_link || '',
+      merged.pipeline_stage,
+      merged.scheduled_post_date || null,
+      merged.actual_posted_date || null,
+      merged.live_post_url || '',
+      merged.views_count,
+      merged.likes_count,
+      merged.deliverables_checklist,
+      merged.notes || '',
+      merged.account_id || '',
+      merged.account_label || '',
       now,
       id,
       userId
@@ -275,7 +323,10 @@ collabsRouter.put('/:id', (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
-});
+};
+
+collabsRouter.put('/:id', handleUpdateCollab);
+collabsRouter.patch('/:id', handleUpdateCollab);
 
 // PATCH /api/collabs/:id/stage (Strictly tenant isolated)
 collabsRouter.patch('/:id/stage', (req: AuthRequest, res: Response) => {

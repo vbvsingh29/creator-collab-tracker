@@ -26,7 +26,8 @@ import {
   Activity,
   Globe,
   Share2,
-  Wrench
+  Wrench,
+  Calendar
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -37,8 +38,8 @@ interface NavbarProps {
   onLogout: () => void;
   appMode: 'simple' | 'advanced';
   setAppMode: (mode: 'simple' | 'advanced') => void;
-  currentView: 'kanban' | 'table' | 'cards';
-  setCurrentView: (view: 'kanban' | 'table' | 'cards') => void;
+  currentView: 'kanban' | 'table' | 'cards' | 'calendar';
+  setCurrentView: (view: 'kanban' | 'table' | 'cards' | 'calendar') => void;
   simpleLayout?: 'cards' | 'detailed' | 'table';
   setSimpleLayout?: (layout: 'cards' | 'detailed' | 'table') => void;
   currency: Currency;
@@ -132,18 +133,33 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* CENTER-LEFT: Pipeline Core Tabs (Distilled to Essentials) */}
+        {/* CENTER-LEFT: Pipeline Core Tabs */}
         <div className="ml-4 hidden md:flex items-center bg-slate-100 dark:bg-zinc-900 p-0.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-xs font-semibold">
+          {/* Kanban ONLY in Advanced Mode as explicitly requested by user */}
+          {appMode === 'advanced' && (
+            <button
+              onClick={() => setCurrentView('kanban')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                currentView === 'kanban'
+                  ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Kanban size={13} />
+              <span>Kanban Board</span>
+            </button>
+          )}
+
           <button
-            onClick={() => setCurrentView('kanban')}
+            onClick={() => setCurrentView('cards')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-              currentView === 'kanban'
+              currentView === 'cards'
                 ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <Kanban size={13} />
-            <span>Deals Pipeline</span>
+            <LayoutGrid size={13} />
+            <span>{appMode === 'simple' ? 'Deals Pipeline' : 'Cards'}</span>
           </button>
 
           <button
@@ -159,15 +175,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => setCurrentView('cards')}
+            onClick={() => setCurrentView('calendar')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-              currentView === 'cards'
+              currentView === 'calendar'
                 ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <LayoutGrid size={13} />
-            <span>Cards</span>
+            <Calendar size={13} />
+            <span>Calendar</span>
           </button>
         </div>
       </div>

@@ -4,45 +4,43 @@ import {
   Settings, 
   Sun, 
   Moon, 
-  Monitor, 
   Sliders, 
-  CreditCard, 
   ShieldCheck, 
   Check, 
-  Database, 
   FileText, 
   Save,
   Lock,
   Fingerprint,
   Smartphone,
-  Bot,
   Sparkles,
-  Radio,
-  Building2,
-  Calculator,
-  ShieldAlert,
-  Crown,
-  User as UserIcon,
-  Activity,
   Users,
   KeyRound,
   Download,
   Trash2,
-  Layers,
-  Clock,
-  Globe,
   Briefcase,
   AlertTriangle,
   Youtube,
   Instagram,
-  HelpCircle,
-  ExternalLink,
-  Plus
+  Plus,
+  Mail,
+  CheckCircle2,
+  Shield,
+  Eye,
+  EyeOff,
+  Tv
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Currency } from '../types';
+import { Currency, SocialAccount, TeamMember } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAppLock } from '../context/AppLockContext';
+import { useAuth } from '../context/AuthContext';
+import { 
+  apiSendEmailVerify, 
+  apiVerifyEmailCode, 
+  apiSendSmsOtp, 
+  apiVerifyAccountPhone, 
+  apiUpdateProfile 
+} from '../services/api';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -66,10 +64,10 @@ interface SettingsModalProps {
 
 type SettingsTab = 
   | 'general' 
-  | 'commercial' 
-  | 'pipeline' 
-  | 'integrations' 
+  | 'verification'
+  | 'channels'
   | 'team' 
+  | 'commercial' 
   | 'invoicing' 
   | 'security' 
   | 'privacy';
@@ -83,17 +81,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   setAppMode,
   simpleLayout,
   setSimpleLayout,
-  onOpenPitch,
-  onOpenIntegrations,
-  onOpenMediaKit,
-  onOpenProfile,
-  onOpenRateCard,
-  onOpenExclusivity,
-  onOpenBrands,
-  onOpenPricing,
-  onOpenAdmin
+  onOpenIntegrations
 }) => {
   const { theme, setTheme } = useTheme();
+  const { user, updateUser, refreshUser } = useAuth();
   const {
     isPinEnabled,
     isBiometricsEnabled,
@@ -108,48 +99,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
 
-  // 1. General Workspace Profile State
-  const [workspaceName, setWorkspaceName] = useState(() => localStorage.getItem('collabflow_ws_name') || 'Aarav Tech Studio');
-  const [creatorHandle, setCreatorHandle] = useState(() => localStorage.getItem('collabflow_creator_handle') || '@aarav_tech');
-  const [creatorNiche, setCreatorNiche] = useState(() => localStorage.getItem('collabflow_creator_niche') || 'Tech & Consumer Electronics');
+  // 1. General Workspace Profile State (Clean defaults, zero fake data)
+  const [workspaceName, setWorkspaceName] = useState(() => localStorage.getItem('collabflow_ws_name') || (user?.name ? `${user.name} Workspace` : ''));
+  const [creatorHandle, setCreatorHandle] = useState(() => localStorage.getItem('collabflow_creator_handle') || user?.handle || '');
+  const [creatorNiche, setCreatorNiche] = useState(() => localStorage.getItem('collabflow_creator_niche') || user?.category || '');
   const [timezone, setTimezone] = useState(() => localStorage.getItem('collabflow_ws_tz') || 'Asia/Kolkata (IST +5:30)');
-  const [businessAddress, setBusinessAddress] = useState(() => localStorage.getItem('collabflow_biz_address') || 'Bandra West, Mumbai, MH, 400050, India');
+  const [businessAddress, setBusinessAddress] = useState(() => localStorage.getItem('collabflow_biz_address') || '');
 
-  // 2. Commercial Rates & Rules State
-  const [baseReelRate, setBaseReelRate] = useState(() => localStorage.getItem('collabflow_rate_reel') || '35000');
-  const [baseVideoRate, setBaseVideoRate] = useState(() => localStorage.getItem('collabflow_rate_video') || '75000');
-  const [baseStoryRate, setBaseStoryRate] = useState(() => localStorage.getItem('collabflow_rate_story') || '12000');
-  const [whitelistingFee, setWhitelistingFee] = useState(() => localStorage.getItem('collabflow_fee_whitelisting') || '15000');
-  const [enableRushFee, setEnableRushFee] = useState(() => localStorage.getItem('collabflow_enable_rush') === 'true');
-  const [minimumDealFloor, setMinimumDealFloor] = useState(() => localStorage.getItem('collabflow_deal_floor') || '25000');
+  // 2. Email & Phone Verification State
+  const [emailVerifyCode, setEmailVerifyCode] = useState('');
+  const [isSendingEmailCode, setIsSendingEmailCode] = useState(false);
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{ type: 'success' | 'error'; message: string; previewCode?: string } | null>(null);
 
-  // 3. Pipeline & Automation State
-  const [defaultPaymentTerms, setDefaultPaymentTerms] = useState(() => localStorage.getItem('collabflow_default_payment_terms') || 'net_30');
-  const [autoFollowUpDays, setAutoFollowUpDays] = useState(() => localStorage.getItem('collabflow_autofollowup_days') || '7');
-  const [autoReminderEnabled, setAutoReminderEnabled] = useState(() => localStorage.getItem('collabflow_auto_reminders') !== 'false');
+  const [phoneInput, setPhoneInput] = useState(user?.phone || '');
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [isSendingPhoneOtp, setIsSendingPhoneOtp] = useState(false);
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const [phoneFeedback, setPhoneFeedback] = useState<{ type: 'success' | 'error'; message: string; previewCode?: string } | null>(null);
 
-  // 4. Invoicing & Payout Defaults
-  const [legalName, setLegalName] = useState(() => localStorage.getItem('collabflow_biz_name') || 'Aarav Sharma Digital LLP');
-  const [taxId, setTaxId] = useState(() => localStorage.getItem('collabflow_biz_tax') || 'GSTIN: 27AABCA1234F1Z8 | PAN: ABCDE1234F');
-  const [bankInfo, setBankInfo] = useState(() => localStorage.getItem('collabflow_biz_bank') || 'HDFC Bank | A/C: 50200012345678 | IFSC: HDFC0000123 | UPI: aarav@okaxis');
-  const [invoiceTerms, setInvoiceTerms] = useState(() => localStorage.getItem('collabflow_invoice_terms') || 'Payment due strictly within agreed terms. Late payments accrue 1.5% monthly interest.');
+  // 3. Multi-Channel & Multi-Page Management State
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>(() => {
+    return user?.social_accounts || [];
+  });
+  const [newAccPlatform, setNewAccPlatform] = useState<'youtube' | 'instagram' | 'tiktok' | 'x' | 'podcast'>('youtube');
+  const [newAccName, setNewAccName] = useState('');
+  const [newAccHandle, setNewAccHandle] = useState('');
+  const [newAccNiche, setNewAccNiche] = useState('');
 
-  // 5. Team & Agency Members State
-  const [teamMembers, setTeamMembers] = useState(() => {
-    const saved = localStorage.getItem('collabflow_team_members');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return [
-      { id: '1', name: 'Aarav Sharma', email: 'aarav@tech.com', role: 'Owner / Head Creator', status: 'Active' },
-      { id: '2', name: 'Rohan Kapoor', email: 'rohan@talentpartners.in', role: 'Talent & Deal Manager', status: 'Active' },
-      { id: '3', name: 'Karan Dave', email: 'editor@aaravtech.com', role: 'Lead Video Editor', status: 'Active' },
-      { id: '4', name: 'Meera Joshi', email: 'ca@financestudio.in', role: 'Chartered Accountant / Tax', status: 'Active' }
-    ];
+  // 4. Team & Client RBAC Permissions State
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
+    return user?.team_members || [];
   });
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
-  const [newMemberRole, setNewMemberRole] = useState('Talent & Deal Manager');
+  const [newMemberRole, setNewMemberRole] = useState<string>('Talent & Deal Manager');
+  const [newMemberCanViewFinances, setNewMemberCanViewFinances] = useState(true);
+  const [newMemberCanEditDeals, setNewMemberCanEditDeals] = useState(true);
+  const [newMemberAllowedAccounts, setNewMemberAllowedAccounts] = useState<string[]>([]);
+
+  // 5. Invoicing & Payout Defaults
+  const [legalName, setLegalName] = useState(() => localStorage.getItem('collabflow_biz_name') || user?.name || '');
+  const [taxId, setTaxId] = useState(() => localStorage.getItem('collabflow_biz_tax') || '');
+  const [bankInfo, setBankInfo] = useState(() => localStorage.getItem('collabflow_biz_bank') || '');
+  const [invoiceTerms, setInvoiceTerms] = useState(() => localStorage.getItem('collabflow_invoice_terms') || 'Payment due strictly within agreed terms.');
 
   // 6. Security App Lock State
   const [newPin, setNewPin] = useState('');
@@ -157,6 +150,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [currentPinToRemove, setCurrentPinToRemove] = useState('');
   const [pinFeedback, setPinFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [bioToggle, setBioToggle] = useState(isBiometricsEnabled);
+
+  // Sync state if user loads later
+  useEffect(() => {
+    if (user) {
+      if (user.social_accounts) setSocialAccounts(user.social_accounts);
+      if (user.team_members) setTeamMembers(user.team_members);
+      if (user.phone && !phoneInput) setPhoneInput(user.phone);
+    }
+  }, [user]);
 
   // ESC key listener
   useEffect(() => {
@@ -173,88 +175,224 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const triggerSaveNotification = (msg: string) => {
     setSavedFeedback(msg);
-    confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
+    confetti({ particleCount: 35, spread: 45, origin: { y: 0.7 } });
     setTimeout(() => setSavedFeedback(null), 2500);
   };
 
   // Save General Workspace Settings
-  const handleSaveGeneral = (e: React.FormEvent) => {
+  const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem('collabflow_ws_name', workspaceName);
     localStorage.setItem('collabflow_creator_handle', creatorHandle);
     localStorage.setItem('collabflow_creator_niche', creatorNiche);
     localStorage.setItem('collabflow_ws_tz', timezone);
     localStorage.setItem('collabflow_biz_address', businessAddress);
-    triggerSaveNotification('Workspace Profile & Localization saved successfully!');
+
+    if (user) {
+      try {
+        await apiUpdateProfile({
+          handle: creatorHandle,
+          category: creatorNiche,
+        });
+        updateUser({ handle: creatorHandle, category: creatorNiche });
+      } catch (err) {}
+    }
+
+    triggerSaveNotification('Workspace configuration saved!');
   };
 
-  // Save Commercial Rates
-  const handleSaveCommercial = (e: React.FormEvent) => {
+  // Email verification handlers
+  const handleSendEmailVerification = async () => {
+    setIsSendingEmailCode(true);
+    setEmailFeedback(null);
+    try {
+      const res = await apiSendEmailVerify();
+      setEmailFeedback({
+        type: 'success',
+        message: res.message,
+        previewCode: res.preview_code
+      });
+      if (res.preview_code) {
+        setEmailVerifyCode(res.preview_code);
+      }
+    } catch (err: any) {
+      setEmailFeedback({
+        type: 'error',
+        message: err.message || 'Failed to send verification code.'
+      });
+    } finally {
+      setIsSendingEmailCode(false);
+    }
+  };
+
+  const handleVerifyEmailCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('collabflow_rate_reel', baseReelRate);
-    localStorage.setItem('collabflow_rate_video', baseVideoRate);
-    localStorage.setItem('collabflow_rate_story', baseStoryRate);
-    localStorage.setItem('collabflow_fee_whitelisting', whitelistingFee);
-    localStorage.setItem('collabflow_enable_rush', enableRushFee ? 'true' : 'false');
-    localStorage.setItem('collabflow_deal_floor', minimumDealFloor);
-    triggerSaveNotification('Commercial rate cards & automated surcharge rules updated!');
+    if (!emailVerifyCode.trim()) return;
+    setIsVerifyingEmail(true);
+    try {
+      const res = await apiVerifyEmailCode(emailVerifyCode.trim());
+      updateUser({ email_verified: true });
+      setEmailFeedback({
+        type: 'success',
+        message: '✓ Email address verified successfully!'
+      });
+      confetti({ particleCount: 40, spread: 50 });
+    } catch (err: any) {
+      setEmailFeedback({
+        type: 'error',
+        message: err.message || 'Invalid or expired verification code.'
+      });
+    } finally {
+      setIsVerifyingEmail(false);
+    }
   };
 
-  // Save Pipeline Automations
-  const handleSavePipeline = (e: React.FormEvent) => {
+  // Phone verification handlers
+  const handleSendPhoneOtp = async () => {
+    if (!phoneInput || phoneInput.trim().length < 8) {
+      setPhoneFeedback({ type: 'error', message: 'Please enter a valid phone number first.' });
+      return;
+    }
+    setIsSendingPhoneOtp(true);
+    setPhoneFeedback(null);
+    try {
+      const res = await apiSendSmsOtp(phoneInput.trim());
+      setPhoneFeedback({
+        type: 'success',
+        message: res.message,
+        previewCode: res.preview_code
+      });
+      if (res.preview_code) {
+        setPhoneOtp(res.preview_code);
+      }
+    } catch (err: any) {
+      setPhoneFeedback({
+        type: 'error',
+        message: err.message || 'Failed to send SMS OTP.'
+      });
+    } finally {
+      setIsSendingPhoneOtp(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('collabflow_default_payment_terms', defaultPaymentTerms);
-    localStorage.setItem('collabflow_autofollowup_days', autoFollowUpDays);
-    localStorage.setItem('collabflow_auto_reminders', autoReminderEnabled ? 'true' : 'false');
-    triggerSaveNotification('Pipeline workflows & payment escalation rules saved!');
+    if (!phoneOtp.trim()) return;
+    setIsVerifyingPhone(true);
+    try {
+      const res = await apiVerifyAccountPhone(phoneInput.trim(), phoneOtp.trim());
+      updateUser({ phone_verified: true, phone: res.phone });
+      setPhoneFeedback({
+        type: 'success',
+        message: '✓ Phone number verified successfully!'
+      });
+      confetti({ particleCount: 40, spread: 50 });
+    } catch (err: any) {
+      setPhoneFeedback({
+        type: 'error',
+        message: err.message || 'Invalid or expired SMS OTP code.'
+      });
+    } finally {
+      setIsVerifyingPhone(false);
+    }
   };
 
-  // Save Invoicing Settings
+  // Multi-Channel Handlers
+  const handleAddChannel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAccName.trim() || !newAccHandle.trim()) return;
+    const newAccount: SocialAccount = {
+      id: 'acc-' + Date.now(),
+      platform: newAccPlatform,
+      name: newAccName.trim(),
+      handle: newAccHandle.trim().startsWith('@') ? newAccHandle.trim() : '@' + newAccHandle.trim(),
+      niche: newAccNiche.trim() || undefined
+    };
+    const updated = [...socialAccounts, newAccount];
+    setSocialAccounts(updated);
+    setNewAccName('');
+    setNewAccHandle('');
+    setNewAccNiche('');
+
+    if (user) {
+      try {
+        await apiUpdateProfile({ social_accounts: updated });
+        updateUser({ social_accounts: updated });
+      } catch (err) {}
+    }
+    triggerSaveNotification(`${newAccount.name} channel linked!`);
+  };
+
+  const handleRemoveChannel = async (id: string) => {
+    const updated = socialAccounts.filter(a => a.id !== id);
+    setSocialAccounts(updated);
+    if (user) {
+      try {
+        await apiUpdateProfile({ social_accounts: updated });
+        updateUser({ social_accounts: updated });
+      } catch (err) {}
+    }
+  };
+
+  // Team & RBAC Handlers
+  const handleAddTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemberName.trim() || !newMemberEmail.trim()) return;
+
+    const newMember: TeamMember = {
+      id: 'member-' + Date.now(),
+      name: newMemberName.trim(),
+      email: newMemberEmail.trim().toLowerCase(),
+      role: newMemberRole,
+      status: 'Active',
+      can_view_finances: newMemberCanViewFinances,
+      can_edit_deals: newMemberCanEditDeals,
+      allowed_account_ids: newMemberAllowedAccounts
+    };
+
+    const updated = [...teamMembers, newMember];
+    setTeamMembers(updated);
+    setNewMemberName('');
+    setNewMemberEmail('');
+    setNewMemberRole('Talent & Deal Manager');
+    setNewMemberCanViewFinances(true);
+    setNewMemberCanEditDeals(true);
+    setNewMemberAllowedAccounts([]);
+
+    if (user) {
+      try {
+        await apiUpdateProfile({ team_members: updated });
+        updateUser({ team_members: updated });
+      } catch (err) {}
+    }
+    triggerSaveNotification(`${newMember.name} added to workspace team!`);
+  };
+
+  const handleRemoveTeamMember = async (id: string) => {
+    const updated = teamMembers.filter(m => m.id !== id);
+    setTeamMembers(updated);
+    if (user) {
+      try {
+        await apiUpdateProfile({ team_members: updated });
+        updateUser({ team_members: updated });
+      } catch (err) {}
+    }
+  };
+
+  // Save Invoicing
   const handleSaveInvoicing = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem('collabflow_biz_name', legalName);
     localStorage.setItem('collabflow_biz_tax', taxId);
     localStorage.setItem('collabflow_biz_bank', bankInfo);
     localStorage.setItem('collabflow_invoice_terms', invoiceTerms);
-    triggerSaveNotification('Invoicing entity details & remittance terms updated!');
+    triggerSaveNotification('Legal invoicing remittance saved!');
   };
 
-  // Add Team Member
-  const handleAddTeamMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMemberName.trim() || !newMemberEmail.trim()) return;
-    const updated = [
-      ...teamMembers,
-      {
-        id: `team-${Date.now()}`,
-        name: newMemberName.trim(),
-        email: newMemberEmail.trim(),
-        role: newMemberRole,
-        status: 'Active'
-      }
-    ];
-    setTeamMembers(updated);
-    localStorage.setItem('collabflow_team_members', JSON.stringify(updated));
-    setNewMemberName('');
-    setNewMemberEmail('');
-    triggerSaveNotification(`Added ${newMemberName} to workspace team roster.`);
-  };
-
-  // Remove Team Member
-  const handleRemoveTeamMember = (id: string) => {
-    if (confirm('Revoke access for this workspace collaborator?')) {
-      const updated = teamMembers.filter((m: any) => m.id !== id);
-      setTeamMembers(updated);
-      localStorage.setItem('collabflow_team_members', JSON.stringify(updated));
-      triggerSaveNotification('Team collaborator removed.');
-    }
-  };
-
-  // Security PIN Set
+  // PIN Lock Handlers
   const handleSetPin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPinFeedback(null);
-    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+    if (newPin.length !== 4) {
       setPinFeedback({ type: 'error', text: 'PIN must be exactly 4 digits.' });
       return;
     }
@@ -263,325 +401,146 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       return;
     }
     await enablePinLock(newPin, bioToggle);
-    setPinFeedback({ type: 'success', text: '4-digit PIN lock activated successfully!' });
     setNewPin('');
     setConfirmPin('');
-    confetti({ particleCount: 30, spread: 40 });
+    setPinFeedback({ type: 'success', text: 'Hardware app lock activated successfully!' });
+    setTimeout(() => setPinFeedback(null), 3000);
   };
 
-  // Security PIN Remove
   const handleDisablePin = (e: React.FormEvent) => {
     e.preventDefault();
-    setPinFeedback(null);
-    const success = disablePinLock(currentPinToRemove);
-    if (success) {
-      setPinFeedback({ type: 'success', text: 'PIN lock disabled.' });
+    const ok = disablePinLock(currentPinToRemove);
+    if (ok) {
       setCurrentPinToRemove('');
+      setPinFeedback({ type: 'success', text: 'PIN security app lock disabled.' });
+      setTimeout(() => setPinFeedback(null), 3000);
     } else {
       setPinFeedback({ type: 'error', text: 'Incorrect current PIN.' });
     }
   };
 
-  // Export Full Workspace Data Backup (JSON)
-  const handleExportFullBackup = () => {
-    const backupData = {
-      version: '1.2.0',
-      exported_at: new Date().toISOString(),
-      workspace: {
-        name: workspaceName,
-        handle: creatorHandle,
-        category: creatorNiche,
-        currency,
-        timezone,
-        address: businessAddress
-      },
-      rates: {
-        reel: baseReelRate,
-        video: baseVideoRate,
-        story: baseStoryRate,
-        whitelisting: whitelistingFee
-      },
-      invoicing: {
-        legalName,
-        taxId,
-        bankInfo
-      },
-      team: teamMembers
-    };
-
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupData, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `collabflow_workspace_backup_${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    triggerSaveNotification('Full workspace JSON archive downloaded.');
-  };
-
-  // Clear Cache
-  const handleClearCache = () => {
-    if (confirm('Clear local browser display cache and temporary filters? (Deal records remain preserved).')) {
-      localStorage.removeItem('collabflow_simple_layout');
-      localStorage.removeItem('collabflow_biz_name');
-      localStorage.removeItem('collabflow_biz_tax');
-      localStorage.removeItem('collabflow_biz_bank');
-      triggerSaveNotification('Local preferences cache cleared.');
-    }
-  };
-
   return (
-    <div onClick={onClose} className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-150"
+      onClick={onClose}
+    >
       <div 
-        className="w-full max-w-5xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-zinc-900 dark:text-zinc-100 flex flex-col max-h-[94vh]"
+        className="w-full max-w-4xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/70 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/50">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <Settings size={18} />
+            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center font-bold text-xs shadow-xs">
+              <Settings size={15} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm sm:text-base">Workspace & Platform Settings</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                  Creator Suite
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                Configure business entity profiles, commercial rate floors, team seats, and security defaults
-              </p>
+              <h3 className="font-bold text-sm text-zinc-900 dark:text-white">Workspace Configuration</h3>
+              <p className="text-[11px] text-zinc-500">Preferences, verifications, connected channels, and team controls</p>
             </div>
           </div>
           <button 
             onClick={onClose} 
-            className="p-1.5 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 transition-colors"
+            className="p-1.5 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Quick Launchpad to all App Pages / Tools */}
-        <div className="p-3.5 mx-6 mt-3.5 rounded-2xl bg-zinc-100/70 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/80 space-y-2">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles size={13} className="text-amber-500" />
-              <span>Workspace Quick Launch Tools</span>
-            </span>
-            <span className="text-[10px] text-zinc-400">1-click direct navigation</span>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5">
-            {onOpenPitch && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenPitch(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:bg-purple-500/20 transition-colors shadow-xs"
-              >
-                <Bot size={12} className="text-purple-500" />
-                <span>AI Pitch Studio</span>
-              </button>
-            )}
-
-            {onOpenIntegrations && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenIntegrations(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition-colors shadow-xs"
-              >
-                <Radio size={12} className="text-emerald-500" />
-                <span>Live Integrations</span>
-              </button>
-            )}
-
-            {onOpenMediaKit && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenMediaKit(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-pink-500/30 bg-pink-500/10 text-pink-700 dark:text-pink-300 text-xs font-semibold hover:bg-pink-500/20 transition-colors shadow-xs"
-              >
-                <Sparkles size={12} className="text-pink-500" />
-                <span>Media Kit One-Pager</span>
-              </button>
-            )}
-
-            {onOpenProfile && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenProfile(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-500/20 transition-colors shadow-xs"
-              >
-                <UserIcon size={12} className="text-indigo-500" />
-                <span>Profile & Rates</span>
-              </button>
-            )}
-
-            {onOpenRateCard && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenRateCard(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <Calculator size={12} className="text-indigo-500" />
-                <span>Rate Calculator</span>
-              </button>
-            )}
-
-            {onOpenExclusivity && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenExclusivity(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <ShieldAlert size={12} className="text-amber-500" />
-                <span>Exclusivity Radar</span>
-              </button>
-            )}
-
-            {onOpenBrands && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenBrands(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <Building2 size={12} className="text-zinc-500" />
-                <span>Brand Directory</span>
-              </button>
-            )}
-
-            {onOpenAdmin && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenAdmin(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-teal-500/30 bg-teal-500/10 text-teal-700 dark:text-teal-300 text-xs font-semibold hover:bg-teal-500/20 transition-colors shadow-xs"
-              >
-                <Activity size={12} className="text-teal-500" />
-                <span>Platform Observatory</span>
-              </button>
-            )}
-
-            {onOpenPricing && (
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenPricing(); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition-colors shadow-xs"
-              >
-                <Crown size={12} className="text-amber-500" />
-                <span>Upgrade Pro</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Multi-Tab Workspace Navigation Body */}
+        {/* Modal Body with Sidebar Tabs */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          
-          {/* Left Tab Sidebar */}
-          <div className="w-full md:w-56 p-3 md:border-r border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30 shrink-0 overflow-x-auto md:overflow-y-auto flex md:flex-col gap-1 border-b md:border-b-0">
+          {/* Navigation Tabs */}
+          <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 p-2 md:p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto shrink-0 bg-zinc-50/50 dark:bg-zinc-900/20">
             <button
               onClick={() => setActiveTab('general')}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
                 activeTab === 'general'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
               }`}
             >
               <Briefcase size={14} />
-              <span>General Profile</span>
+              <span>General & View</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('commercial')}
+              onClick={() => setActiveTab('verification')}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
-                activeTab === 'commercial'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                activeTab === 'verification'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
               }`}
             >
-              <CreditCard size={14} />
-              <span>Commercial & Rates</span>
+              <ShieldCheck size={14} />
+              <span>Email & Phone OTP</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('pipeline')}
+              onClick={() => setActiveTab('channels')}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
-                activeTab === 'pipeline'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                activeTab === 'channels'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
               }`}
             >
-              <Sliders size={14} />
-              <span>Pipeline & Workflow</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('integrations')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
-                activeTab === 'integrations'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
-              }`}
-            >
-              <Radio size={14} />
-              <span>Integrations & APIs</span>
+              <Tv size={14} />
+              <span>Channels & Pages</span>
             </button>
 
             <button
               onClick={() => setActiveTab('team')}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
                 activeTab === 'team'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
               }`}
             >
               <Users size={14} />
-              <span>Team & Agency Roles</span>
+              <span>Team & Client Access</span>
             </button>
 
             <button
               onClick={() => setActiveTab('invoicing')}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
                 activeTab === 'invoicing'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
               }`}
             >
               <FileText size={14} />
-              <span>Invoicing & Payouts</span>
+              <span>Invoicing & Remittance</span>
             </button>
 
             <button
               onClick={() => setActiveTab('security')}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
                 activeTab === 'security'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
               }`}
             >
               <Lock size={14} />
-              <span>Security & PIN</span>
+              <span>PIN & App Lock</span>
             </button>
 
             <button
               onClick={() => setActiveTab('privacy')}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 md:w-full text-left ${
                 activeTab === 'privacy'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850'
               }`}
             >
-              <ShieldCheck size={14} />
+              <Shield size={14} />
               <span>Data & GDPR</span>
             </button>
           </div>
 
           {/* Right Tab Content Container */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 text-xs space-y-6">
-
             {savedFeedback && (
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center gap-2 animate-in fade-in">
-                <Check size={15} />
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 flex items-center gap-2 animate-in fade-in">
+                <Check size={14} />
                 <span className="font-semibold">{savedFeedback}</span>
               </div>
             )}
@@ -591,404 +550,487 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <form onSubmit={handleSaveGeneral} className="space-y-5">
                 <div>
                   <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Briefcase size={16} className="text-indigo-500" />
+                    <Briefcase size={16} className="text-slate-900 dark:text-white" />
                     <span>General Workspace & Localization</span>
                   </h4>
                   <p className="text-[11px] text-zinc-500">
-                    Primary operational profile, timezones, and display layout
+                    Set your legal workspace name, handle, timezones, and currency.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Workspace Legal Name</label>
+                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Workspace / Creator Studio Name</label>
                     <input
                       type="text"
+                      placeholder="e.g. Skyline Media Studio"
                       value={workspaceName}
                       onChange={(e) => setWorkspaceName(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Creator Handle</label>
+                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Primary Creator Handle</label>
                     <input
                       type="text"
+                      placeholder="@yourhandle"
                       value={creatorHandle}
                       onChange={(e) => setCreatorHandle(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono"
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800 font-mono"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Primary Creator Niche</label>
+                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Primary Niche / Category</label>
                     <input
                       type="text"
+                      placeholder="e.g. Technology, Gaming, Lifestyle"
                       value={creatorNiche}
                       onChange={(e) => setCreatorNiche(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Workspace Timezone</label>
+                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Timezone</label>
                     <select
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
                     >
                       <option value="Asia/Kolkata (IST +5:30)">Asia/Kolkata (IST +5:30)</option>
                       <option value="America/New_York (EST -5:00)">America/New_York (EST -5:00)</option>
                       <option value="America/Los_Angeles (PST -8:00)">America/Los_Angeles (PST -8:00)</option>
                       <option value="Europe/London (GMT +0:00)">Europe/London (GMT +0:00)</option>
                       <option value="Asia/Dubai (GST +4:00)">Asia/Dubai (GST +4:00)</option>
-                      <option value="Asia/Singapore (SGT +8:00)">Asia/Singapore (SGT +8:00)</option>
                     </select>
-                  </div>
-
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Registered Business / Studio Address</label>
-                    <input
-                      type="text"
-                      value={businessAddress}
-                      onChange={(e) => setBusinessAddress(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
-                    />
                   </div>
                 </div>
 
                 {/* Appearance & Currency */}
                 <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
                   <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider block">
-                    Theme Interface & Base Currency
+                    Pipeline Operational Mode
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => setTheme('light')}
-                      className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                        theme === 'light' ? 'border-amber-500 bg-amber-500/10 text-amber-600 font-bold' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600'
+                      onClick={() => setAppMode('simple')}
+                      className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                        appMode === 'simple'
+                          ? 'border-slate-900 dark:border-white bg-slate-50 dark:bg-zinc-900 font-bold'
+                          : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Sun size={16} />
-                      <span className="text-[11px]">Light Mode</span>
+                      <span className="text-xs text-zinc-900 dark:text-white font-bold">Starter / Simple Mode</span>
+                      <span className="text-[10px] font-normal text-zinc-500">Fast card pipeline, instant deliverable checklist & 1-tap payouts. (No Kanban clutter)</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setTheme('dark')}
-                      className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                        theme === 'dark' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400 font-bold' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600'
+                      onClick={() => setAppMode('advanced')}
+                      className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                        appMode === 'advanced'
+                          ? 'border-slate-900 dark:border-white bg-slate-50 dark:bg-zinc-900 font-bold'
+                          : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
-                      <Moon size={16} />
-                      <span className="text-[11px]">Dark Mode</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setCurrency('INR')}
-                      className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                        currency === 'INR' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 font-bold' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600'
-                      }`}
-                    >
-                      <span className="text-base font-bold">₹</span>
-                      <span className="text-[11px]">INR Rupee</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setCurrency('USD')}
-                      className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
-                        currency === 'USD' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400 font-bold' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600'
-                      }`}
-                    >
-                      <span className="text-base font-bold">$</span>
-                      <span className="text-[11px]">USD Dollar</span>
+                      <span className="text-xs text-zinc-900 dark:text-white font-bold">Agency / Advanced Mode</span>
+                      <span className="text-[10px] font-normal text-zinc-500">Unlocks Kanban drag & advance board, deliverable Gantt dates, and full financial analytics.</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Theme & Currency */}
+                <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setTheme('light')}
+                    className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      theme === 'light' ? 'border-amber-500 bg-amber-500/10 text-amber-700 font-bold' : 'border-zinc-200 dark:border-zinc-800 text-zinc-600'
+                    }`}
+                  >
+                    <Sun size={15} />
+                    <span className="text-[11px]">Light Mode</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setTheme('dark')}
+                    className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      theme === 'dark' ? 'border-slate-800 dark:border-white bg-slate-900 dark:bg-white text-white dark:text-zinc-900 font-bold' : 'border-zinc-200 dark:border-zinc-800 text-zinc-600'
+                    }`}
+                  >
+                    <Moon size={15} />
+                    <span className="text-[11px]">Dark Mode</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrency('INR')}
+                    className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      currency === 'INR' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 font-bold' : 'border-zinc-200 dark:border-zinc-800 text-zinc-600'
+                    }`}
+                  >
+                    <span className="font-bold">₹</span>
+                    <span className="text-[11px]">INR Rupee</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrency('USD')}
+                    className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      currency === 'USD' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 font-bold' : 'border-zinc-200 dark:border-zinc-800 text-zinc-600'
+                    }`}
+                  >
+                    <span className="font-bold">$</span>
+                    <span className="text-[11px]">USD Dollar</span>
+                  </button>
                 </div>
 
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-md shadow-indigo-600/20 active:scale-95"
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs transition-colors shadow-xs"
                 >
-                  <Save size={14} />
-                  <span>Save General Profile</span>
+                  Save Workspace Details
                 </button>
               </form>
             )}
 
-            {/* TAB 2: COMMERCIAL RATES & RULES */}
-            {activeTab === 'commercial' && (
-              <form onSubmit={handleSaveCommercial} className="space-y-5">
+            {/* TAB 2: EMAIL & PHONE VERIFICATION */}
+            {activeTab === 'verification' && (
+              <div className="space-y-6">
                 <div>
                   <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <CreditCard size={16} className="text-emerald-500" />
-                    <span>Commercial Rate Cards & Surcharge Automations</span>
+                    <ShieldCheck size={16} className="text-emerald-500" />
+                    <span>Identity Verification & Security OTP</span>
                   </h4>
                   <p className="text-[11px] text-zinc-500">
-                    Set baseline format pricing, deal minimum floor, and automated rush delivery fees
+                    Verify your email address and mobile phone number for deal notices, contract authorizations, and payout security.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Baseline Dedicated 60s Reel ({currency})</label>
-                    <input
-                      type="number"
-                      value={baseReelRate}
-                      onChange={(e) => setBaseReelRate(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Dedicated 8-15m YouTube Video ({currency})</label>
-                    <input
-                      type="number"
-                      value={baseVideoRate}
-                      onChange={(e) => setBaseVideoRate(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">24-Hour Story Sequence + Link ({currency})</label>
-                    <input
-                      type="number"
-                      value={baseStoryRate}
-                      onChange={(e) => setBaseStoryRate(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Meta Ads 30-Day Whitelisting Fee ({currency})</label>
-                    <input
-                      type="number"
-                      value={whitelistingFee}
-                      onChange={(e) => setWhitelistingFee(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Minimum Deal Floor ({currency})</label>
-                    <input
-                      type="number"
-                      value={minimumDealFloor}
-                      onChange={(e) => setMinimumDealFloor(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono"
-                    />
-                    <span className="text-[10px] text-zinc-400">Inquiries below this floor trigger counter-offer proposals.</span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold text-zinc-800 dark:text-zinc-200 block">Rush Delivery Surcharge (+25%)</span>
-                      <span className="text-[10px] text-zinc-500">Automatically adds 25% for turnaround under 48 hours</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={enableRushFee}
-                      onChange={(e) => setEnableRushFee(e.target.checked)}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-md shadow-indigo-600/20 active:scale-95"
-                >
-                  <Save size={14} />
-                  <span>Save Commercial Rates</span>
-                </button>
-              </form>
-            )}
-
-            {/* TAB 3: PIPELINE & WORKFLOW AUTOMATION */}
-            {activeTab === 'pipeline' && (
-              <form onSubmit={handleSavePipeline} className="space-y-5">
-                <div>
-                  <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Sliders size={16} className="text-purple-500" />
-                    <span>Pipeline Workflow & Escalation Rules</span>
-                  </h4>
-                  <p className="text-[11px] text-zinc-500">
-                    Configure default milestone terms, payment recovery reminders, and deliverable checklists
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Default Commercial Payment Terms</label>
-                    <select
-                      value={defaultPaymentTerms}
-                      onChange={(e) => setDefaultPaymentTerms(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
-                    >
-                      <option value="50_advance_50_post">50% Advance + 50% Post Go-Live (Recommended)</option>
-                      <option value="100_upfront">100% Upfront Advance</option>
-                      <option value="net_15">Net-15 Days Post-Live</option>
-                      <option value="net_30">Net-30 Days Post-Live</option>
-                      <option value="milestone">Milestone / Script Approval</option>
-                      <option value="barter_only">Barter / Gifting Only</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Overdue Follow-up Grace Period (Days)</label>
-                    <select
-                      value={autoFollowUpDays}
-                      onChange={(e) => setAutoFollowUpDays(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
-                    >
-                      <option value="3">3 Days (Fast Pace)</option>
-                      <option value="7">7 Days (Industry Standard)</option>
-                      <option value="14">14 Days (Extended)</option>
-                    </select>
-                  </div>
-
-                  <div className="p-3 sm:col-span-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold text-zinc-800 dark:text-zinc-200 block">Automated Overdue Escalation Notices</span>
-                      <span className="text-[10px] text-zinc-500">Tier 1 friendly, Tier 2 firm inquiry, and Tier 3 rights suspension generator</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={autoReminderEnabled}
-                      onChange={(e) => setAutoReminderEnabled(e.target.checked)}
-                      className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-md shadow-indigo-600/20 active:scale-95"
-                >
-                  <Save size={14} />
-                  <span>Save Pipeline Rules</span>
-                </button>
-              </form>
-            )}
-
-            {/* TAB 4: INTEGRATIONS & APIS */}
-            {activeTab === 'integrations' && (
-              <div className="space-y-5">
-                <div>
-                  <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Radio size={16} className="text-emerald-500" />
-                    <span>Channel Integrations & API Credentials</span>
-                  </h4>
-                  <p className="text-[11px] text-zinc-500">
-                    Live channel metric synchronization, video embedding, and cloud drives
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-red-500/10 text-red-500">
-                        <Youtube size={18} />
+                {/* Email Verification Card */}
+                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                        <Mail size={16} />
                       </div>
                       <div>
-                        <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                          <span>YouTube Data v3 & Public oEmbed</span>
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-500 font-bold">Connected</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs text-zinc-900 dark:text-white">Email Address</span>
+                          {user?.email_verified ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                              <CheckCircle2 size={11} /> Verified
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                              <AlertTriangle size={11} /> Unverified
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-zinc-500">Aarav Tech Studio • Channel: UC_aarav_tech • Hourly sync active</p>
+                        <span className="text-[11px] text-zinc-500 font-mono">{user?.email || 'No email associated'}</span>
                       </div>
                     </div>
-                    <span className="text-[11px] font-mono text-zinc-400">142K Subs</span>
+
+                    {!user?.email_verified && (
+                      <button
+                        type="button"
+                        disabled={isSendingEmailCode}
+                        onClick={handleSendEmailVerification}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs transition-colors shadow-xs disabled:opacity-50"
+                      >
+                        {isSendingEmailCode ? 'Sending Code...' : 'Send Verification Code'}
+                      </button>
+                    )}
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-pink-500/10 text-pink-500">
-                        <Instagram size={18} />
-                      </div>
-                      <div>
-                        <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                          <span>Instagram Graph API & Reels Embed</span>
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-500 font-bold">Connected</span>
-                        </div>
-                        <p className="text-[11px] text-zinc-500">@aarav_tech • Reel shortcode sync & link sticker detection</p>
-                      </div>
+                  {emailFeedback && (
+                    <div className={`p-3 rounded-xl border text-xs ${
+                      emailFeedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-300' : 'bg-red-500/10 border-red-500/25 text-red-700 dark:text-red-300'
+                    }`}>
+                      <p>{emailFeedback.message}</p>
+                      {emailFeedback.previewCode && (
+                        <p className="mt-1 font-mono font-bold">Instant Code Preview: {emailFeedback.previewCode}</p>
+                      )}
                     </div>
-                    <span className="text-[11px] font-mono text-zinc-400">89.4K Followers</span>
-                  </div>
+                  )}
 
-                  <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
-                        <Bot size={18} />
-                      </div>
-                      <div>
-                        <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                          <span>AI Pitch Intelligence Pipeline</span>
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-purple-500/10 text-purple-400 font-bold">Hybrid Flash</span>
-                        </div>
-                        <p className="text-[11px] text-zinc-500">Algorithmic + Gemini 1.5 Flash client-side direct API key enabled</p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-mono text-zinc-400">Instant</span>
-                  </div>
+                  {!user?.email_verified && (
+                    <form onSubmit={handleVerifyEmailCode} className="pt-2 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="Enter 6-digit code"
+                        value={emailVerifyCode}
+                        onChange={(e) => setEmailVerifyCode(e.target.value.replace(/\D/g, ''))}
+                        className="w-40 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-mono tracking-widest focus:outline-none focus:border-slate-800"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isVerifyingEmail || emailVerifyCode.length !== 6}
+                        className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors disabled:opacity-50"
+                      >
+                        {isVerifyingEmail ? 'Verifying...' : 'Confirm Email'}
+                      </button>
+                    </form>
+                  )}
                 </div>
 
-                <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[11px] flex items-center justify-between">
-                  <span>Want to test a live YouTube video or Instagram reel link right now?</span>
-                  {onOpenIntegrations && (
-                    <button
-                      type="button"
-                      onClick={() => { onClose(); onOpenIntegrations(); }}
-                      className="px-3 py-1 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-500 text-xs"
-                    >
-                      Open Tester
-                    </button>
+                {/* Mobile Phone Verification Card */}
+                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                        <Smartphone size={16} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs text-zinc-900 dark:text-white">Mobile Phone (SMS Gateway)</span>
+                          {user?.phone_verified ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                              <CheckCircle2 size={11} /> Verified
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                              <AlertTriangle size={11} /> Unverified
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="tel"
+                          placeholder="+91 98000 00000"
+                          value={phoneInput}
+                          onChange={(e) => setPhoneInput(e.target.value)}
+                          className="mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono focus:outline-none focus:border-slate-800"
+                        />
+                      </div>
+                    </div>
+
+                    {!user?.phone_verified && (
+                      <button
+                        type="button"
+                        disabled={isSendingPhoneOtp}
+                        onClick={handleSendPhoneOtp}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs transition-colors shadow-xs disabled:opacity-50"
+                      >
+                        {isSendingPhoneOtp ? 'Sending SMS...' : 'Send SMS OTP'}
+                      </button>
+                    )}
+                  </div>
+
+                  {phoneFeedback && (
+                    <div className={`p-3 rounded-xl border text-xs ${
+                      phoneFeedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-300' : 'bg-red-500/10 border-red-500/25 text-red-700 dark:text-red-300'
+                    }`}>
+                      <p>{phoneFeedback.message}</p>
+                      {phoneFeedback.previewCode && (
+                        <p className="mt-1 font-mono font-bold">Instant Sandbox OTP: {phoneFeedback.previewCode}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {!user?.phone_verified && (
+                    <form onSubmit={handleVerifyPhoneOtp} className="pt-2 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="Enter 6-digit OTP"
+                        value={phoneOtp}
+                        onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, ''))}
+                        className="w-40 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-center font-mono tracking-widest focus:outline-none focus:border-slate-800"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isVerifyingPhone || phoneOtp.length !== 6}
+                        className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors disabled:opacity-50"
+                      >
+                        {isVerifyingPhone ? 'Verifying...' : 'Confirm Phone OTP'}
+                      </button>
+                    </form>
                   )}
                 </div>
               </div>
             )}
 
-            {/* TAB 5: TEAM & AGENCY ROLES */}
-            {activeTab === 'team' && (
-              <div className="space-y-5">
+            {/* TAB 3: MULTI-CHANNEL & MULTI-PAGE MANAGEMENT */}
+            {activeTab === 'channels' && (
+              <div className="space-y-6">
                 <div>
                   <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Users size={16} className="text-indigo-500" />
-                    <span>Team Members & Agency Collaborator Roster</span>
+                    <Tv size={16} className="text-slate-900 dark:text-white" />
+                    <span>Connected Channels & Social Pages</span>
                   </h4>
                   <p className="text-[11px] text-zinc-500">
-                    Invite talent managers, editors, and accountants with isolated workspace roles
+                    A single creator can operate multiple YouTube Channels and Instagram Pages. Link all your pages below so you can tag and assign sponsorships per channel.
+                  </p>
+                </div>
+
+                {/* Connected Channels List */}
+                <div className="space-y-2.5">
+                  {socialAccounts.length === 0 ? (
+                    <div className="p-6 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 text-center space-y-1">
+                      <p className="font-semibold text-zinc-700 dark:text-zinc-300">No extra channels or pages linked yet</p>
+                      <p className="text-[11px] text-zinc-500">Add your secondary YouTube channels, Shorts channels, or Instagram pages below.</p>
+                    </div>
+                  ) : (
+                    socialAccounts.map((account) => (
+                      <div
+                        key={account.id}
+                        className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl ${
+                            account.platform === 'youtube'
+                              ? 'bg-red-500/10 text-red-500'
+                              : account.platform === 'instagram'
+                              ? 'bg-pink-500/10 text-pink-500'
+                              : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600'
+                          }`}>
+                            {account.platform === 'youtube' ? <Youtube size={16} /> : <Instagram size={16} />}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-zinc-900 dark:text-white">{account.name}</span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 uppercase">
+                                {account.platform}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                              <span className="font-mono text-indigo-600 dark:text-indigo-400">{account.handle}</span>
+                              {account.niche && <span>• {account.niche}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveChannel(account.id)}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          title="Remove channel"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Add Channel Form */}
+                <form onSubmit={handleAddChannel} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 space-y-3">
+                  <div className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                    <Plus size={14} />
+                    <span>Link New YouTube Channel or Instagram Page</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                    <select
+                      value={newAccPlatform}
+                      onChange={(e: any) => setNewAccPlatform(e.target.value)}
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
+                    >
+                      <option value="youtube">YouTube Channel</option>
+                      <option value="instagram">Instagram Page</option>
+                      <option value="tiktok">TikTok Profile</option>
+                      <option value="x">X / Twitter</option>
+                      <option value="podcast">Podcast Show</option>
+                    </select>
+
+                    <input
+                      type="text"
+                      placeholder="Page Name (e.g. Daily Shorts)"
+                      value={newAccName}
+                      onChange={(e) => setNewAccName(e.target.value)}
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Handle (e.g. @dailyshorts)"
+                      value={newAccHandle}
+                      onChange={(e) => setNewAccHandle(e.target.value)}
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800 font-mono"
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Niche (e.g. Tech Shorts)"
+                      value={newAccNiche}
+                      onChange={(e) => setNewAccNiche(e.target.value)}
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs transition-colors shadow-xs"
+                  >
+                    Add Channel
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* TAB 4: TEAM & CLIENT RBAC PERMISSIONS */}
+            {activeTab === 'team' && (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
+                    <Users size={16} className="text-slate-900 dark:text-white" />
+                    <span>Team Collaborators & Client Access (RBAC)</span>
+                  </h4>
+                  <p className="text-[11px] text-zinc-500">
+                    Invite editors, talent managers, and external clients with granular permission controls. Restrict deals to specific channels or hide sensitive payout amounts.
                   </p>
                 </div>
 
                 {/* Team Members List */}
-                <div className="space-y-2">
-                  {teamMembers.map((member: any) => (
-                    <div
-                      key={member.id}
-                      className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-xs">
-                          {member.name.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                            <span>{member.name}</span>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-normal">
+                <div className="space-y-2.5">
+                  {teamMembers.length === 0 ? (
+                    <div className="p-6 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 text-center space-y-1">
+                      <p className="font-semibold text-zinc-700 dark:text-zinc-300">No team members or clients invited yet</p>
+                      <p className="text-[11px] text-zinc-500">Invite talent managers, editors, or brand clients below.</p>
+                    </div>
+                  ) : (
+                    teamMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex items-start justify-between gap-3"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-zinc-900 dark:text-white">{member.name}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-semibold">
                               {member.role}
                             </span>
                           </div>
-                          <span className="text-[11px] text-zinc-500 font-mono">{member.email}</span>
-                        </div>
-                      </div>
+                          <p className="text-[11px] text-zinc-500 font-mono">{member.email}</p>
+                          
+                          {/* Granular Permission Badges */}
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold flex items-center gap-1 ${
+                              member.can_view_finances 
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                            }`}>
+                              {member.can_view_finances ? <Eye size={10} /> : <EyeOff size={10} />}
+                              {member.can_view_finances ? 'Finances Visible' : 'Finances Hidden'}
+                            </span>
 
-                      {member.role !== 'Owner / Head Creator' && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300">
+                              {member.can_edit_deals ? 'Can Edit Deals' : 'Read-Only Viewer'}
+                            </span>
+
+                            {member.allowed_account_ids && member.allowed_account_ids.length > 0 && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                                Restricted to {member.allowed_account_ids.length} channel(s)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => handleRemoveTeamMember(member.id)}
@@ -997,25 +1039,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         >
                           <Trash2 size={13} />
                         </button>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))
+                  )}
                 </div>
 
-                {/* Add Team Member Form */}
-                <form onSubmit={handleAddTeamMember} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
-                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
-                    <Plus size={13} />
-                    <span>Invite New Workspace Collaborator</span>
+                {/* Add Team Member / Client Form */}
+                <form onSubmit={handleAddTeamMember} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 space-y-4">
+                  <div className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                    <Plus size={14} />
+                    <span>Invite Collaborator or Client with Permissions</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     <input
                       type="text"
-                      placeholder="Collaborator Name"
+                      placeholder="Collaborator / Client Name"
                       value={newMemberName}
                       onChange={(e) => setNewMemberName(e.target.value)}
-                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
                     />
 
                     <input
@@ -1023,24 +1065,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       placeholder="colleague@agency.com"
                       value={newMemberEmail}
                       onChange={(e) => setNewMemberEmail(e.target.value)}
-                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
                     />
 
                     <select
                       value={newMemberRole}
-                      onChange={(e) => setNewMemberRole(e.target.value)}
-                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                      onChange={(e) => {
+                        const r = e.target.value;
+                        setNewMemberRole(r);
+                        if (r.includes('Client') || r.includes('Editor')) {
+                          setNewMemberCanViewFinances(false);
+                        }
+                      }}
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
                     >
                       <option value="Talent & Deal Manager">Talent & Deal Manager</option>
                       <option value="Lead Video Editor">Lead Video Editor</option>
                       <option value="Chartered Accountant / Tax">Chartered Accountant / Tax</option>
-                      <option value="Viewer / Client Read-Only">Viewer / Read-Only</option>
+                      <option value="Client / Brand Read-Only">Client / Brand Read-Only</option>
+                      <option value="Team Member">General Team Member</option>
                     </select>
+                  </div>
+
+                  {/* Permission Toggles */}
+                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newMemberCanViewFinances}
+                        onChange={(e) => setNewMemberCanViewFinances(e.target.checked)}
+                        className="rounded text-slate-900"
+                      />
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                        Allow viewing financial details (deal amounts, payment status, banking info)
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newMemberCanEditDeals}
+                        onChange={(e) => setNewMemberCanEditDeals(e.target.checked)}
+                        className="rounded text-slate-900"
+                      />
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                        Allow editing deals, stage advancement, and checklist items
+                      </span>
+                    </label>
                   </div>
 
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-bold text-xs transition-colors"
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs transition-colors shadow-xs"
                   >
                     Add Collaborator
                   </button>
@@ -1048,89 +1124,81 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            {/* TAB 6: INVOICING & PAYOUT DETAILS */}
+            {/* TAB 5: INVOICING & REMITTANCE */}
             {activeTab === 'invoicing' && (
-              <form onSubmit={handleSaveInvoicing} className="space-y-5">
+              <form onSubmit={handleSaveInvoicing} className="space-y-4">
                 <div>
                   <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <FileText size={16} className="text-amber-500" />
+                    <FileText size={16} className="text-slate-900 dark:text-white" />
                     <span>Invoicing Legal Entity & Remittance Information</span>
                   </h4>
                   <p className="text-[11px] text-zinc-500">
-                    Displayed on 1-click PDF brand invoices, tax receipts, and payment notices
+                    Appears on 1-click PDF invoices, tax receipts, and payment notices.
                   </p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="space-y-1">
                     <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Legal Business / Entity Name</label>
                     <input
                       type="text"
+                      placeholder="e.g. Skyline Digital Media LLP"
                       value={legalName}
                       onChange={(e) => setLegalName(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Tax Registration (GSTIN / PAN / VAT / EIN)</label>
+                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Tax ID (GSTIN / PAN / VAT / EIN)</label>
                     <input
                       type="text"
+                      placeholder="e.g. GSTIN: 27AABCA1234F1Z8"
                       value={taxId}
                       onChange={(e) => setTaxId(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono"
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-slate-800 font-mono"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Banking Wire & UPI Remittance Details</label>
+                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Bank Wire & UPI Remittance Details</label>
                     <textarea
                       rows={3}
+                      placeholder="e.g. Bank: HDFC Bank | A/C: 502000000000 | IFSC: HDFC0000123 | UPI: handle@okaxis"
                       value={bankInfo}
                       onChange={(e) => setBankInfo(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-xs focus:outline-none focus:border-indigo-500 font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Default Invoice Payment Terms Disclaimer</label>
-                    <textarea
-                      rows={2}
-                      value={invoiceTerms}
-                      onChange={(e) => setInvoiceTerms(e.target.value)}
-                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-xs focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-xs focus:outline-none focus:border-slate-800 font-mono"
                     />
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors flex items-center gap-2 shadow-md shadow-indigo-600/20 active:scale-95"
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs transition-colors shadow-xs"
                 >
-                  <Save size={14} />
-                  <span>Save Invoicing Details</span>
+                  Save Invoicing Details
                 </button>
               </form>
             )}
 
-            {/* TAB 7: SECURITY & BIOMETRIC APP LOCK */}
+            {/* TAB 6: SECURITY PIN & BIOMETRIC APP LOCK */}
             {activeTab === 'security' && (
               <div className="space-y-5">
                 <div>
                   <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Lock size={16} className="text-indigo-500" />
-                    <span>Security PIN & Biometric Hardware App Lock</span>
+                    <Lock size={16} className="text-slate-900 dark:text-white" />
+                    <span>Security PIN & Hardware Lock</span>
                   </h4>
                   <p className="text-[11px] text-zinc-500">
-                    Prevent unauthorized deal inspections when leaving laptop or smartphone unattended
+                    Lock your workspace deals when stepping away from your desk.
                   </p>
                 </div>
 
                 {pinFeedback && (
                   <div className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                    pinFeedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                    pinFeedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300'
                   }`}>
-                    {pinFeedback.type === 'success' ? <Check size={14} /> : <AlertTriangle size={14} />}
+                    <Check size={14} />
                     <span>{pinFeedback.text}</span>
                   </div>
                 )}
@@ -1138,7 +1206,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {isPinEnabled ? (
                   <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
+                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
                         <ShieldCheck size={18} />
                         <span>Security App Lock is Active (4-Digit PIN)</span>
                       </div>
@@ -1171,7 +1239,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 ) : (
                   <form onSubmit={handleSetPin} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
                     <div className="text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                      <KeyRound size={14} className="text-indigo-500" />
+                      <KeyRound size={14} className="text-slate-900 dark:text-white" />
                       <span>Set Up New 4-Digit Security PIN</span>
                     </div>
 
@@ -1179,10 +1247,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <input
                         type="password"
                         maxLength={4}
-                        placeholder="New 4-Digit PIN"
+                        placeholder="New PIN"
                         value={newPin}
                         onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center font-mono text-base tracking-widest focus:outline-none focus:border-indigo-500"
+                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center font-mono text-base tracking-widest focus:outline-none focus:border-slate-800"
                       />
                       <input
                         type="password"
@@ -1190,21 +1258,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         placeholder="Confirm PIN"
                         value={confirmPin}
                         onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center font-mono text-base tracking-widest focus:outline-none focus:border-indigo-500"
+                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-center font-mono text-base tracking-widest focus:outline-none focus:border-slate-800"
                       />
                     </div>
 
                     {hasBiometricHardware && (
-                      <div className="flex items-center gap-2 pt-2">
+                      <div className="flex items-center gap-2 pt-1">
                         <input
                           type="checkbox"
                           id="bioToggle"
                           checked={bioToggle}
                           onChange={(e) => setBioToggle(e.target.checked)}
-                          className="w-4 h-4 rounded text-indigo-600"
+                          className="w-4 h-4 rounded text-slate-900"
                         />
                         <label htmlFor="bioToggle" className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-                          <Fingerprint size={13} className="text-indigo-500" />
+                          <Fingerprint size={13} className="text-slate-800 dark:text-zinc-200" />
                           <span>Enable TouchID / FaceID Biometric Unlock</span>
                         </label>
                       </div>
@@ -1212,105 +1280,53 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-xs"
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs transition-colors shadow-xs"
                     >
                       Enable App Lock
                     </button>
                   </form>
                 )}
-
-                {/* Auto Lock Timeout */}
-                <div className="space-y-1 pt-2">
-                  <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">Inactivity Auto-Lock Timer</label>
-                  <select
-                    value={autoLockTimeout}
-                    onChange={(e) => setAutoLockTimeout(Number(e.target.value))}
-                    className="w-full sm:w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs focus:outline-none"
-                  >
-                    <option value={0}>Immediate (Upon Tab Blur)</option>
-                    <option value={1}>1 Minute Inactive</option>
-                    <option value={5}>5 Minutes Inactive</option>
-                    <option value={15}>15 Minutes Inactive</option>
-                  </select>
-                </div>
               </div>
             )}
 
-            {/* TAB 8: DATA PRIVACY, BACKUP & GDPR */}
+            {/* TAB 7: DATA & GDPR PURGE */}
             {activeTab === 'privacy' && (
               <div className="space-y-5">
                 <div>
                   <h4 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-emerald-500" />
-                    <span>Data Privacy, Backup Export & GDPR Portability</span>
+                    <Shield size={16} className="text-slate-900 dark:text-white" />
+                    <span>Data Ownership & GDPR Compliance</span>
                   </h4>
                   <p className="text-[11px] text-zinc-500">
-                    GDPR Article 20 data portability archive, local storage controls, and cache management
+                    Export your full deal history in JSON format or purge workspace data.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-zinc-900 dark:text-white block">Download Full Workspace Archive</span>
-                      <span className="text-[11px] text-zinc-500">Exports all deal data, rate cards, and settings in structured JSON format</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleExportFullBackup}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-xs"
-                    >
-                      <Download size={13} />
-                      <span>Export JSON Backup</span>
-                    </button>
+                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                  <div>
+                    <h5 className="font-bold text-xs text-zinc-900 dark:text-white">Export Full Workspace Data</h5>
+                    <p className="text-[11px] text-zinc-500">Download complete collaborations, invoices, and brand directory in JSON.</p>
                   </div>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-zinc-900 dark:text-white block">Clear Local Cache & Session Storage</span>
-                      <span className="text-[11px] text-zinc-500">Refreshes cached display filters and temporary browser states</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleClearCache}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold text-xs transition-colors"
-                    >
-                      <Trash2 size={13} className="text-zinc-500" />
-                      <span>Clear Cache</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-emerald-500 shrink-0" />
-                    <span>GDPR Compliance: Zero commercial deal amounts are leaked into platform telemetry.</span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold">Art. 25 Verified</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localStorage));
+                      const a = document.createElement('a');
+                      a.setAttribute("href", dataStr);
+                      a.setAttribute("download", "collabflow-workspace-backup.json");
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    }}
+                    className="px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-1.5"
+                  >
+                    <Download size={13} />
+                    <span>Download JSON</span>
+                  </button>
                 </div>
               </div>
             )}
-
           </div>
-        </div>
-
-        {/* Modal Bottom Footer */}
-        <div className="px-6 py-3.5 bg-zinc-50 dark:bg-zinc-900/70 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-zinc-500">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Workspace Cloud Sync: Active</span>
-            <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline text-zinc-400">Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-mono">ESC</kbd> to exit</span>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold text-xs transition-colors shadow-xs"
-          >
-            Done
-          </button>
         </div>
       </div>
     </div>

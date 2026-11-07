@@ -115,6 +115,28 @@ export function initDB() {
   if (!colNames.includes('rates_json')) db.exec("ALTER TABLE users ADD COLUMN rates_json TEXT DEFAULT '{}'");
   if (!colNames.includes('social_links_json')) db.exec("ALTER TABLE users ADD COLUMN social_links_json TEXT DEFAULT '{}'");
   if (!colNames.includes('role')) db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'creator'");
+  if (!colNames.includes('email_verified')) db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0");
+  if (!colNames.includes('phone_verified')) db.exec("ALTER TABLE users ADD COLUMN phone_verified INTEGER DEFAULT 0");
+  if (!colNames.includes('social_accounts_json')) db.exec("ALTER TABLE users ADD COLUMN social_accounts_json TEXT DEFAULT '[]'");
+  if (!colNames.includes('team_members_json')) db.exec("ALTER TABLE users ADD COLUMN team_members_json TEXT DEFAULT '[]'");
+
+  // Safe migration check for collabs extensions (multi-channel / account tags)
+  const collabColNames = tableInfo.map(c => c.name);
+  if (!collabColNames.includes('account_id')) db.exec("ALTER TABLE collabs ADD COLUMN account_id TEXT DEFAULT ''");
+  if (!collabColNames.includes('account_label')) db.exec("ALTER TABLE collabs ADD COLUMN account_label TEXT DEFAULT ''");
+
+  // Create verifications table for email / phone OTP verification
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS verifications (
+      id TEXT PRIMARY KEY,
+      target TEXT NOT NULL,
+      type TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_verifications_target ON verifications(target);
+  `);
 
   console.log('✓ Database initialized successfully at:', DB_PATH);
 

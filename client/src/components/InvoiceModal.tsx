@@ -31,11 +31,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   const [dueDate, setDueDate] = useState(collab.payment_due_date || defaultDueDate);
 
   // Creator Billing Profile
-  const [creatorLegalName, setCreatorLegalName] = useState('Aarav Sharma (Creator Studio)');
-  const [creatorAddress, setCreatorAddress] = useState('Flat 402, Skyline Towers, Mumbai, MH - 400050');
-  const [creatorTaxId, setCreatorTaxId] = useState('GSTIN: 27AAAAA0000A1Z5');
+  const [creatorLegalName, setCreatorLegalName] = useState(() => localStorage.getItem('collabflow_biz_name') || 'Creator Studio');
+  const [creatorAddress, setCreatorAddress] = useState(() => localStorage.getItem('collabflow_biz_address') || '');
+  const [creatorTaxId, setCreatorTaxId] = useState(() => localStorage.getItem('collabflow_biz_tax') || '');
   const [bankDetails, setBankDetails] = useState(
-    'Bank: HDFC Bank | A/C: 50200012345678 | IFSC: HDFC0000123 | UPI: aarav@okaxis'
+    localStorage.getItem('collabflow_biz_bank') || ''
   );
 
   // Tax handling

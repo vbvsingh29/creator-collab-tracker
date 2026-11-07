@@ -142,7 +142,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 // GET /api/auth/me (Current creator session)
 authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
   try {
-    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, role, created_at FROM users WHERE id = ?').get(req.userId) as any;
+    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, role, email_verified, phone_verified, social_accounts_json, team_members_json, created_at FROM users WHERE id = ?').get(req.userId) as any;
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User account not found' });
@@ -152,8 +152,12 @@ authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
       success: true,
       user: {
         ...user,
+        email_verified: Boolean(user.email_verified),
+        phone_verified: Boolean(user.phone_verified),
         rates: user.rates_json ? JSON.parse(user.rates_json) : {},
-        social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {}
+        social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {},
+        social_accounts: user.social_accounts_json ? JSON.parse(user.social_accounts_json) : [],
+        team_members: user.team_members_json ? JSON.parse(user.team_members_json) : []
       }
     });
   } catch (error: any) {
@@ -183,9 +187,18 @@ authRouter.put('/profile', requireAuth, (req: AuthRequest, res: Response) => {
 
     const cleanHandle = handle ? (handle.trim().startsWith('@') ? handle.trim() : `@${handle.trim()}`) : '';
 
+    const {
+      social_accounts,
+      team_members
+    } = req.body;
+
+    const existingUser = db.prepare('SELECT social_accounts_json, team_members_json FROM users WHERE id = ?').get(userId) as any;
+    const finalSocialAccounts = social_accounts !== undefined ? JSON.stringify(social_accounts) : (existingUser?.social_accounts_json || '[]');
+    const finalTeamMembers = team_members !== undefined ? JSON.stringify(team_members) : (existingUser?.team_members_json || '[]');
+
     db.prepare(`
       UPDATE users 
-      SET name = ?, handle = ?, platform = ?, avatar_url = ?, bio = ?, phone = ?, category = ?, rates_json = ?, social_links_json = ?
+      SET name = ?, handle = ?, platform = ?, avatar_url = ?, bio = ?, phone = ?, category = ?, rates_json = ?, social_links_json = ?, social_accounts_json = ?, team_members_json = ?
       WHERE id = ?
     `).run(
       name.trim(),
@@ -197,18 +210,24 @@ authRouter.put('/profile', requireAuth, (req: AuthRequest, res: Response) => {
       category.trim(),
       JSON.stringify(rates),
       JSON.stringify(social_links),
+      finalSocialAccounts,
+      finalTeamMembers,
       userId
     );
 
-    const updatedUser = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, created_at FROM users WHERE id = ?').get(userId) as any;
+    const updatedUser = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, email_verified, phone_verified, social_accounts_json, team_members_json, created_at FROM users WHERE id = ?').get(userId) as any;
 
     return res.json({
       success: true,
       message: 'Profile updated successfully!',
       user: {
         ...updatedUser,
+        email_verified: Boolean(updatedUser.email_verified),
+        phone_verified: Boolean(updatedUser.phone_verified),
         rates: updatedUser.rates_json ? JSON.parse(updatedUser.rates_json) : {},
-        social_links: updatedUser.social_links_json ? JSON.parse(updatedUser.social_links_json) : {}
+        social_links: updatedUser.social_links_json ? JSON.parse(updatedUser.social_links_json) : {},
+        social_accounts: updatedUser.social_accounts_json ? JSON.parse(updatedUser.social_accounts_json) : [],
+        team_members: updatedUser.team_members_json ? JSON.parse(updatedUser.team_members_json) : []
       }
     });
   } catch (error: any) {
@@ -450,5 +469,97 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     return res.status(400).json({ success: false, error: error.message || 'Verification failed.' });
+  }
+});
+
+// POST /api/auth/send-email-verify (Generate and send 6-digit email verification OTP)
+authRouter.post('/send-email-verify', requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const user = db.prepare('SELECT email FROM users WHERE id = ?').get(req.userId) as any;
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const code = crypto.randomInt(100000, 999999).toString();
+    const codeHash = hashPassword(code);
+    const id = uuidv4();
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+
+    db.prepare("DELETE FROM verifications WHERE target = ? AND type = 'email'").run(user.email);
+    db.prepare(`
+      INSERT INTO verifications (id, target, type, code_hash, expires_at, created_at)
+      VALUES (?, ?, 'email', ?, ?, ?)
+    `).run(id, user.email, codeHash, expiresAt, now.toISOString());
+
+    const hasEmailService = Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_USER && process.env.SMTP_PASS));
+
+    return res.json({
+      success: true,
+      message: hasEmailService 
+        ? `Verification code sent to ${user.email}` 
+        : '6-digit verification code generated. (Instant test preview below)',
+      preview_code: hasEmailService ? undefined : code
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/auth/verify-email-code
+authRouter.post('/verify-email-code', requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ success: false, error: '6-digit code is required' });
+
+    const user = db.prepare('SELECT email FROM users WHERE id = ?').get(req.userId) as any;
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const now = new Date().toISOString();
+    const record = db.prepare(`
+      SELECT * FROM verifications 
+      WHERE target = ? AND type = 'email' AND expires_at > ?
+      ORDER BY created_at DESC LIMIT 1
+    `).get(user.email, now) as any;
+
+    if (!record || !verifyPassword(code.toString().trim(), record.code_hash)) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired verification code' });
+    }
+
+    db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(req.userId);
+    db.prepare("DELETE FROM verifications WHERE target = ? AND type = 'email'").run(user.email);
+
+    return res.json({
+      success: true,
+      message: 'Email verified successfully!',
+      email_verified: true
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/auth/verify-account-phone
+authRouter.post('/verify-account-phone', requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) {
+      return res.status(400).json({ success: false, error: 'Phone and 6-digit OTP code are required' });
+    }
+
+    const cleanPhone = normalizePhoneNumber(phone.trim());
+    const isValid = verifyPhoneOtp(cleanPhone, otp.toString().trim());
+    if (!isValid) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired OTP code' });
+    }
+
+    db.prepare('UPDATE users SET phone = ?, phone_verified = 1 WHERE id = ?').run(cleanPhone, req.userId);
+
+    return res.json({
+      success: true,
+      message: 'Phone verified successfully!',
+      phone_verified: true,
+      phone: cleanPhone
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });

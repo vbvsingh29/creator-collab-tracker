@@ -179,4 +179,91 @@ test('Backend API Security, Authentication & GDPR Suite', async (t) => {
     assert.equal(verifyData.user.name, 'SMS Test Creator');
     assert.equal(verifyData.user.phone, testPhone);
   });
+
+  await t.test('9. Collab partial update & checklist toggle avoids NOT NULL error', async () => {
+    // Create collab first
+    const createRes = await fetch(`${baseUrl}/api/collabs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        title: 'Checklist Test Sponsorship',
+        brand_name: 'Test Brand Co',
+        platform: 'youtube',
+        deliverable_format: 'yt_dedicated_video',
+        deal_amount: 50000,
+        currency: 'INR',
+        pipeline_stage: 'production',
+        payment_terms: 'net_30',
+        live_post_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        deliverables_checklist: [{ text: 'Draft outline approved', completed: false }]
+      })
+    });
+    assert.equal(createRes.status, 201);
+    const createdCollab = (await createRes.json()).data;
+    assert.equal(createdCollab.title, 'Checklist Test Sponsorship');
+
+    // Partial update via PUT with ONLY deliverables_checklist
+    const putRes = await fetch(`${baseUrl}/api/collabs/${createdCollab.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        deliverables_checklist: [{ text: 'Draft outline approved', completed: true }]
+      })
+    });
+    assert.equal(putRes.status, 200, 'Partial PUT must succeed without NOT NULL constraint violation');
+    const updatedCollab = (await putRes.json()).data;
+    assert.equal(updatedCollab.title, 'Checklist Test Sponsorship', 'Title must be preserved');
+    assert.equal(updatedCollab.deliverables_checklist[0].completed, true);
+
+    // Test live metrics sync
+    const syncRes = await fetch(`${baseUrl}/api/collabs/${createdCollab.id}/sync-metrics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    assert.equal(syncRes.status, 200, 'Live metrics sync must return 200');
+    const syncData = await syncRes.json();
+    assert.equal(syncData.success, true);
+    assert.ok(syncData.data.views_count > 0, 'Views count must be populated');
+  });
+
+  await t.test('10. Email verification flow in Settings works cleanly', async () => {
+    // Send email verification code
+    const sendRes = await fetch(`${baseUrl}/api/auth/send-email-verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    if (sendRes.status !== 200) {
+      console.log('send-email-verify error:', await sendRes.text());
+    }
+    assert.equal(sendRes.status, 200);
+    const sendData = await sendRes.json();
+    assert.equal(sendData.success, true);
+    assert.ok(sendData.preview_code, 'Preview code returned');
+
+    // Verify email verification code
+    const verifyRes = await fetch(`${baseUrl}/api/auth/verify-email-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ code: sendData.preview_code })
+    });
+    assert.equal(verifyRes.status, 200);
+    const verifyData = await verifyRes.json();
+    assert.equal(verifyData.success, true);
+    assert.equal(verifyData.email_verified, true);
+  });
 });

@@ -23,7 +23,32 @@ export interface User {
     twitter?: string;
     website?: string;
   };
+  email_verified?: boolean;
+  phone_verified?: boolean;
+  social_accounts?: SocialAccount[];
+  team_members?: TeamMember[];
   created_at?: string;
+}
+
+export interface SocialAccount {
+  id: string;
+  platform: 'youtube' | 'instagram' | 'tiktok' | 'x' | 'podcast';
+  name: string;
+  handle: string;
+  url?: string;
+  subscribers_or_followers?: string;
+  niche?: string;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: 'Active' | 'Invited';
+  can_view_finances: boolean;
+  can_edit_deals: boolean;
+  allowed_account_ids?: string[];
 }
 
 export type DeliverableFormat =
@@ -120,6 +145,8 @@ export interface Collab {
   likes_count?: number;
   deliverables_checklist: DeliverableItem[];
   notes?: string;
+  account_id?: string;
+  account_label?: string;
   created_at: string;
   updated_at: string;
 }
@@ -134,6 +161,8 @@ export interface Brand {
   avg_payment_speed_days?: number;
   rating: number;
   notes?: string;
+  account_id?: string;
+  account_label?: string;
   collabs_count?: number;
   total_spent?: number;
   created_at: string;

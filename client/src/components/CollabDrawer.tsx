@@ -76,9 +76,9 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
     ? ((collab.likes_count / collab.views_count) * 100).toFixed(1)
     : null;
 
-  const views = collab.views_count && collab.views_count > 0 ? collab.views_count : 45000;
-  const cpm = Math.round((collab.deal_amount / views) * 1000);
-  const cpv = (collab.deal_amount / views).toFixed(2);
+  const views = collab.views_count && collab.views_count > 0 ? collab.views_count : 0;
+  const cpm = views > 0 ? Math.round((collab.deal_amount / views) * 1000) : 0;
+  const cpv = views > 0 ? (collab.deal_amount / views).toFixed(2) : '0.00';
 
   const formatInfo = getDeliverableLabel(collab.deliverable_format);
   const paymentBadge = getPaymentBadge(collab.payment_status);
@@ -170,6 +170,14 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
             )}
             <span className="text-zinc-500 text-xs">•</span>
             <span className="text-xs text-zinc-400 font-medium">Stage: {stageConfig.label}</span>
+            {collab.account_label && (
+              <>
+                <span className="text-zinc-500 text-xs">•</span>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
+                  {collab.account_label}
+                </span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

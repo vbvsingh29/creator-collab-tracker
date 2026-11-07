@@ -15,7 +15,8 @@ import {
   Gift,
   SlidersHorizontal,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 import { Platform, CommercialType } from '../types';
 
@@ -27,6 +28,8 @@ interface FilterBarProps {
   setSelectedPlatform: (p: string) => void;
   selectedCommercial: string;
   setSelectedCommercial: (c: string) => void;
+  selectedDateFilter?: string;
+  setSelectedDateFilter?: (df: string) => void;
   filterOverdueOnly: boolean;
   setFilterOverdueOnly: (b: boolean) => void;
   filterWhitelistingOnly: boolean;
@@ -37,6 +40,7 @@ interface FilterBarProps {
   onOpenMediaKit?: () => void;
   onOpenPitchGenerator?: () => void;
   onOpenPitch?: () => void;
+  onViewCalendar?: () => void;
 
 
 }
@@ -49,6 +53,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   setSelectedPlatform,
   selectedCommercial,
   setSelectedCommercial,
+  selectedDateFilter = 'all',
+  setSelectedDateFilter,
   filterOverdueOnly,
   setFilterOverdueOnly,
   filterWhitelistingOnly,
@@ -58,9 +64,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   onExportCSV,
   onOpenMediaKit,
   onOpenPitchGenerator,
-  onOpenPitch
+  onOpenPitch,
+  onViewCalendar
 }) => {
   const [showSimpleQuickFilters, setShowSimpleQuickFilters] = useState(false);
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
   const handleOpenPitch = onOpenPitchGenerator || onOpenPitch;
   const isFiltered = search !== '' || selectedPlatform !== 'all' || selectedCommercial !== 'all' || filterOverdueOnly || filterWhitelistingOnly;
 
@@ -138,6 +146,65 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 <Youtube size={12} className="text-red-500" />
                 YouTube
               </button>
+            </div>
+
+            {/* Date Filters Popover with Calendar View */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowDateDropdown(!showDateDropdown)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${
+                  selectedDateFilter !== 'all'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 border-slate-900 dark:border-white shadow-xs'
+                    : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                <Calendar size={12} />
+                <span>{selectedDateFilter === 'all' ? 'Date Filters' : selectedDateFilter === 'this_month' ? 'This Month' : 'Next 30 Days'}</span>
+                <ChevronDown size={11} />
+              </button>
+
+              {showDateDropdown && (
+                <div className="absolute left-0 mt-1.5 z-30 w-52 p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl space-y-1 animate-in fade-in">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDateFilter && setSelectedDateFilter('all'); setShowDateDropdown(false); }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${selectedDateFilter === 'all' ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
+                  >
+                    All Dates
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDateFilter && setSelectedDateFilter('this_month'); setShowDateDropdown(false); }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${selectedDateFilter === 'this_month' ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
+                  >
+                    Releasing This Month
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDateFilter && setSelectedDateFilter('next_30_days'); setShowDateDropdown(false); }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${selectedDateFilter === 'next_30_days' ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
+                  >
+                    Releasing Next 30 Days
+                  </button>
+                  
+                  {onViewCalendar && (
+                    <div className="pt-1.5 border-t border-zinc-100 dark:border-zinc-800">
+                      <button
+                        type="button"
+                        onClick={() => { setShowDateDropdown(false); onViewCalendar(); }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold transition-colors shadow-xs"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Calendar size={12} />
+                          <span>Calendar View</span>
+                        </span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Quick Filters toggle for starter users */}
@@ -316,6 +383,65 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             <Youtube size={11} className="text-red-500" />
             YT
           </button>
+        </div>
+
+        {/* Date Filters Popover with Calendar View */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowDateDropdown(!showDateDropdown)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+              selectedDateFilter !== 'all'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 border-slate-900 dark:border-white shadow-xs'
+                : 'bg-zinc-100 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+            }`}
+          >
+            <Calendar size={12} />
+            <span>{selectedDateFilter === 'all' ? 'Date Filters' : selectedDateFilter === 'this_month' ? 'This Month' : 'Next 30 Days'}</span>
+            <ChevronDown size={11} />
+          </button>
+
+          {showDateDropdown && (
+            <div className="absolute left-0 mt-1.5 z-30 w-52 p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl space-y-1 animate-in fade-in">
+              <button
+                type="button"
+                onClick={() => { setSelectedDateFilter && setSelectedDateFilter('all'); setShowDateDropdown(false); }}
+                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${selectedDateFilter === 'all' ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
+              >
+                All Dates
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSelectedDateFilter && setSelectedDateFilter('this_month'); setShowDateDropdown(false); }}
+                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${selectedDateFilter === 'this_month' ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
+              >
+                Releasing This Month
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSelectedDateFilter && setSelectedDateFilter('next_30_days'); setShowDateDropdown(false); }}
+                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold ${selectedDateFilter === 'next_30_days' ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
+              >
+                Releasing Next 30 Days
+              </button>
+              
+              {onViewCalendar && (
+                <div className="pt-1.5 border-t border-zinc-100 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => { setShowDateDropdown(false); onViewCalendar(); }}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold transition-colors shadow-xs"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Calendar size={12} />
+                      <span>Calendar View</span>
+                    </span>
+                    <span>→</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Commercial Type Dropdown */}

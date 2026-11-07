@@ -11,6 +11,8 @@ interface AuthContextType {
   demoLogin?: (email: string) => Promise<void>;
   setSession: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (updated: Partial<User>) => void;
+  refreshUser: () => Promise<User | undefined>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,8 +100,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('collabflow_mock_user');
   };
 
+  const updateUser = (updated: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updated } : prev);
+  };
+
+  const refreshUser = async () => {
+    try {
+      const me = await apiGetMe();
+      if (me && me.id) {
+        setUser(me);
+        return me;
+      }
+    } catch {}
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, demoLogin, logout, setSession }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, demoLogin, logout, setSession, updateUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
