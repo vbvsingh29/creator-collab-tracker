@@ -26,6 +26,7 @@ import { BrandDirectoryModal } from './components/BrandDirectoryModal';
 import { ProofCardModal } from './components/ProofCardModal';
 import { FollowUpModal } from './components/FollowUpModal';
 import { AuthModal } from './components/AuthModal';
+import { LandingPage } from './views/LandingPage';
 import { IntegrationsModal } from './components/IntegrationsModal';
 import { ProfileModal } from './components/ProfileModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -59,6 +60,7 @@ export function App() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
+  const [showLandingPreview, setShowLandingPreview] = useState(false);
 
   // View mode & state (Simple vs Advanced)
   const [appMode, setAppMode] = useState<'simple' | 'advanced'>(() => {
@@ -468,6 +470,62 @@ export function App() {
     selectedCollab,
   ]);
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center text-zinc-500 text-sm">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <span className="font-mono text-xs">Loading CollabFlow OS...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || showLandingPreview) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-150">
+        {showLandingPreview && (
+          <div className="sticky top-0 z-50 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white text-xs font-semibold py-2 px-4 flex items-center justify-between shadow-md">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>Previewing Public Landing Page (Logged in as {user?.name || 'Creator'})</span>
+            </span>
+            <button
+              onClick={() => setShowLandingPreview(false)}
+              className="bg-white text-indigo-700 hover:bg-zinc-100 px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-xs"
+            >
+              Return to Workspace Dashboard &rarr;
+            </button>
+          </div>
+        )}
+
+        <LandingPage
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onDemoLogin={(email) => {
+            demoLogin(email);
+            setShowLandingPreview(false);
+          }}
+          onOpenAdmin={() => setIsAdminOpen(true)}
+        />
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          canClose={true}
+          onOpenAdmin={() => {
+            setIsAuthModalOpen(false);
+            setIsAdminOpen(true);
+          }}
+        />
+
+        <AdminPortalModal
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-150">
       {/* Top Navigation with Creator Profile */}
@@ -504,6 +562,7 @@ export function App() {
         onOpenMediaKit={() => setIsMediaKitOpen(true)}
         onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
         onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenLandingPreview={() => setShowLandingPreview(true)}
 
       />
 

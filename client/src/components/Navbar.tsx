@@ -23,7 +23,8 @@ import {
   Crown,
   ListFilter,
   Bot,
-  Activity
+  Activity,
+  Globe
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -54,6 +55,7 @@ interface NavbarProps {
   onOpenMediaKit?: () => void;
   onOpenPitch?: () => void;
   onOpenAdmin?: () => void;
+  onOpenLandingPreview?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -68,6 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenMediaKit,
   onOpenPitch,
   onOpenAdmin,
+  onOpenLandingPreview,
   appMode,
   setAppMode,
   currentView,
@@ -509,6 +512,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>Keyboard Shortcuts</span>
                     </div>
                     <kbd className="text-[10px] font-mono bg-zinc-200 dark:bg-zinc-800 px-1 py-0.5 rounded text-zinc-400">?</kbd>
+                  </button>
+                )}
+
+                {onOpenLandingPreview && (
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      onOpenLandingPreview();
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors flex items-center gap-2"
+                  >
+                    <Globe size={13} className="text-indigo-500" />
+                    <span>View Public Landing Page</span>
                   </button>
                 )}
 
