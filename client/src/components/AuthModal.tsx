@@ -186,29 +186,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
               <span className="text-[10px] text-slate-600 dark:text-zinc-400 font-normal">1-Click Login</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {/* Creator 1: YouTube */}
               <button
                 type="button"
                 disabled={submitting}
                 onClick={() => handleQuickDemo('aarav@tech.com')}
-                className="p-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-850 hover:border-slate-300 text-left transition-all group"
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-850 hover:border-slate-300 text-left transition-all group"
               >
-                <div className="flex items-center gap-1.5 mb-1">
+                <div className="flex items-center gap-2 mb-1">
                   <img
                     src="https://api.dicebear.com/7.x/initials/svg?seed=Aarav%20Sharma&backgroundColor=b6e3f4,c0aede,d1d4f9"
                     alt="Aarav"
                     className="w-5 h-5 rounded-full"
                   />
                   <div>
-                    <div className="font-bold text-[11px] text-slate-900 dark:text-zinc-100 group-hover:text-red-600 transition-colors leading-tight">
-                      Aarav
+                    <div className="font-bold text-xs text-slate-900 dark:text-zinc-100 group-hover:text-red-600 transition-colors leading-tight">
+                      Aarav Sharma
                     </div>
-                    <div className="text-[9px] text-slate-500">YouTube</div>
+                    <div className="text-[10px] text-slate-500">@aaravtech</div>
                   </div>
                 </div>
-                <div className="text-[9px] text-red-600 font-medium flex items-center gap-1">
-                  <Youtube size={9} /> 4 Deals
+                <div className="text-[10px] text-red-600 font-medium flex items-center gap-1">
+                  <Youtube size={11} /> Tech Creator
                 </div>
               </button>
 
@@ -217,46 +217,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
                 type="button"
                 disabled={submitting}
                 onClick={() => handleQuickDemo('priya@lifestyle.com')}
-                className="p-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-850 hover:border-slate-300 text-left transition-all group"
+                className="p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-850 hover:border-slate-300 text-left transition-all group"
               >
-                <div className="flex items-center gap-1.5 mb-1">
+                <div className="flex items-center gap-2 mb-1">
                   <img
                     src="https://api.dicebear.com/7.x/initials/svg?seed=Priya%20Mehta&backgroundColor=ffd5dc,ffdfba,d1d4f9"
                     alt="Priya"
                     className="w-5 h-5 rounded-full"
                   />
                   <div>
-                    <div className="font-bold text-[11px] text-slate-900 dark:text-zinc-100 group-hover:text-pink-600 transition-colors leading-tight">
-                      Priya
+                    <div className="font-bold text-xs text-slate-900 dark:text-zinc-100 group-hover:text-pink-600 transition-colors leading-tight">
+                      Priya Mehta
                     </div>
-                    <div className="text-[9px] text-slate-500">Instagram</div>
+                    <div className="text-[10px] text-slate-500">@priyastyle</div>
                   </div>
                 </div>
-                <div className="text-[9px] text-pink-600 font-medium flex items-center gap-1">
-                  <Instagram size={9} /> 3 Deals
-                </div>
-              </button>
-
-              {/* Admin 3: Agency & Platform Admin */}
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleQuickDemo('admin@collabflow.app')}
-                className="p-2 rounded-xl border border-teal-200 dark:border-teal-900/60 bg-teal-50/60 dark:bg-teal-950/30 hover:bg-white dark:hover:bg-zinc-850 hover:border-teal-400 text-left transition-all group"
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-5 h-5 rounded-full bg-slate-900 dark:bg-zinc-800 flex items-center justify-center text-teal-400 shrink-0">
-                    <ShieldCheck size={11} />
-                  </div>
-                  <div>
-                    <div className="font-bold text-[11px] text-teal-950 dark:text-teal-200 group-hover:text-teal-600 transition-colors leading-tight">
-                      Admin
-                    </div>
-                    <div className="text-[9px] text-teal-700 dark:text-teal-400">Agency</div>
-                  </div>
-                </div>
-                <div className="text-[9px] text-teal-700 dark:text-teal-400 font-bold flex items-center gap-1">
-                  <Activity size={9} /> Observatory
+                <div className="text-[10px] text-pink-600 font-medium flex items-center gap-1">
+                  <Instagram size={11} /> Lifestyle Creator
                 </div>
               </button>
             </div>

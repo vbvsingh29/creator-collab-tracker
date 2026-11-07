@@ -12,7 +12,8 @@ import {
   generateMockAdminChallenge,
   verifyMockAdminChallenge,
   getMockAdminAuditLogs,
-  DEMO_USER_AARAV
+  DEMO_USER_AARAV,
+  DEMO_USER_PRIYA
 } from './mockStorage';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
@@ -99,22 +100,28 @@ export async function apiLogin(email: string, password: string): Promise<{ token
       body: JSON.stringify({ email, password }),
     },
     async () => {
-      const localUser = getLocalUser();
+      let localUser = getLocalUser();
       const cleanEmail = (email || '').toLowerCase().trim();
-      if (cleanEmail.includes('admin') || cleanEmail === 'admin@collabflow.app') {
+      if (cleanEmail === 'priya@lifestyle.com') {
+        localUser = { ...DEMO_USER_PRIYA };
+        saveLocalUser(localUser);
+      } else if (cleanEmail === 'aarav@tech.com') {
+        localUser = { ...DEMO_USER_AARAV };
+        saveLocalUser(localUser);
+      } else if (cleanEmail.includes('admin') || cleanEmail === 'admin@collabflow.app') {
         localUser.email = 'admin@collabflow.app';
         localUser.name = 'Agency Admin';
         localUser.handle = '@admin';
         localUser.role = 'admin';
         saveLocalUser(localUser);
-      } else if (cleanEmail && cleanEmail !== 'aarav@tech.com') {
+      } else if (cleanEmail) {
         localUser.email = cleanEmail;
         const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
         localUser.name = namePart.replace(/\b\w/g, l => l.toUpperCase());
         localUser.role = 'creator';
         saveLocalUser(localUser);
       }
-      const token = cleanEmail.includes('admin') ? 'collabflow-demo-token-admin' : 'collabflow-demo-token-aarav';
+      const token = cleanEmail.includes('admin') ? 'collabflow-demo-token-admin' : `collabflow-demo-token-${cleanEmail.split('@')[0] || 'user'}`;
       setAuthToken(token);
       return { token, user: localUser };
     }

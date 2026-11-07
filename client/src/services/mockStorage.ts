@@ -25,236 +25,36 @@ export const DEMO_USER_AARAV: User = {
   created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 };
 
-export const INITIAL_DEMO_BRANDS: Brand[] = [
-  {
-    id: 'brand-keychron',
-    name: 'Keychron India',
-    category: 'Computer Peripherals',
-    contact_person: 'Rohan Mehta (Marketing Lead)',
-    contact_email: 'rohan@keychron.in',
-    contact_phone: '+91 98111 22334',
-    avg_payment_speed_days: 14,
-    rating: 5,
-    notes: 'Prompt NET-15 payments. Values mechanical keyboard detail shots and link stickers.',
-    collabs_count: 2,
-    total_spent: 95000,
-    created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'brand-nothing',
-    name: 'Nothing Technology',
-    category: 'Consumer Electronics',
-    contact_person: 'Sarah Jenkins (PR & Talent)',
-    contact_email: 'sarah@nothing.tech',
-    contact_phone: '+44 20 7946 0192',
-    avg_payment_speed_days: 21,
-    rating: 5,
-    notes: 'Strict aesthetic guidelines (minimalist, clean dark frames). High-volume sponsor.',
-    collabs_count: 1,
-    total_spent: 110000,
-    created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'brand-nordvpn',
-    name: 'NordVPN',
-    category: 'Software & Cybersecurity',
-    contact_person: 'Liam O’Connor (Affiliate Lead)',
-    contact_email: 'creator-partners@nordvpn.com',
-    contact_phone: '+1 415 555 2671',
-    avg_payment_speed_days: 7,
-    rating: 4,
-    notes: 'Requires 60-day cookie window and pinned link in YouTube/IG bio.',
-    collabs_count: 2,
-    total_spent: 70000,
-    created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'brand-boat',
-    name: 'boAt Lifestyle',
-    category: 'Audio & Wearables',
-    contact_person: 'Vikram Sethi (Influencer Lead)',
-    contact_email: 'campaigns@boat-lifestyle.com',
-    contact_phone: '+91 99200 44556',
-    avg_payment_speed_days: 30,
-    rating: 4,
-    notes: 'Fast approvals on scripts. NET-30 payment via bank transfer.',
-    collabs_count: 1,
-    total_spent: 45000,
-    created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
-  }
-];
 
-export const INITIAL_DEMO_COLLABS: Collab[] = [
-  {
-    id: 'collab-demo-001',
-    user_id: DEMO_USER_AARAV.id,
-    title: 'Nothing Ear (open) TWS Earbuds Dedicated Review',
-    brand_id: 'brand-nothing',
-    brand_name: 'Nothing Technology',
-    brand_category: 'Consumer Electronics',
-    contact_person: 'Sarah Jenkins',
-    contact_email: 'sarah@nothing.tech',
-    platform: 'youtube',
-    deliverable_format: 'yt_dedicated_video',
-    format_label: 'YouTube Dedicated 10-Min In-Depth Review',
-    commercial_type: 'paid',
-    currency: 'INR',
-    deal_amount: 95000,
-    barter_estimated_value: 17999,
-    payment_terms: '50_advance_50_post',
-    payment_status: 'partially_paid',
-    amount_paid: 47500,
-    invoice_number: 'INV-2026-083',
-    invoice_date: '2026-10-30',
-    payment_due_date: '2026-11-15',
-    has_ads_whitelisting: true,
-    whitelisting_duration_days: 60,
-    whitelisting_expiry_date: '2026-12-30',
-    has_category_exclusivity: true,
-    exclusivity_days: 14,
-    promo_code: 'NOTHINGCREATOR',
-    tracking_link: 'https://nothing.tech/products/ear-open',
-    pipeline_stage: 'posted_live',
-    scheduled_post_date: '2026-10-30',
-    actual_posted_date: '2026-10-30',
-    live_post_url: 'https://youtube.com/watch?v=kXYiU_JCYtU',
-    views_count: 142000,
-    likes_count: 8900,
-    deliverables_checklist: [
-      { id: '1', task: 'Produce 10-min in-depth studio sound analysis and mic demo', completed: true },
-      { id: '2', task: 'Include sponsor link and discount code in description top 3 lines', completed: true },
-      { id: '3', task: 'Pin comment with discount code for 30 days', completed: true }
-    ],
-    notes: '50% advance received. Remainder due upon 15 days of post go-live.',
-    created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+export const DEMO_USER_PRIYA: User = {
+  id: 'user-priya-lifestyle-002',
+  name: 'Priya Mehta',
+  email: 'priya@lifestyle.com',
+  handle: '@priyastyle',
+  platform: 'instagram',
+  avatar_url: 'https://api.dicebear.com/7.x/initials/svg?seed=Priya%20Mehta&backgroundColor=ffd5dc,ffdfba,d1d4f9',
+  bio: 'Lifestyle & beauty content creator focusing on clean cosmetics, skincare routines, and daily fashion.',
+  phone: '+91 98330 54321',
+  category: 'Beauty & Lifestyle',
+  role: 'creator',
+  rates: {
+    reel_rate: 45000,
+    video_rate: 80000,
+    story_rate: 15000,
+    whitelisting_monthly_rate: 20000
   },
-  {
-    id: 'collab-demo-002',
-    user_id: DEMO_USER_AARAV.id,
-    title: 'NordVPN Cybersecurity Travel Protocol & Story Sequence',
-    brand_id: 'brand-nordvpn',
-    brand_name: 'NordVPN',
-    brand_category: 'Software & Cybersecurity',
-    contact_person: 'Liam O’Connor',
-    contact_email: 'creator-partners@nordvpn.com',
-    platform: 'instagram',
-    deliverable_format: 'ig_story',
-    format_label: 'Instagram Story 4-Frame Sequence with Direct Link',
-    commercial_type: 'paid',
-    currency: 'INR',
-    deal_amount: 35000,
-    barter_estimated_value: 0,
-    payment_terms: 'net_15',
-    payment_status: 'paid',
-    amount_paid: 35000,
-    invoice_number: 'INV-2026-079',
-    invoice_date: '2026-10-15',
-    payment_due_date: '2026-10-30',
-    payment_received_date: '2026-10-28',
-    has_ads_whitelisting: false,
-    has_category_exclusivity: false,
-    promo_code: 'AARAVTECH',
-    tracking_link: 'https://nordvpn.com/aaravtech',
-    pipeline_stage: 'completed',
-    scheduled_post_date: '2026-10-18',
-    actual_posted_date: '2026-10-18',
-    live_post_url: 'https://instagram.com/reel/C7r4g3pvqK1/',
-    views_count: 48000,
-    likes_count: 2400,
-    deliverables_checklist: [
-      { id: '1', task: 'Frame 1: Public airport Wi-Fi vulnerability hook', completed: true },
-      { id: '2', task: 'Frame 2: 1-Tap NordVPN server connection demo', completed: true },
-      { id: '3', task: 'Frame 3: Link sticker with exclusive 70% off discount', completed: true }
-    ],
-    notes: 'Campaign completed cleanly. Prompt payment received.',
-    created_at: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+  social_links: {
+    instagram: 'https://instagram.com/priyastyle',
+    youtube: 'https://youtube.com/@priyastyle',
+    twitter: 'https://x.com/priyastyle',
+    website: 'https://priyamehta.com'
   },
-  {
-    id: 'collab-demo-003',
-    user_id: DEMO_USER_AARAV.id,
-    title: 'Keychron K2 Pro Mechanical Keyboard Cinematic Reel Showcase',
-    brand_id: 'brand-keychron',
-    brand_name: 'Keychron India',
-    brand_category: 'Computer Peripherals',
-    contact_person: 'Rohan Mehta',
-    contact_email: 'rohan@keychron.in',
-    platform: 'instagram',
-    deliverable_format: 'ig_dedicated_reel',
-    format_label: 'Instagram Dedicated 60s 4K Reel',
-    commercial_type: 'hybrid',
-    currency: 'INR',
-    deal_amount: 50000,
-    barter_estimated_value: 12999,
-    payment_terms: 'net_30',
-    payment_status: 'invoiced',
-    amount_paid: 0,
-    invoice_number: 'INV-2026-084',
-    invoice_date: '2026-10-25',
-    payment_due_date: '2026-11-24',
-    has_ads_whitelisting: true,
-    whitelisting_duration_days: 30,
-    whitelisting_expiry_date: '2026-11-30',
-    has_category_exclusivity: true,
-    exclusivity_days: 30,
-    promo_code: 'KEYCHRONTECH',
-    tracking_link: 'https://keychron.in/discount/KEYCHRONTECH',
-    pipeline_stage: 'posted_live',
-    scheduled_post_date: '2026-10-28',
-    actual_posted_date: '2026-10-28',
-    live_post_url: 'https://instagram.com/reel/C8q7vPuv6M2/',
-    views_count: 67000,
-    likes_count: 4800,
-    deliverables_checklist: [
-      { id: '1', task: 'Include keyboard on desk in 1 Reel and 1 YouTube short', completed: true },
-      { id: '2', task: 'Tag @keychronindia in caption and audio credit', completed: true }
-    ],
-    notes: 'Product arrived safely. High build quality, switches sound amazing on mic.',
-    created_at: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'collab-demo-004',
-    user_id: DEMO_USER_AARAV.id,
-    title: 'boAt Nirvana ANC Earbuds YouTube Short + Instagram Reel Cross-Post',
-    brand_id: 'brand-boat',
-    brand_name: 'boAt Lifestyle',
-    brand_category: 'Audio & Wearables',
-    contact_person: 'Vikram Sethi',
-    contact_email: 'campaigns@boat-lifestyle.com',
-    platform: 'both',
-    deliverable_format: 'ig_collab_post',
-    format_label: 'YouTube Short & IG Reel Cross-Post',
-    commercial_type: 'paid',
-    currency: 'INR',
-    deal_amount: 45000,
-    barter_estimated_value: 4999,
-    payment_terms: 'net_15',
-    payment_status: 'unbilled',
-    amount_paid: 0,
-    invoice_number: 'INV-2026-085',
-    invoice_date: '2026-11-01',
-    payment_due_date: '2026-11-16',
-    has_ads_whitelisting: true,
-    whitelisting_duration_days: 30,
-    whitelisting_expiry_date: '2026-12-01',
-    has_category_exclusivity: false,
-    pipeline_stage: 'posted_live',
-    scheduled_post_date: '2026-11-01',
-    actual_posted_date: '2026-11-01',
-    live_post_url: 'https://youtube.com/watch?v=dQw4w9WgXcQ',
-    views_count: 52000,
-    likes_count: 3100,
-    deliverables_checklist: [
-      { id: '1', task: 'Produce 45s fast-paced vertical video demonstrating ANC in noisy metro', completed: true },
-      { id: '2', task: 'Cross-post to YouTube Shorts and Instagram Reels with invite collaborator', completed: true }
-    ],
-    notes: 'Client confirmed audio mix is crisp. Awaiting final payment disbursement.',
-    created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-  }
-];
+  created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
+};
+
+export const INITIAL_DEMO_BRANDS: Brand[] = [];
+
+export const INITIAL_DEMO_COLLABS: Collab[] = [];
 
 const COLLABS_KEY = 'collabflow_mock_collabs';
 const BRANDS_KEY = 'collabflow_mock_brands';
@@ -263,13 +63,18 @@ const USER_KEY = 'collabflow_mock_user';
 export function getLocalCollabs(): Collab[] {
   const saved = localStorage.getItem(COLLABS_KEY);
   if (!saved) {
-    localStorage.setItem(COLLABS_KEY, JSON.stringify(INITIAL_DEMO_COLLABS));
-    return INITIAL_DEMO_COLLABS;
+    localStorage.setItem(COLLABS_KEY, JSON.stringify([]));
+    return [];
   }
   try {
-    return JSON.parse(saved);
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed) && parsed.some(c => c && typeof c.id === 'string' && c.id.startsWith('collab-demo-'))) {
+      localStorage.setItem(COLLABS_KEY, JSON.stringify([]));
+      return [];
+    }
+    return parsed;
   } catch {
-    return INITIAL_DEMO_COLLABS;
+    return [];
   }
 }
 
@@ -280,13 +85,18 @@ export function saveLocalCollabs(collabs: Collab[]) {
 export function getLocalBrands(): Brand[] {
   const saved = localStorage.getItem(BRANDS_KEY);
   if (!saved) {
-    localStorage.setItem(BRANDS_KEY, JSON.stringify(INITIAL_DEMO_BRANDS));
-    return INITIAL_DEMO_BRANDS;
+    localStorage.setItem(BRANDS_KEY, JSON.stringify([]));
+    return [];
   }
   try {
-    return JSON.parse(saved);
+    const parsed = JSON.parse(saved);
+    if (Array.isArray(parsed) && parsed.some(b => b && typeof b.id === 'string' && b.id.startsWith('brand-'))) {
+      localStorage.setItem(BRANDS_KEY, JSON.stringify([]));
+      return [];
+    }
+    return parsed;
   } catch {
-    return INITIAL_DEMO_BRANDS;
+    return [];
   }
 }
 
