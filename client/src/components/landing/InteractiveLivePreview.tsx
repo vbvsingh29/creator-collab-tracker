@@ -18,10 +18,11 @@ import {
 } from 'lucide-react';
 
 interface InteractiveLivePreviewProps {
-  onDemoLogin: (email: string) => void;
+  onOpenAuth?: () => void;
+  onDemoLogin?: (email: string) => void;
 }
 
-export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ onDemoLogin }) => {
+export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ onOpenAuth, onDemoLogin }) => {
   const [activeTab, setActiveTab] = useState<'pipeline' | 'radar' | 'exclusivity'>('pipeline');
 
   return (
@@ -84,7 +85,7 @@ export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ 
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
               </div>
-              <span className="text-zinc-400 ml-2 font-mono text-[11px]">app.collabflow.io/aaravtech</span>
+              <span className="text-zinc-400 ml-2 font-mono text-[11px]">app.collabflow.io/workspace</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -92,7 +93,7 @@ export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ 
                 ● Live Database
               </span>
               <button
-                onClick={() => onDemoLogin('aarav@tech.com')}
+                onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
                 className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
               >
                 <span>Launch Full Screen</span>
@@ -132,7 +133,7 @@ export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ 
                       </div>
                     </div>
                     <button
-                      onClick={() => onDemoLogin('aarav@tech.com')}
+                      onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
                       className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-xs"
                     >
                       Generate Invoice
@@ -195,7 +196,7 @@ export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ 
                       <div className="text-[10px] text-purple-500 font-medium">Counter-Offer Sent</div>
                     </div>
                     <button
-                      onClick={() => onDemoLogin('aarav@tech.com')}
+                      onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
                       className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-xs flex items-center gap-1"
                     >
                       <Bot size={12} />
@@ -234,7 +235,7 @@ export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ 
                     <span>Real-time financial isolation: Only your private revenue metrics are stored in your session.</span>
                   </div>
                   <button
-                    onClick={() => onDemoLogin('aarav@tech.com')}
+                    onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
                     className="text-xs font-bold text-indigo-600 dark:text-indigo-400 underline shrink-0 ml-2"
                   >
                     Open Live Radar →
@@ -271,7 +272,7 @@ export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ 
                     The radar scans every contract date and competitive sector automatically before you accept any sponsor brief.
                   </span>
                   <button
-                    onClick={() => onDemoLogin('aarav@tech.com')}
+                    onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
                     className="font-bold text-indigo-600 dark:text-indigo-400 underline shrink-0 ml-2"
                   >
                     Test Conflict Scanner →
@@ -287,7 +288,7 @@ export const InteractiveLivePreview: React.FC<InteractiveLivePreviewProps> = ({ 
               Want to test creating deals, editing invoices, or running AI pitches?
             </span>
             <button
-              onClick={() => onDemoLogin('aarav@tech.com')}
+              onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 transition-all active:scale-95"
             >
               <Zap size={13} className="text-amber-300 fill-amber-300" />

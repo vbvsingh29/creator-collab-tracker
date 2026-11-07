@@ -40,6 +40,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Commercial Rate Estimator */}
         <InteractiveRateCalculator
+          onOpenAuth={onOpenAuth}
           onDemoLogin={onDemoLogin}
         />
 

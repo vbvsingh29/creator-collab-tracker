@@ -30,10 +30,10 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
           {/* Action Links */}
           <div className="flex items-center gap-4 text-xs font-medium text-slate-600 dark:text-zinc-400">
             <button
-              onClick={() => onDemoLogin('aarav@tech.com')}
+              onClick={onOpenAuth}
               className="hover:text-slate-900 dark:hover:text-white transition-colors"
             >
-              1-Click Demo
+              Register Account
             </button>
             <button
               onClick={onOpenAuth}

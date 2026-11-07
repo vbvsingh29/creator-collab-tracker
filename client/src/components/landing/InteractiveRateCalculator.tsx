@@ -4,7 +4,8 @@ import {
 } from 'lucide-react';
 
 interface InteractiveRateCalculatorProps {
-  onDemoLogin: (email: string) => void;
+  onOpenAuth?: () => void;
+  onDemoLogin?: (email: string) => void;
 }
 
 type Niche = 'tech' | 'lifestyle' | 'gaming' | 'finance' | 'fitness';
@@ -17,7 +18,7 @@ const CPM_RATES: Record<Niche, { label: string; cpm: number }> = {
   fitness: { label: 'Fitness & Health', cpm: 22 },
 };
 
-export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps> = ({ onDemoLogin }) => {
+export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps> = ({ onOpenAuth, onDemoLogin }) => {
   const [avgViews, setAvgViews] = useState<number>(45000);
   const [niche, setNiche] = useState<Niche>('tech');
   const [format, setFormat] = useState<'dedicated' | 'integration' | 'reel'>('integration');
@@ -219,7 +220,7 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
               </div>
 
               <button
-                onClick={() => onDemoLogin('aarav@tech.com')}
+                onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
                 className="mt-6 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-zinc-950 font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
               >
                 <span>Save Rate Card in Workspace</span>

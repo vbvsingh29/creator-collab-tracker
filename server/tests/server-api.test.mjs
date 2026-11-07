@@ -29,6 +29,13 @@ test.after(async () => {
     }
     await new Promise((resolve) => server.close(resolve));
   }
+  try {
+    const { db } = await import('../dist/db/database.js');
+    db.prepare("DELETE FROM collabs").run();
+    db.prepare("DELETE FROM brands").run();
+    db.prepare("DELETE FROM users").run();
+    db.prepare("DELETE FROM password_resets").run();
+  } catch {}
 });
 
 test('Backend API Security, Authentication & GDPR Suite', async (t) => {
@@ -51,12 +58,32 @@ test('Backend API Security, Authentication & GDPR Suite', async (t) => {
     assert.match(data.error, /Authentication required/i);
   });
 
-  await t.test('3. Login with invalid password fails with 401', async () => {
+  await t.test('3. Real creator registration succeeds (201) and issues valid JWT', async () => {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Production Creator',
+        email: 'creator@production.test',
+        password: 'password123',
+        handle: '@prodcreator',
+        platform: 'both'
+      })
+    });
+    assert.equal(res.status, 201);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.ok(data.token, 'Token must be issued upon successful registration');
+    assert.equal(data.user.email, 'creator@production.test');
+    authToken = data.token;
+  });
+
+  await t.test('4. Login with invalid password fails with 401', async () => {
     const res = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: 'aarav@tech.com',
+        email: 'creator@production.test',
         password: 'wrongpassword'
       })
     });
@@ -65,12 +92,12 @@ test('Backend API Security, Authentication & GDPR Suite', async (t) => {
     assert.equal(data.success, false);
   });
 
-  await t.test('4. Login with demo credentials succeeds and issues valid JWT', async () => {
+  await t.test('5. Login with registered credentials succeeds and issues valid JWT', async () => {
     const res = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: 'aarav@tech.com',
+        email: 'creator@production.test',
         password: 'password123'
       })
     });
@@ -78,7 +105,7 @@ test('Backend API Security, Authentication & GDPR Suite', async (t) => {
     const data = await res.json();
     assert.equal(data.success, true);
     assert.ok(data.token, 'Token must be issued upon successful login');
-    assert.equal(data.user.email, 'aarav@tech.com');
+    assert.equal(data.user.email, 'creator@production.test');
     authToken = data.token;
   });
 

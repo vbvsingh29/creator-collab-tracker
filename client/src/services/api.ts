@@ -100,30 +100,26 @@ export async function apiLogin(email: string, password: string): Promise<{ token
       body: JSON.stringify({ email, password }),
     },
     async () => {
-      let localUser = getLocalUser();
       const cleanEmail = (email || '').toLowerCase().trim();
-      if (cleanEmail === 'priya@lifestyle.com') {
-        localUser = { ...DEMO_USER_PRIYA };
-        saveLocalUser(localUser);
-      } else if (cleanEmail === 'aarav@tech.com') {
-        localUser = { ...DEMO_USER_AARAV };
-        saveLocalUser(localUser);
-      } else if (cleanEmail.includes('admin') || cleanEmail === 'admin@collabflow.app') {
-        localUser.email = 'admin@collabflow.app';
-        localUser.name = 'Agency Admin';
-        localUser.handle = '@admin';
-        localUser.role = 'admin';
-        saveLocalUser(localUser);
-      } else if (cleanEmail) {
-        localUser.email = cleanEmail;
-        const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
-        localUser.name = namePart.replace(/\b\w/g, l => l.toUpperCase());
-        localUser.role = 'creator';
-        saveLocalUser(localUser);
+      const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Creator';
+      const user: User = getLocalUser() || {
+        id: `user-${Date.now()}`,
+        name: namePart.replace(/\b\w/g, (l) => l.toUpperCase()),
+        email: cleanEmail || 'creator@workspace.com',
+        handle: `@${cleanEmail.split('@')[0] || 'creator'}`,
+        platform: 'both',
+        role: cleanEmail.includes('admin') ? 'admin' : 'creator',
+        avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(namePart)}`,
+        created_at: new Date().toISOString()
+      };
+      if (cleanEmail.includes('admin')) {
+        user.role = 'admin';
       }
-      const token = cleanEmail.includes('admin') ? 'collabflow-demo-token-admin' : `collabflow-demo-token-${cleanEmail.split('@')[0] || 'user'}`;
+      user.email = cleanEmail;
+      saveLocalUser(user);
+      const token = cleanEmail.includes('admin') ? 'collabflow-token-admin' : `collabflow-token-${user.id}`;
       setAuthToken(token);
-      return { token, user: localUser };
+      return { token, user };
     }
   );
 }
@@ -176,7 +172,9 @@ export async function apiGetMe(): Promise<User> {
     `${API_BASE}/auth/me`,
     { headers: getHeaders() },
     async () => {
-      return getLocalUser();
+      const u = getLocalUser();
+      if (!u) throw new Error('Not authenticated');
+      return u;
     }
   ).then(res => (res && (res as any).user ? (res as any).user : res));
 }
@@ -223,8 +221,18 @@ export async function apiResetPassword(email: string, code: string, newPassword:
       body: JSON.stringify({ email, code, newPassword }),
     },
     async () => {
-      const user = getLocalUser();
-      const token = 'collabflow-demo-token-aarav';
+      const cleanEmail = (email || '').toLowerCase().trim();
+      const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Creator';
+      const user: User = getLocalUser() || {
+        id: `user-${Date.now()}`,
+        name: namePart.replace(/\b\w/g, (l) => l.toUpperCase()),
+        email: cleanEmail || 'creator@workspace.com',
+        handle: `@${cleanEmail.split('@')[0] || 'creator'}`,
+        platform: 'both',
+        created_at: new Date().toISOString()
+      };
+      saveLocalUser(user);
+      const token = `collabflow-token-${user.id}`;
       setAuthToken(token);
       return {
         success: true,
@@ -276,7 +284,14 @@ export async function apiVerifySmsOtp(
       body: JSON.stringify({ phone, otp, name }),
     },
     async () => {
-      const existingUser = getLocalUser();
+      const existingUser = getLocalUser() || {
+        id: `user-${Date.now()}`,
+        name: name || 'Mobile Creator',
+        email: `${phone.replace(/[^0-9]/g, '')}@mobile.collabflow.app`,
+        handle: `@creator_${phone.slice(-4)}`,
+        platform: 'both' as const,
+        created_at: new Date().toISOString()
+      };
       const updatedUser: User = {
         ...existingUser,
         phone,
@@ -305,6 +320,7 @@ export async function apiUpdateProfile(profileData: Partial<User>): Promise<{ su
     },
     async () => {
       const current = getLocalUser();
+      if (!current) throw new Error('Not authenticated');
       const updated: User = {
         ...current,
         ...profileData,
@@ -332,9 +348,10 @@ export async function apiGetDemoCreators(): Promise<User[]> {
     `${API_BASE}/auth/demo-creators`,
     { headers: getHeaders() },
     async () => {
-      return [getLocalUser(), DEMO_USER_AARAV];
+      const u = getLocalUser();
+      return u ? [u] : [];
     }
-  ).then(res => (Array.isArray(res) ? res : (res as any)?.data || [getLocalUser()]));
+  ).then(res => (Array.isArray(res) ? res : (res as any)?.data || []));
 }
 
 // -------------------------------------------------------------
@@ -384,7 +401,7 @@ export async function createCollab(data: Partial<Collab>): Promise<Collab> {
       const collabs = getLocalCollabs();
       const newCollab: Collab = {
         id: `collab-${Date.now()}`,
-        user_id: getLocalUser().id,
+        user_id: getLocalUser()?.id || 'creator-self',
         title: data.title || 'New Collaboration',
         brand_name: data.brand_name || 'Brand Partner',
         brand_id: data.brand_id,

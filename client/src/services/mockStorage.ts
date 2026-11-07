@@ -100,16 +100,13 @@ export function getLocalBrands(): Brand[] {
   }
 }
 
-export function getLocalUser(): User {
+export function getLocalUser(): User | null {
   const saved = localStorage.getItem(USER_KEY);
-  if (!saved) {
-    localStorage.setItem(USER_KEY, JSON.stringify(DEMO_USER_AARAV));
-    return DEMO_USER_AARAV;
-  }
+  if (!saved) return null;
   try {
     return JSON.parse(saved);
   } catch {
-    return DEMO_USER_AARAV;
+    return null;
   }
 }
 

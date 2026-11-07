@@ -97,21 +97,10 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
             )}
           </button>
 
-          {/* 1-Click Instant Demo Button */}
-          <button
-            onClick={() => onDemoLogin('aarav@tech.com')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-750 text-xs font-semibold text-slate-800 dark:text-zinc-200 transition-all shadow-xs active:scale-95"
-            title="Experience the complete app instantly with pre-loaded sponsor deals"
-          >
-            <Zap size={13} className="text-amber-500 fill-amber-500" />
-            <span className="hidden sm:inline">1-Click Demo</span>
-            <span className="sm:hidden">Demo</span>
-          </button>
-
           {/* Sign In Button */}
           <button
             onClick={onOpenAuth}
-            className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-zinc-950 text-xs font-semibold shadow-xs transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-zinc-950 text-xs font-semibold shadow-xs transition-all active:scale-95"
           >
             <User size={13} />
             <span>Sign In</span>

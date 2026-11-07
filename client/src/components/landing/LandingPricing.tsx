@@ -146,10 +146,10 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth, onDe
             </div>
 
             <button
-              onClick={() => onDemoLogin('aarav@tech.com')}
+              onClick={onOpenAuth}
               className="mt-6 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-zinc-950 font-semibold text-xs transition-colors shadow-xs flex items-center justify-center gap-1.5"
             >
-              <span>Try Pro in Demo Mode</span>
+              <span>Get Started with Pro</span>
               <ArrowRight size={13} />
             </button>
           </div>

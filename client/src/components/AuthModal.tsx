@@ -178,76 +178,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
           )}
         </div>
 
-        {/* 1-Click Instant Demo Creators (Only shown in main modes) */}
-        {(mode === 'login' || mode === 'signup' || mode === 'phone_otp') && (
-          <div>
-            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-2">
-              <span>Instant Test Accounts</span>
-              <span className="text-[10px] text-slate-600 dark:text-zinc-400 font-normal">1-Click Login</span>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {/* Creator 1: YouTube */}
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleQuickDemo('aarav@tech.com')}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-850 hover:border-slate-300 text-left transition-all group"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <img
-                    src="https://api.dicebear.com/7.x/initials/svg?seed=Aarav%20Sharma&backgroundColor=b6e3f4,c0aede,d1d4f9"
-                    alt="Aarav"
-                    className="w-5 h-5 rounded-full"
-                  />
-                  <div>
-                    <div className="font-bold text-xs text-slate-900 dark:text-zinc-100 group-hover:text-red-600 transition-colors leading-tight">
-                      Aarav Sharma
-                    </div>
-                    <div className="text-[10px] text-slate-500">@aaravtech</div>
-                  </div>
-                </div>
-                <div className="text-[10px] text-red-600 font-medium flex items-center gap-1">
-                  <Youtube size={11} /> Tech Creator
-                </div>
-              </button>
-
-              {/* Creator 2: Instagram */}
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => handleQuickDemo('priya@lifestyle.com')}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 hover:bg-white dark:hover:bg-zinc-850 hover:border-slate-300 text-left transition-all group"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <img
-                    src="https://api.dicebear.com/7.x/initials/svg?seed=Priya%20Mehta&backgroundColor=ffd5dc,ffdfba,d1d4f9"
-                    alt="Priya"
-                    className="w-5 h-5 rounded-full"
-                  />
-                  <div>
-                    <div className="font-bold text-xs text-slate-900 dark:text-zinc-100 group-hover:text-pink-600 transition-colors leading-tight">
-                      Priya Mehta
-                    </div>
-                    <div className="text-[10px] text-slate-500">@priyastyle</div>
-                  </div>
-                </div>
-                <div className="text-[10px] text-pink-600 font-medium flex items-center gap-1">
-                  <Instagram size={11} /> Lifestyle Creator
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {(mode === 'login' || mode === 'signup' || mode === 'phone_otp') && (
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-slate-200 dark:border-zinc-800 w-full" />
-            <span className="bg-white dark:bg-zinc-950 px-2 text-[10px] uppercase tracking-wider text-slate-400 absolute font-semibold">
-              Or Choose Method
-            </span>
-          </div>
-        )}
 
         {/* Tab Switcher: Email Login vs Phone SMS OTP vs Create Account */}
         {(mode === 'login' || mode === 'signup' || mode === 'phone_otp') && (

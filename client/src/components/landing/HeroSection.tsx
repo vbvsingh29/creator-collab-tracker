@@ -39,11 +39,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onDemoLogi
         {/* Action Buttons */}
         <div className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
           <button
-            onClick={() => onDemoLogin('aarav@tech.com')}
+            onClick={onOpenAuth}
             className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-zinc-950 font-medium text-sm shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
           >
-            <Zap size={15} className="text-amber-400 fill-amber-400" />
-            <span>Try 1-Click Demo</span>
+            <span>Get Started Free</span>
             <ArrowRight size={14} />
           </button>
 
@@ -51,7 +50,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onDemoLogi
             onClick={onOpenAuth}
             className="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-850 text-slate-800 dark:text-zinc-200 font-medium text-sm transition-all shadow-xs"
           >
-            Sign In or Register
+            Sign In to Workspace
           </button>
         </div>
 
