@@ -45,7 +45,8 @@ import {
   apiGetAdminAuditLogs,
   fetchAdminUsers,
   fetchAdminCommunicationLogs,
-  updateAdminUserRole
+  updateAdminUserRole,
+  fetchAdminIntegrationsHealth
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -92,6 +93,22 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
   const [platformFilter, setPlatformFilter] = useState<'all' | 'youtube' | 'instagram' | 'both'>('all');
   const [lastHeartbeat, setLastHeartbeat] = useState<string>('Just now');
   const [pulseCount, setPulseCount] = useState<number>(48);
+  const [healthData, setHealthData] = useState<any>(null);
+  const [healthLoading, setHealthLoading] = useState<boolean>(false);
+
+  const runHealthCheck = async () => {
+    setHealthLoading(true);
+    try {
+      const res = await fetchAdminIntegrationsHealth();
+      if (res && res.integrations) {
+        setHealthData(res.integrations);
+      }
+    } catch (err) {
+      console.error('Failed health check:', err);
+    } finally {
+      setHealthLoading(false);
+    }
+  };
 
   // Active Users State
   const [usersList, setUsersList] = useState<AdminUserRecord[]>([]);
@@ -248,6 +265,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
     loadMetrics(isManual);
     loadUsers();
     loadCommLogs();
+    runHealthCheck();
   };
 
   // Load all on unlock or open
@@ -1190,42 +1208,121 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                     </div>
                   </div>
 
-                  {/* System & API Infrastructure Status */}
+                  {/* Live Zero-Cost Integrations Health Diagnostic */}
                   <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
-                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex-wrap gap-2">
                       <span className="flex items-center gap-1.5">
                         <Zap size={14} className="text-amber-500" />
-                        <span>Platform Infrastructure & Integration Health</span>
+                        <span className="font-bold">Live 3rd-Party Integrations Health & Credentials</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                          Zero-Cost Diagnostic (0 SMS / ₹0)
+                        </span>
                       </span>
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                        Uptime: {data?.system_health?.uptime_percentage || 99.98}%
-                      </span>
+                      <button
+                        onClick={runHealthCheck}
+                        disabled={healthLoading}
+                        className="flex items-center gap-1 px-3 py-1 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition-all"
+                      >
+                        <RefreshCw size={12} className={healthLoading ? 'animate-spin' : ''} />
+                        <span>{healthLoading ? 'Testing Live Pings...' : 'Run Live Health Check'}</span>
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                        <span className="text-zinc-500">YouTube Data API</span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                          Operational
-                        </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                      {/* YouTube */}
+                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
+                            <Youtube size={13} className="text-rose-500" />
+                            <span>YouTube API</span>
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            healthData?.youtube?.status === 'healthy'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
+                              : healthData?.youtube?.status === 'warning'
+                              ? 'bg-amber-500/10 text-amber-600 border border-amber-500/25'
+                              : 'bg-zinc-100 dark:bg-zinc-850 text-zinc-500'
+                          }`}>
+                            {healthData?.youtube?.status === 'healthy' ? 'Active' : healthData?.youtube?.status === 'warning' ? 'Free Scraper' : 'Checking...'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 leading-tight">
+                          {healthData?.youtube?.message || 'Validates official YouTube Data API v3 key.'}
+                        </p>
+                        <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-900">
+                          <span>Cost: 1 unit / 10k free</span>
+                          {healthData?.youtube?.latency_ms && <span>{healthData.youtube.latency_ms}ms</span>}
+                        </div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                        <span className="text-zinc-500">Meta Open Graph</span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                          Operational
-                        </span>
+
+                      {/* Instagram */}
+                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
+                            <Instagram size={13} className="text-pink-500" />
+                            <span>Instagram</span>
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                            {healthData?.instagram?.status === 'healthy' ? 'Active' : 'Connected'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 leading-tight">
+                          {healthData?.instagram?.message || 'Zero-token Open Graph interaction crawler.'}
+                        </p>
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-900">
+                          <span>Cost: ₹0 / 0 Tokens</span>
+                          {healthData?.instagram?.latency_ms && <span>{healthData.instagram.latency_ms}ms</span>}
+                        </div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                        <span className="text-zinc-500">Twilio SMS Gateway</span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                          Connected
-                        </span>
+
+                      {/* Twilio SMS */}
+                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
+                            <MessageSquare size={13} className="text-indigo-500" />
+                            <span>Twilio SMS</span>
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            healthData?.twilio?.status === 'healthy'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
+                              : healthData?.twilio?.status === 'not_configured'
+                              ? 'bg-amber-500/10 text-amber-600 border border-amber-500/25'
+                              : 'bg-zinc-100 dark:bg-zinc-850 text-zinc-500'
+                          }`}>
+                            {healthData?.twilio?.status === 'healthy' ? 'Active' : healthData?.twilio?.status === 'not_configured' ? 'Not Set' : 'Checking...'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 leading-tight">
+                          {healthData?.twilio?.message || 'Read-only REST check. Zero SMS consumed.'}
+                        </p>
+                        <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-900">
+                          <span>SMS Deducted: 0</span>
+                          {healthData?.twilio?.latency_ms && <span>{healthData.twilio.latency_ms}ms</span>}
+                        </div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-                        <span className="text-zinc-500">Resend / Email</span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400">
-                          Operational
-                        </span>
+
+                      {/* Email / Resend */}
+                      <div className="p-3 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
+                            <Mail size={13} className="text-teal-500" />
+                            <span>Email (Resend)</span>
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            healthData?.email?.status === 'healthy'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
+                              : 'bg-zinc-100 dark:bg-zinc-850 text-zinc-500'
+                          }`}>
+                            {healthData?.email?.status === 'healthy' ? 'Active' : 'Console / Ready'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 leading-tight">
+                          {healthData?.email?.message || '3,000 free emails/mo via Resend.'}
+                        </p>
+                        <div className="text-[10px] text-teal-600 dark:text-teal-400 font-mono flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-900">
+                          <span>Emails Sent: 0</span>
+                          {healthData?.email?.latency_ms && <span>{healthData.email.latency_ms}ms</span>}
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -819,3 +819,11 @@ export async function updateAdminUserRole(userId: string, role: 'admin' | 'creat
     async () => ({ success: true })
   );
 }
+
+export async function fetchAdminIntegrationsHealth(): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/integrations/health`,
+    { headers: getHeaders() },
+    async () => ({ success: false, integrations: {} })
+  );
+}

@@ -416,3 +416,164 @@ adminRouter.post('/users/:id/role', requireAuth, (req: AuthRequest, res: Respons
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+
+// GET /api/admin/integrations/health
+// ZERO-COST HEALTH CHECK: Validates live credentials for YouTube, Instagram, Twilio, and Email
+// CRITICAL: Consumes 0 SMS credits and 0 email sends (read-only credential validation)
+adminRouter.get('/integrations/health', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!verifyIsAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Access denied: Administrator privileges required.' });
+    }
+
+    const https = await import('https');
+
+    const checkHttps = (url: string, headers: Record<string, string> = {}): Promise<{ status: number; body: string }> => {
+      return new Promise((resolve) => {
+        const parsed = new URL(url);
+        const request = https.request({
+          hostname: parsed.hostname,
+          path: parsed.pathname + parsed.search,
+          method: 'GET',
+          headers: { 'User-Agent': 'CollabFlow-HealthChecker/1.0', ...headers },
+          timeout: 7000
+        }, (response) => {
+          let data = '';
+          response.on('data', chunk => data += chunk);
+          response.on('end', () => resolve({ status: response.statusCode || 500, body: data }));
+        });
+        request.on('error', (err) => resolve({ status: 599, body: err.message }));
+        request.on('timeout', () => { request.destroy(); resolve({ status: 504, body: 'Timeout' }); });
+        request.end();
+      });
+    };
+
+    const results: Record<string, any> = {};
+
+    // 1. YouTube Data API v3 check (Costs 1 unit out of 10,000 free daily units)
+    if (process.env.YOUTUBE_API_KEY) {
+      const ytStart = Date.now();
+      const ytRes = await checkHttps(`https://www.googleapis.com/youtube/v3/videos?part=id&id=dQw4w9WgXcQ&key=${process.env.YOUTUBE_API_KEY}`);
+      const latency = Date.now() - ytStart;
+      if (ytRes.status === 200) {
+        results.youtube = {
+          status: 'healthy',
+          message: 'Official YouTube Data API v3 active & responding',
+          latency_ms: latency,
+          cost: '1 free quota unit (out of 10,000 daily free units)',
+          mode: 'official_api'
+        };
+      } else {
+        results.youtube = {
+          status: 'error',
+          message: `YouTube API returned HTTP ${ytRes.status}`,
+          latency_ms: latency,
+          mode: 'official_api'
+        };
+      }
+    } else {
+      results.youtube = {
+        status: 'warning',
+        message: 'YOUTUBE_API_KEY not configured — using free public interaction extraction',
+        mode: 'oembed_and_scraper',
+        cost: '₹0 / $0'
+      };
+    }
+
+    // 2. Instagram Health Check (Zero cost, public crawler test)
+    {
+      const igStart = Date.now();
+      const igRes = await checkHttps('https://www.instagram.com/instagram/', {
+        'User-Agent': 'facebookexternalhit/1.1 (+https://www.facebook.com/externalhit_uatext.php)'
+      });
+      const latency = Date.now() - igStart;
+      results.instagram = {
+        status: igRes.status < 400 || igRes.status === 429 ? 'healthy' : 'degraded',
+        message: 'Open Graph crawler reachable (Zero token, zero cost)',
+        latency_ms: latency,
+        cost: '₹0 / $0 (0 API tokens consumed)',
+        mode: 'opengraph_crawler'
+      };
+    }
+
+    // 3. Twilio SMS Health Check (ZERO SMS SENT: Validates account status via REST API)
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      const twStart = Date.now();
+      const authHeader = 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+      const twRes = await checkHttps(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}.json`, {
+        'Authorization': authHeader
+      });
+      const latency = Date.now() - twStart;
+      if (twRes.status === 200) {
+        let twData: any = {};
+        try { twData = JSON.parse(twRes.body); } catch {}
+        results.twilio = {
+          status: 'healthy',
+          account_status: twData.status || 'active',
+          account_type: twData.type || 'Trial',
+          message: `Twilio REST API validated (${twData.type || 'Trial'} Account active)`,
+          latency_ms: latency,
+          sms_deducted: 0,
+          cost: '₹0 / $0 (Zero SMS consumed — read-only account ping)'
+        };
+      } else {
+        results.twilio = {
+          status: 'error',
+          message: `Twilio API returned HTTP ${twRes.status}. Check Account SID / Auth Token.`,
+          latency_ms: latency,
+          sms_deducted: 0
+        };
+      }
+    } else {
+      results.twilio = {
+        status: 'not_configured',
+        message: 'TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing in environment',
+        mode: 'dev_console_otp',
+        sms_deducted: 0
+      };
+    }
+
+    // 4. Email (Resend) Health Check (ZERO EMAILS SENT: Validates API key)
+    if (process.env.RESEND_API_KEY) {
+      const emailStart = Date.now();
+      const resendRes = await checkHttps('https://api.resend.com/api-keys', {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+      });
+      const latency = Date.now() - emailStart;
+      if (resendRes.status === 200) {
+        results.email = {
+          status: 'healthy',
+          provider: 'Resend',
+          message: 'Resend API key validated and active',
+          latency_ms: latency,
+          emails_sent: 0,
+          cost: '₹0 / $0 (Zero emails sent — key status ping)'
+        };
+      } else {
+        results.email = {
+          status: 'error',
+          provider: 'Resend',
+          message: `Resend returned HTTP ${resendRes.status}`,
+          latency_ms: latency,
+          emails_sent: 0
+        };
+      }
+    } else {
+      results.email = {
+        status: 'not_configured',
+        provider: 'Console Fallback',
+        message: 'RESEND_API_KEY not configured — OTP codes written to server console for testing',
+        emails_sent: 0
+      };
+    }
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      integrations: results
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
