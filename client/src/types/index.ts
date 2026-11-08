@@ -284,7 +284,7 @@ export interface CommunicationLog {
   channel: 'sms' | 'email';
   purpose: 'phone_verification' | 'email_verification' | 'password_reset';
   status: 'delivered' | 'sent' | 'failed' | 'simulated';
-  provider: 'twilio' | 'resend' | 'smtp' | 'console';
+  provider: 'twilio' | 'fast2sms' | 'resend' | 'smtp' | 'console';
   details?: string;
   created_at: string;
 }

@@ -1275,29 +1275,35 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                         </div>
                       </div>
 
-                      {/* Twilio SMS */}
+                      {/* SMS Provider (Fast2SMS or Twilio) */}
                       <div className="p-3 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
                             <MessageSquare size={13} className="text-indigo-500" />
-                            <span>Twilio SMS</span>
+                            <span>{healthData?.fast2sms?.status === 'healthy' ? 'Fast2SMS' : 'SMS Gateway'}</span>
                           </span>
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                            healthData?.twilio?.status === 'healthy'
+                            (healthData?.fast2sms?.status === 'healthy' || healthData?.twilio?.status === 'healthy')
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25'
-                              : healthData?.twilio?.status === 'not_configured'
+                              : (healthData?.fast2sms?.status === 'not_configured' && healthData?.twilio?.status === 'not_configured')
                               ? 'bg-amber-500/10 text-amber-600 border border-amber-500/25'
                               : 'bg-zinc-100 dark:bg-zinc-850 text-zinc-500'
                           }`}>
-                            {healthData?.twilio?.status === 'healthy' ? 'Active' : healthData?.twilio?.status === 'not_configured' ? 'Not Set' : 'Checking...'}
+                            {healthData?.fast2sms?.status === 'healthy'
+                              ? 'Active (Fast2SMS)'
+                              : healthData?.twilio?.status === 'healthy'
+                              ? 'Active (Twilio)'
+                              : 'Not Set'}
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-500 leading-tight">
-                          {healthData?.twilio?.message || 'Read-only REST check. Zero SMS consumed.'}
+                          {healthData?.fast2sms?.message || healthData?.twilio?.message || 'Read-only REST check. Zero SMS consumed.'}
                         </p>
                         <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-900">
                           <span>SMS Deducted: 0</span>
-                          {healthData?.twilio?.latency_ms && <span>{healthData.twilio.latency_ms}ms</span>}
+                          {(healthData?.fast2sms?.latency_ms || healthData?.twilio?.latency_ms) && (
+                            <span>{healthData?.fast2sms?.latency_ms || healthData?.twilio?.latency_ms}ms</span>
+                          )}
                         </div>
                       </div>
 

@@ -480,6 +480,40 @@ adminRouter.get('/integrations/health', requireAuth, async (req: AuthRequest, re
       };
     }
 
+    // 3b. Fast2SMS Health Check (ZERO SMS SENT: Validates wallet balance via REST API)
+    if (process.env.FAST2SMS_API_KEY) {
+      const fStart = Date.now();
+      const fRes = await checkHttps('https://www.fast2sms.com/dev/wallet', {
+        'authorization': process.env.FAST2SMS_API_KEY.trim()
+      });
+      const latency = Date.now() - fStart;
+      if (fRes.status === 200) {
+        let fData: any = {};
+        try { fData = JSON.parse(fRes.body); } catch {}
+        results.fast2sms = {
+          status: 'healthy',
+          wallet_balance: fData.wallet !== undefined ? `₹${fData.wallet}` : 'Active',
+          message: `Fast2SMS validated (Wallet: ₹${fData.wallet ?? '0.00'})`,
+          latency_ms: latency,
+          sms_deducted: 0,
+          cost: '₹0 (Zero SMS consumed — read-only wallet ping)'
+        };
+      } else {
+        results.fast2sms = {
+          status: 'error',
+          message: `Fast2SMS API returned HTTP ${fRes.status}. Check FAST2SMS_API_KEY.`,
+          latency_ms: latency,
+          sms_deducted: 0
+        };
+      }
+    } else {
+      results.fast2sms = {
+        status: 'not_configured',
+        message: 'FAST2SMS_API_KEY not set in environment',
+        sms_deducted: 0
+      };
+    }
+
     // 4. Email (Resend) Health Check (ZERO EMAILS SENT: Validates API key)
     if (process.env.RESEND_API_KEY) {
       const emailStart = Date.now();

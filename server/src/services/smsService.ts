@@ -102,6 +102,72 @@ export async function sendTwilioSms(to: string, message: string): Promise<boolea
   });
 }
 
+export async function sendFast2Sms(to: string, otp: string): Promise<boolean> {
+  const apiKey = process.env.FAST2SMS_API_KEY;
+  if (!apiKey) {
+    throw new Error('FAST2SMS_API_KEY is not configured in environment.');
+  }
+
+  // Fast2SMS expects 10-digit Indian numbers without +91 or leading 0
+  let cleanNumber = to.replace(/[^\d]/g, '');
+  if (cleanNumber.length === 12 && cleanNumber.startsWith('91')) {
+    cleanNumber = cleanNumber.slice(2);
+  } else if (cleanNumber.length === 11 && cleanNumber.startsWith('0')) {
+    cleanNumber = cleanNumber.slice(1);
+  }
+
+  if (cleanNumber.length !== 10) {
+    throw new Error(`Fast2SMS requires a valid 10-digit Indian mobile number (got ${cleanNumber.length} digits).`);
+  }
+
+  // Fast2SMS dedicated OTP route (delivers instant 6-digit numeric OTP without custom DLT template)
+  const payload = JSON.stringify({
+    route: 'otp',
+    variables_values: otp,
+    numbers: cleanNumber
+  });
+
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'www.fast2sms.com',
+      port: 443,
+      path: '/dev/bulkV2',
+      method: 'POST',
+      headers: {
+        'authorization': apiKey.trim(),
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.return) {
+            console.log(`📱 [Fast2SMS] OTP sent successfully to ${cleanNumber}`);
+            resolve(true);
+          } else {
+            console.error(`⚠️ [Fast2SMS Error]:`, parsed);
+            const errDetail = Array.isArray(parsed.message) ? parsed.message.join(', ') : (parsed.message || JSON.stringify(parsed));
+            reject(new Error(errDetail || 'Fast2SMS dispatch rejected'));
+          }
+        } catch {
+          reject(new Error(`Fast2SMS responded with HTTP ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.error('⚠️ [Fast2SMS Network Error]:', err);
+      reject(new Error('Fast2SMS dispatch failed due to network error.'));
+    });
+
+    req.write(payload);
+    req.end();
+  });
+}
+
 export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
   success: boolean;
   message: string;
@@ -129,77 +195,130 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
 
   const smsText = `Collabio: Your verification code is ${otp}. Valid for 5 minutes. Do not share this with anyone.`;
 
-  // In unit-test / local-dev mode (no Twilio env vars): log to console only
-  const isConfigured = Boolean(
+  const hasFast2Sms = Boolean(process.env.FAST2SMS_API_KEY);
+  const hasTwilio = Boolean(
     process.env.TWILIO_ACCOUNT_SID &&
     process.env.TWILIO_AUTH_TOKEN &&
     process.env.TWILIO_PHONE_NUMBER
   );
 
-  if (!isConfigured) {
-    // Dev-only: log to server console, never expose in API response
-    console.log(`📱 [DEV-ONLY OTP] ${phone}: ${otp} (valid 5 min — not sent, Twilio not configured)`);
-    logCommunication({
-      recipient: phone,
-      channel: 'sms',
-      purpose: 'phone_verification',
-      status: 'simulated',
-      provider: 'console',
-      details: 'Twilio credentials not configured; OTP written to console'
-    });
-    return {
-      success: true,
-      message: `Verification code sent to ${phone}.`,
-      normalized_phone: phone,
-      // Only exposed in NODE_ENV=test for automated testing — never in production
-      ...(isTestMode ? { preview_code: otp } : {})
-    };
-  }
+  const preferredProvider = (process.env.SMS_PROVIDER || '').toLowerCase().trim(); // 'fast2sms' or 'twilio'
+  const isIndianNumber = phone.startsWith('+91');
 
-  // Production: send real Twilio SMS (handles trial account restrictions gracefully)
-  try {
-    await sendTwilioSms(phone, smsText);
-    logCommunication({
-      recipient: phone,
-      channel: 'sms',
-      purpose: 'phone_verification',
-      status: 'delivered',
-      provider: 'twilio',
-      details: 'Successfully dispatched via Twilio REST API'
-    });
-  } catch (smsErr: any) {
-    const errMsg = smsErr.message || 'Twilio delivery failed';
-    const isTrialRestriction = /template|trial|unverified|geo|permission|whitelist/i.test(errMsg);
+  // Intelligent SMS routing:
+  // Prefer Fast2SMS if FAST2SMS_API_KEY is configured and:
+  // - preferredProvider is explicitly 'fast2sms', OR
+  // - Twilio is not configured, OR
+  // - recipient is an Indian number (+91) and preferredProvider is not explicitly locked to 'twilio'
+  const useFast2Sms = hasFast2Sms && (
+    preferredProvider === 'fast2sms' ||
+    !hasTwilio ||
+    (isIndianNumber && preferredProvider !== 'twilio')
+  );
 
-    logCommunication({
-      recipient: phone,
-      channel: 'sms',
-      purpose: 'phone_verification',
-      status: isTrialRestriction ? 'simulated' : 'failed',
-      provider: 'twilio',
-      details: isTrialRestriction 
-        ? `Twilio Trial Account Limitation (${errMsg}). Test OTP: ${otp}`
-        : errMsg
-    });
-
-    if (isTrialRestriction) {
-      console.warn(`⚠️ [Twilio Trial Account] ${errMsg}. Active OTP for testing: ${otp}`);
+  // 1. FAST2SMS DISPATCH (Instant Indian Mobile SMS)
+  if (useFast2Sms) {
+    try {
+      await sendFast2Sms(phone, otp);
+      logCommunication({
+        recipient: phone,
+        channel: 'sms',
+        purpose: 'phone_verification',
+        status: 'delivered',
+        provider: 'fast2sms',
+        details: 'Successfully dispatched via Fast2SMS OTP route'
+      });
       return {
         success: true,
-        message: `Twilio Trial Account Limitation: Twilio trial accounts require pre-approved templates or a paid upgrade to send custom SMS. For testing, your verification code is: ${otp}`,
-        preview_code: otp,
-        trial_mode: true,
+        message: `Verification code sent via Fast2SMS to ${phone}. Please check your messages.`,
         normalized_phone: phone
       };
+    } catch (fastErr: any) {
+      console.warn(`⚠️ [Fast2SMS Dispatch Error]: ${fastErr.message}`);
+      logCommunication({
+        recipient: phone,
+        channel: 'sms',
+        purpose: 'phone_verification',
+        status: 'failed',
+        provider: 'fast2sms',
+        details: fastErr.message || 'Fast2SMS dispatch failed'
+      });
+      // If Twilio is available, failover to Twilio below, else fall back to trial/preview mode
+      if (!hasTwilio) {
+        return {
+          success: true,
+          message: `Fast2SMS notice (${fastErr.message}). For testing, your verification code is: ${otp}`,
+          preview_code: otp,
+          trial_mode: true,
+          normalized_phone: phone
+        };
+      }
     }
-
-    throw smsErr;
   }
 
+  // 2. TWILIO DISPATCH (Global SMS with Trial Fallback)
+  if (hasTwilio) {
+    try {
+      await sendTwilioSms(phone, smsText);
+      logCommunication({
+        recipient: phone,
+        channel: 'sms',
+        purpose: 'phone_verification',
+        status: 'delivered',
+        provider: 'twilio',
+        details: 'Successfully dispatched via Twilio REST API'
+      });
+      return {
+        success: true,
+        message: `Verification code sent via Twilio SMS to ${phone}. Please check your messages.`,
+        normalized_phone: phone
+      };
+    } catch (smsErr: any) {
+      const errMsg = smsErr.message || 'Twilio delivery failed';
+      const isTrialRestriction = /template|trial|unverified|geo|permission|whitelist/i.test(errMsg);
+
+      logCommunication({
+        recipient: phone,
+        channel: 'sms',
+        purpose: 'phone_verification',
+        status: isTrialRestriction ? 'simulated' : 'failed',
+        provider: 'twilio',
+        details: isTrialRestriction 
+          ? `Twilio Trial Account Limitation (${errMsg}). Test OTP: ${otp}`
+          : errMsg
+      });
+
+      if (isTrialRestriction) {
+        console.warn(`⚠️ [Twilio Trial Account] ${errMsg}. Active OTP for testing: ${otp}`);
+        return {
+          success: true,
+          message: `Twilio Trial Account Limitation: Twilio trial accounts require pre-approved templates or a paid upgrade to send custom SMS. For testing, your verification code is: ${otp}`,
+          preview_code: otp,
+          trial_mode: true,
+          normalized_phone: phone
+        };
+      }
+
+      throw smsErr;
+    }
+  }
+
+  // 3. ZERO-CONFIG / DEV CONSOLE MODE (No SMS providers configured)
+  console.log(`📱 [DEV-ONLY OTP] ${phone}: ${otp} (valid 5 min — no SMS provider configured)`);
+  logCommunication({
+    recipient: phone,
+    channel: 'sms',
+    purpose: 'phone_verification',
+    status: 'simulated',
+    provider: 'console',
+    details: 'Neither Fast2SMS nor Twilio configured; OTP written to console'
+  });
   return {
     success: true,
-    message: `Verification code sent via SMS to ${phone}. Please check your messages.`,
-    normalized_phone: phone
+    message: `Verification code generated for ${phone}. Check console or test code below.`,
+    normalized_phone: phone,
+    preview_code: otp,
+    trial_mode: true
   };
 }
 
