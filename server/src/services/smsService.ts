@@ -102,6 +102,41 @@ export async function sendTwilioSms(to: string, message: string): Promise<boolea
   });
 }
 
+function callFast2SmsApi(apiKey: string, bodyObj: any): Promise<any> {
+  const payload = JSON.stringify(bodyObj);
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'www.fast2sms.com',
+      port: 443,
+      path: '/dev/bulkV2',
+      method: 'POST',
+      headers: {
+        'authorization': apiKey.trim(),
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve(parsed);
+        } catch {
+          reject(new Error(`Fast2SMS responded with HTTP ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      reject(err);
+    });
+
+    req.write(payload);
+    req.end();
+  });
+}
+
 export async function sendFast2Sms(to: string, otp: string): Promise<boolean> {
   const apiKey = process.env.FAST2SMS_API_KEY;
   if (!apiKey) {
@@ -120,52 +155,40 @@ export async function sendFast2Sms(to: string, otp: string): Promise<boolean> {
     throw new Error(`Fast2SMS requires a valid 10-digit Indian mobile number (got ${cleanNumber.length} digits).`);
   }
 
-  // Fast2SMS dedicated OTP route (delivers instant 6-digit numeric OTP without custom DLT template)
-  const payload = JSON.stringify({
+  const messageText = `Collabio: Your verification code is ${otp}. Valid for 5 minutes. Do not share this with anyone.`;
+
+  // 1. First attempt: Quick SMS route (route: 'q') — works immediately with Quick API Access toggle enabled (bypasses website verification 996)
+  try {
+    const quickRes = await callFast2SmsApi(apiKey, {
+      route: 'q',
+      message: messageText,
+      numbers: cleanNumber
+    });
+
+    if (quickRes.return) {
+      console.log(`📱 [Fast2SMS Quick Route] OTP sent successfully to ${cleanNumber}`);
+      return true;
+    }
+    console.warn(`⚠️ [Fast2SMS Quick Route rejected]:`, quickRes);
+  } catch (err: any) {
+    console.warn(`⚠️ [Fast2SMS Quick Route error]:`, err.message);
+  }
+
+  // 2. Second attempt: Dedicated OTP route (route: 'otp')
+  const otpRes = await callFast2SmsApi(apiKey, {
     route: 'otp',
     variables_values: otp,
     numbers: cleanNumber
   });
 
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'www.fast2sms.com',
-      port: 443,
-      path: '/dev/bulkV2',
-      method: 'POST',
-      headers: {
-        'authorization': apiKey.trim(),
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
-      }
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.return) {
-            console.log(`📱 [Fast2SMS] OTP sent successfully to ${cleanNumber}`);
-            resolve(true);
-          } else {
-            console.error(`⚠️ [Fast2SMS Error]:`, parsed);
-            const errDetail = Array.isArray(parsed.message) ? parsed.message.join(', ') : (parsed.message || JSON.stringify(parsed));
-            reject(new Error(errDetail || 'Fast2SMS dispatch rejected'));
-          }
-        } catch {
-          reject(new Error(`Fast2SMS responded with HTTP ${res.statusCode}: ${data}`));
-        }
-      });
-    });
+  if (otpRes.return) {
+    console.log(`📱 [Fast2SMS OTP Route] OTP sent successfully to ${cleanNumber}`);
+    return true;
+  }
 
-    req.on('error', (err) => {
-      console.error('⚠️ [Fast2SMS Network Error]:', err);
-      reject(new Error('Fast2SMS dispatch failed due to network error.'));
-    });
-
-    req.write(payload);
-    req.end();
-  });
+  console.error(`⚠️ [Fast2SMS Error]:`, otpRes);
+  const errDetail = Array.isArray(otpRes.message) ? otpRes.message.join(', ') : (otpRes.message || JSON.stringify(otpRes));
+  throw new Error(errDetail || 'Fast2SMS dispatch rejected');
 }
 
 export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
