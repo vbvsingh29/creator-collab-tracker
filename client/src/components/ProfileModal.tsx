@@ -480,9 +480,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     </div>
                   )}
                   {emailFeedback && (
-                    <p className={`text-[11px] font-medium ${emailFeedback.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
-                      {emailFeedback.msg}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-[11px] font-medium ${emailFeedback.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                        {emailFeedback.msg}
+                      </p>
+                      {emailFeedback.msg.includes('log in again') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            window.dispatchEvent(new Event('collabflow_session_expired'));
+                          }}
+                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 underline hover:no-underline"
+                        >
+                          Log in now &rarr;
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -562,9 +576,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     </div>
                   )}
                   {smsFeedback && (
-                    <p className={`text-[11px] font-medium ${smsFeedback.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
-                      {smsFeedback.msg}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-[11px] font-medium ${smsFeedback.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                        {smsFeedback.msg}
+                      </p>
+                      {smsFeedback.msg.includes('log in again') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            window.dispatchEvent(new Event('collabflow_session_expired'));
+                          }}
+                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 underline hover:no-underline"
+                        >
+                          Log in now &rarr;
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (

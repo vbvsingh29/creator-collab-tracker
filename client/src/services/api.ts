@@ -68,6 +68,11 @@ async function safeJsonRequest<T>(
 
     const data = await res.json();
     if (!res.ok) {
+      if (res.status === 401) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('collabflow_session_expired', { detail: data.error }));
+        }
+      }
       throw new Error(data.error || `HTTP error ${res.status}`);
     }
     return data;

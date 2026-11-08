@@ -163,6 +163,16 @@ export function App() {
     }
   }, [authLoading, token]);
 
+  // Listen for session expiry from API calls and prompt fresh login
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setIsProfileOpen(false);
+      setIsAuthModalOpen(true);
+    };
+    window.addEventListener('collabflow_session_expired', handleSessionExpired);
+    return () => window.removeEventListener('collabflow_session_expired', handleSessionExpired);
+  }, []);
+
   // Filtered collaborations
   const filteredCollabs = collabs.filter((c) => {
     if (selectedPlatform !== 'all' && c.platform !== selectedPlatform && c.platform !== 'both') {
