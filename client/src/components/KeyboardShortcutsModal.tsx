@@ -22,7 +22,6 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ['c'], description: 'Create New Collaboration', category: 'Actions & Tools' },
   { keys: ['n'], description: 'Create New Collaboration (alternative)', category: 'Actions & Tools' },
   { keys: ['/'], description: 'Focus Deal Search Bar', category: 'Actions & Tools' },
-  { keys: ['r'], description: 'Open Dynamic Rate Card Calculator', category: 'Actions & Tools' },
   { keys: ['e'], description: 'Open Exclusivity Collision Radar', category: 'Actions & Tools' },
   { keys: ['b'], description: 'Open Brands & Agency CRM Directory', category: 'Actions & Tools' },
   { keys: ['a'], description: 'Open AI Sponsor Pitch & Package Studio', category: 'Actions & Tools' },

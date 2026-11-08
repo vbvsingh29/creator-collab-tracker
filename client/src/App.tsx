@@ -307,6 +307,11 @@ export function App() {
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement;
+      // Never intercept browser system combinations (Ctrl+R reload, Cmd+R, Ctrl+C, etc.)
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
       const isInputActive = activeEl && (
         activeEl.tagName === 'INPUT' || 
         activeEl.tagName === 'TEXTAREA' || 
@@ -415,13 +420,6 @@ export function App() {
       if (e.key.toLowerCase() === 'a') {
         e.preventDefault();
         handleOpenPitch(filteredCollabs[0] || collabs[0]);
-        return;
-      }
-
-      // Shortcut: 'r' => Rate Card Calculator
-      if (e.key.toLowerCase() === 'r') {
-        e.preventDefault();
-        setIsRateCardOpen(true);
         return;
       }
 
