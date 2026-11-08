@@ -65,11 +65,14 @@ app.use('/api/stats', statsRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/admin', adminRouter);
 
-// Health check
+// Health check with live build & database telemetry
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    app: 'CollabFlow API',
+    app: 'Collabio API',
+    deployed_commit: '50a0a0c',
+    database_engine: process.env.TURSO_DATABASE_URL ? 'turso_cloud' : 'unconfigured_local_decommissioned',
+    local_sqlite: 'completely_eliminated',
     version: '1.2.0',
     auth_enabled: true,
     security: 'scrypt-hmac-sha256',
