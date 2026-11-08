@@ -15,7 +15,7 @@ export const LandingFaq: React.FC = () => {
     },
     {
       q: 'How does the Exclusivity Scanner work?',
-      a: 'When you log a deal, you tag the brand industry (e.g. VPN, Energy Drinks, Smartphones) and any lock window. If an upcoming sponsor proposal overlaps within that window, CollabFlow warns you before you commit.'
+      a: 'When you log a deal, you tag the brand industry (e.g. VPN, Energy Drinks, Smartphones) and any lock window. If an upcoming sponsor proposal overlaps within that window, Collabio warns you before you commit.'
     },
     {
       q: 'Can I generate tax-ready PDF invoices?',

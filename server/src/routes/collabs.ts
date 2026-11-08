@@ -461,7 +461,7 @@ collabsRouter.post('/preview-url', async (req: AuthRequest, res: Response) => {
     } else {
       return res.status(400).json({ 
         success: false, 
-        error: 'Unsupported platform link. CollabFlow currently supports YouTube videos/Shorts and Instagram Reels.' 
+        error: 'Unsupported platform link. Collabio currently supports YouTube videos/Shorts and Instagram Reels.' 
       });
     }
   } catch (error: any) {

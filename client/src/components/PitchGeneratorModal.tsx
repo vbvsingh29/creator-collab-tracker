@@ -613,7 +613,7 @@ export const PitchGeneratorModal: React.FC<PitchGeneratorModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-3 bg-zinc-50 dark:bg-zinc-900/60 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500">
-          <span>Powered by {aiData?.providerUsed || 'CollabFlow AI Intelligence Studio'}.</span>
+          <span>Powered by {aiData?.providerUsed || 'Collabio AI Intelligence Studio'}.</span>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-xs font-semibold shadow-xs"

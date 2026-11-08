@@ -26,7 +26,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* 2. Main Content Streamlined for Calm, Non-Slop Experience */}
       <main className="flex-1">
-        {/* Hero: Plain copy, 2 action buttons, and real CollabFlow UI preview */}
+        {/* Hero: Plain copy, 2 action buttons, and real Collabio UI preview */}
         <HeroSection
           onOpenAuth={onOpenAuth}
           onDemoLogin={onDemoLogin}

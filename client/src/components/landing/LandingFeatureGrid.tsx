@@ -65,7 +65,7 @@ export const LandingFeatureGrid: React.FC<LandingFeatureGridProps> = ({ onDemoLo
                 Exclusivity Scanner
               </h3>
               <p className="mt-2 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                Signing a sponsor while under contract with a competitor triggers breach penalties. CollabFlow automatically scans category overlaps before you sign.
+                Signing a sponsor while under contract with a competitor triggers breach penalties. Collabio automatically scans category overlaps before you sign.
               </p>
               <ul className="mt-4 space-y-2 text-xs text-slate-500 dark:text-zinc-400">
                 <li className="flex items-center gap-2">

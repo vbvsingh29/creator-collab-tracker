@@ -128,11 +128,11 @@ export const AppLockProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await navigator.credentials.create({
           publicKey: {
             challenge,
-            rp: { name: 'CollabFlow', id: window.location.hostname || undefined },
+            rp: { name: 'Collabio', id: window.location.hostname || undefined },
             user: {
               id: userId,
               name: 'creator@collabflow',
-              displayName: 'CollabFlow Creator'
+              displayName: 'Collabio Creator'
             },
             pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
             authenticatorSelection: {

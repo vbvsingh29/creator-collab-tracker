@@ -313,7 +313,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
           {/* Footer Note */}
           <div className="border-t border-zinc-800/80 print:border-neutral-200 pt-4 text-center text-[10px] text-zinc-500 print:text-neutral-500">
-            Thank you for partnering with us! Generated securely via CollabFlow Creator OS.
+            Thank you for partnering with us! Generated securely via Collabio Creator OS.
           </div>
         </div>
       </div>

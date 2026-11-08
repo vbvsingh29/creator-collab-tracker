@@ -20,7 +20,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
               CF
             </div>
             <span className="font-bold text-sm text-slate-900 dark:text-white">
-              CollabFlow
+              Collabio
             </span>
             <span className="text-slate-400 dark:text-zinc-500 text-[11px]">
               — Sponsorship Management for Creators
@@ -45,7 +45,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({
         </div>
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-zinc-500">
-          <span>&copy; {new Date().getFullYear()} CollabFlow. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} Collabio. All rights reserved.</span>
           <span className="flex items-center gap-1.5">
             <ShieldCheck size={12} className="text-emerald-600 dark:text-emerald-400" />
             <span>Encrypted data & private creator workspace</span>

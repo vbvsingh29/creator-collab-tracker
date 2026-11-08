@@ -43,7 +43,7 @@ export const ProPricingModal: React.FC<ProPricingModalProps> = ({
     setUpgraded(true);
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     setTimeout(() => {
-      alert(`🎉 Welcome to CollabFlow ${planName}! In production, this redirects to Stripe Checkout or Razorpay Subscriptions.`);
+      alert(`🎉 Welcome to Collabio ${planName}! In production, this redirects to Stripe Checkout or Razorpay Subscriptions.`);
       setUpgraded(false);
       onClose();
     }, 1200);

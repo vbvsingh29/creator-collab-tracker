@@ -73,7 +73,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({ 
             </div>
             <div>
               <h3 className="font-bold text-sm">Keyboard Shortcuts</h3>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Navigate CollabFlow at lightning speed like Linear & Superhuman</p>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Navigate Collabio at lightning speed like Linear & Superhuman</p>
             </div>
           </div>
           <button 

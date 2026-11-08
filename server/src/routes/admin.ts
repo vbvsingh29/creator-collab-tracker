@@ -436,7 +436,7 @@ adminRouter.get('/integrations/health', requireAuth, async (req: AuthRequest, re
           hostname: parsed.hostname,
           path: parsed.pathname + parsed.search,
           method: 'GET',
-          headers: { 'User-Agent': 'CollabFlow-HealthChecker/1.0', ...headers },
+          headers: { 'User-Agent': 'Collabio-HealthChecker/1.0', ...headers },
           timeout: 7000
         }, (response) => {
           let data = '';

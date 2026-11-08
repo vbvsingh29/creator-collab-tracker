@@ -73,7 +73,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
     if (!clean.includes('youtube.com') && !clean.includes('youtu.be') && !clean.includes('instagram.com')) {
       setAutoFillFeedback({
         type: 'error',
-        text: 'Integration disabled for this domain. CollabFlow validates YouTube (videos/shorts) and Instagram (reels/posts).'
+        text: 'Integration disabled for this domain. Collabio validates YouTube (videos/shorts) and Instagram (reels/posts).'
       });
       return;
     }

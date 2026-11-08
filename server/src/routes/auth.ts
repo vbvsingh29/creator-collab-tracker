@@ -294,7 +294,7 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
       console.error('⚠️ [Auth Forgot Password] Failed to dispatch email:', emailErr.message);
     }
 
-    console.log(`🔑 [CollabFlow Auth] Password reset code generated for ${cleanEmail} (valid for 15 mins)`);
+    console.log(`🔑 [Collabio Auth] Password reset code generated for ${cleanEmail} (valid for 15 mins)`);
 
     return res.json({
       success: true,

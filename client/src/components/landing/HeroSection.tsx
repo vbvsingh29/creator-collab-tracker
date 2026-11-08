@@ -33,7 +33,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onDemoLogi
 
         {/* Subtitle (1 sentence, clear fact) */}
         <p className="mt-5 text-base sm:text-lg text-slate-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          CollabFlow replaces scattered spreadsheets with a simple pipeline for your YouTube and Instagram brand partnerships.
+          Collabio is the intelligent sponsorship operating system for YouTube & Instagram creators. Replace scattered spreadsheets with automated deliverable tracking, real-time live video view sync, brand exclusivity protection, and 1-click professional invoicing.
         </p>
 
         {/* Action Buttons */}

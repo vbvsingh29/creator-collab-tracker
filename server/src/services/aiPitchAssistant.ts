@@ -184,10 +184,10 @@ export async function generateAIPitchAndSummary(req: AIPitchRequest): Promise<AI
   const provider = req.aiProvider || (process.env.GEMINI_API_KEY ? 'gemini' : process.env.OPENAI_API_KEY ? 'openai' : 'builtin');
 
   let liveGeneratedPitch: string | null = null;
-  let providerUsed = 'CollabFlow Creator Intelligence (Zero-Key)';
+  let providerUsed = 'Collabio Creator Intelligence (Zero-Key)';
   let modelUsed = 'Algorithmic Creator Engine v2.4';
 
-  const systemPrompt = `You are CollabFlow AI, an elite talent agent representing creator "${creatorName}" (${creatorHandle}) in the "${category}" category.
+  const systemPrompt = `You are Collabio AI, an elite talent agent representing creator "${creatorName}" (${creatorHandle}) in the "${category}" category.
 Creator historical metrics:
 - Total Verified Views: ${totalViews.toLocaleString()}
 - Average Reel Views: ${avgViews.toLocaleString()}
@@ -242,7 +242,7 @@ Write a professional, high-converting sponsor pitch / proposal email for ${targe
           body: JSON.stringify({
             model: 'gpt-4o-mini',
             messages: [
-              { role: 'system', content: 'You are CollabFlow AI, an elite creator sponsorship agent.' },
+              { role: 'system', content: 'You are Collabio AI, an elite creator sponsorship agent.' },
               { role: 'user', content: systemPrompt }
             ],
             temperature: 0.7
@@ -322,7 +322,7 @@ Do you have any campaign launches scheduled for this quarter? I'd love to share 
 
 Best regards,
 ${creatorName}
-${creatorHandle} • CollabFlow Verified Partner`;
+${creatorHandle} • Collabio Verified Partner`;
     }
   }
 

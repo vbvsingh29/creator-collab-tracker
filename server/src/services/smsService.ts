@@ -117,7 +117,7 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
     attempts: 0
   });
 
-  const smsText = `CollabFlow: Your verification code is ${otp}. Valid for 5 minutes. Do not share this with anyone.`;
+  const smsText = `Collabio: Your verification code is ${otp}. Valid for 5 minutes. Do not share this with anyone.`;
 
   // In unit-test / local-dev mode (no Twilio env vars): log to console only
   const isConfigured = Boolean(

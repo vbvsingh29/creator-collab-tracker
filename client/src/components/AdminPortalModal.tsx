@@ -389,7 +389,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm sm:text-base font-extrabold text-zinc-900 dark:text-white tracking-tight">
-                  CollabFlow Administrative Observatory
+                  Collabio Administrative Observatory
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/25">
                   Platform Admin
@@ -1337,7 +1337,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
         <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 flex items-center justify-between text-xs text-zinc-500">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>CollabFlow Observatory • Production Active</span>
+            <span>Collabio Observatory • Production Active</span>
           </div>
           <button
             onClick={onClose}

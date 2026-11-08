@@ -17,31 +17,31 @@ import { logCommunication } from './communicationLogService';
 function buildEmailBody(code: string, type: 'verify' | 'reset'): { subject: string; html: string; text: string } {
   if (type === 'verify') {
     return {
-      subject: 'Verify your CollabFlow email',
+      subject: 'Verify your Collabio email',
       html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto">
   <h2 style="color:#111">Email Verification</h2>
-  <p>Use the code below to verify your email on CollabFlow. It expires in 15 minutes.</p>
+  <p>Use the code below to verify your email on Collabio. It expires in 15 minutes.</p>
   <div style="font-size:36px;font-weight:700;letter-spacing:8px;color:#111;margin:24px 0">${code}</div>
   <p style="color:#666;font-size:13px">If you didn't request this, please ignore this email.</p>
 </div>`,
-      text: `CollabFlow email verification code: ${code}\n\nExpires in 15 minutes. If you didn't request this, ignore this email.`
+      text: `Collabio email verification code: ${code}\n\nExpires in 15 minutes. If you didn't request this, ignore this email.`
     };
   }
   return {
-    subject: 'Reset your CollabFlow password',
+    subject: 'Reset your Collabio password',
     html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto">
   <h2 style="color:#111">Password Reset</h2>
-  <p>Use the code below to reset your CollabFlow password. It expires in 15 minutes.</p>
+  <p>Use the code below to reset your Collabio password. It expires in 15 minutes.</p>
   <div style="font-size:36px;font-weight:700;letter-spacing:8px;color:#111;margin:24px 0">${code}</div>
   <p style="color:#666;font-size:13px">If you didn't request a password reset, please ignore this email.</p>
 </div>`,
-    text: `CollabFlow password reset code: ${code}\n\nExpires in 15 minutes. If you didn't request this, ignore this email.`
+    text: `Collabio password reset code: ${code}\n\nExpires in 15 minutes. If you didn't request this, ignore this email.`
   };
 }
 
 async function sendViaResend(to: string, subject: string, html: string, text: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY!;
-  const from = process.env.RESEND_FROM_EMAIL || 'CollabFlow <noreply@collabflow.app>';
+  const from = process.env.RESEND_FROM_EMAIL || 'Collabio <noreply@collabflow.app>';
 
   const payload = JSON.stringify({ from, to, subject, html, text });
 

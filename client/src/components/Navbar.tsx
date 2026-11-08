@@ -117,12 +117,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-zinc-900 border border-slate-800 flex items-center justify-center text-white shadow-xs">
-            <span className="font-extrabold text-xs tracking-tight">CF</span>
+            <span className="font-extrabold text-xs tracking-tight">CO</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white">
-                CollabFlow
+                Collabio
               </span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 hidden sm:inline">
                 {isAdmin ? 'Admin' : appMode === 'simple' ? 'Starter' : 'Agency'}

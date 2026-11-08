@@ -66,7 +66,7 @@ integrationsRouter.get('/status', (_req: AuthRequest, res: Response) => {
           ? 'Google Gemini 1.5 Flash Connected' 
           : hasOpenAIKey 
             ? 'OpenAI GPT-4o mini Connected' 
-            : 'CollabFlow Built-in Creator Intelligence',
+            : 'Collabio Built-in Creator Intelligence',
         hasKey: Boolean(hasGeminiKey || hasOpenAIKey),
         quota: hasGeminiKey ? '15 requests/minute free (Gemini Flash)' : 'Unlimited (Zero-Key Built-in)',
         features: [
@@ -92,7 +92,7 @@ integrationsRouter.get('/status', (_req: AuthRequest, res: Response) => {
           { name: 'Instagram Captioned Reel Player', active: true },
           { name: 'Zero API Quota Cost', active: true }
         ],
-        hint: 'Responsive in-app players allow watching live sponsored content without leaving CollabFlow.'
+        hint: 'Responsive in-app players allow watching live sponsored content without leaving Collabio.'
       }
     }
   });

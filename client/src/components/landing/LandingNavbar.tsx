@@ -36,12 +36,12 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
         <div className="flex items-center gap-6">
           <a href="#" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-white border border-slate-800 dark:border-white flex items-center justify-center text-white dark:text-zinc-950 shadow-xs transition-colors">
-              <span className="font-extrabold text-xs tracking-tight">CF</span>
+              <span className="font-extrabold text-xs tracking-tight">CO</span>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
-                  CollabFlow
+                  Collabio
                 </span>
                 <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-slate-100 dark:bg-zinc-850 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700">
                   OS 2.5

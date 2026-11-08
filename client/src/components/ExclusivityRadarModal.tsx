@@ -55,7 +55,7 @@ export const ExclusivityRadarModal: React.FC<ExclusivityRadarModalProps> = ({ co
         <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
           <p className="leading-relaxed">
             Brands enforce strict lockout clauses prohibiting mentions of competing brands.
-            CollabFlow continuously monitors category locks across Instagram and YouTube.
+            Collabio continuously monitors category locks across Instagram and YouTube.
           </p>
         </div>
 
