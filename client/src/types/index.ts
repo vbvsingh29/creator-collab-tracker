@@ -250,3 +250,53 @@ export interface AdminTelemetryMetrics {
   };
   cohorts: AnonymizedCreatorCohort[];
 }
+
+
+export interface AdminUserRecord {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: 'creator' | 'admin' | 'owner';
+  handle: string;
+  platform: Platform;
+  avatar_url?: string;
+  bio?: string;
+  category?: string;
+  email_verified: boolean;
+  phone_verified: boolean;
+  social_accounts?: Array<{
+    id: string;
+    platform: 'youtube' | 'instagram';
+    account_name: string;
+    handle_or_url: string;
+    is_primary?: boolean;
+  }>;
+  collabs_count: number;
+  created_at: string;
+}
+
+export interface CommunicationLog {
+  id: string;
+  user_id?: string;
+  recipient: string;
+  channel: 'sms' | 'email';
+  purpose: 'phone_verification' | 'email_verification' | 'password_reset';
+  status: 'delivered' | 'sent' | 'failed' | 'simulated';
+  provider: 'twilio' | 'resend' | 'smtp' | 'console';
+  details?: string;
+  created_at: string;
+}
+
+export interface CommunicationLogsResponse {
+  success: boolean;
+  summary: {
+    total_sms: number;
+    total_email: number;
+    total_delivered: number;
+    total_simulated: number;
+    total_failed: number;
+    total_dispatches: number;
+  };
+  logs: CommunicationLog[];
+}

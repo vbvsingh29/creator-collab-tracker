@@ -25,11 +25,28 @@ import {
   AlertTriangle,
   Clock,
   History,
-  ShieldAlert
+  ShieldAlert,
+  Mail,
+  MessageSquare,
+  BadgeCheck,
+  UserCheck,
+  UserX,
+  ExternalLink,
+  PhoneCall,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { AdminTelemetryMetrics, AnonymizedCreatorCohort } from '../types';
-import { fetchAdminMetrics, apiGetAdminChallenge, apiVerifyAdminChallenge, apiGetAdminAuditLogs } from '../services/api';
+import { AdminTelemetryMetrics, AnonymizedCreatorCohort, AdminUserRecord, CommunicationLog } from '../types';
+import {
+  fetchAdminMetrics,
+  apiGetAdminChallenge,
+  apiVerifyAdminChallenge,
+  apiGetAdminAuditLogs,
+  fetchAdminUsers,
+  fetchAdminCommunicationLogs,
+  updateAdminUserRole
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 interface AdminPortalModalProps {
@@ -40,7 +57,13 @@ interface AdminPortalModalProps {
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const operatorEmail = user?.email || 'admin@collabflow.app';
-  const isAdminUser = user?.role === 'admin' || !!user?.email?.toLowerCase().includes('admin');
+  const isAdminUser =
+    user?.role === 'admin' ||
+    user?.email?.toLowerCase() === 'vbvsingh2905@gmail.com' ||
+    Boolean(user?.email?.toLowerCase().includes('admin'));
+
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<'users' | 'communication' | 'telemetry'>('users');
 
   // Dynamic Session State: Admins have direct access; other operators use awareness challenge
   const [isUnlocked, setIsUnlocked] = useState<boolean>(() => {
@@ -70,6 +93,20 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
   const [lastHeartbeat, setLastHeartbeat] = useState<string>('Just now');
   const [pulseCount, setPulseCount] = useState<number>(48);
 
+  // Active Users State
+  const [usersList, setUsersList] = useState<AdminUserRecord[]>([]);
+  const [usersLoading, setUsersLoading] = useState<boolean>(false);
+  const [userSearch, setUserSearch] = useState<string>('');
+  const [roleUpdatingId, setRoleUpdatingId] = useState<string | null>(null);
+
+  // Communication Logs State
+  const [commLogs, setCommLogs] = useState<CommunicationLog[]>([]);
+  const [commSummary, setCommSummary] = useState<any>(null);
+  const [commLoading, setCommLoading] = useState<boolean>(false);
+  const [channelFilter, setChannelFilter] = useState<'all' | 'sms' | 'email'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'delivered' | 'simulated' | 'failed'>('all');
+  const [commSearch, setCommSearch] = useState<string>('');
+
   // ESC key listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,13 +120,13 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Request a fresh dynamic challenge passkey
+  // Request fresh challenge
   const requestChallenge = async () => {
     setAuthError('');
     try {
       const res = await apiGetAdminChallenge();
       setChallengeCode(res.dynamic_code);
-      setInputCode(res.dynamic_code); // Pre-fill for seamless verified operator 1-tap confirmation
+      setInputCode(res.dynamic_code);
       setSecondsRemaining(res.expires_in_seconds || 60);
     } catch (err: any) {
       setAuthError(err.message || 'Failed to generate dynamic security challenge.');
@@ -98,72 +135,76 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
 
   // Countdown timer for dynamic passkey decay
   useEffect(() => {
-    if (!isOpen || isUnlocked) return;
-    if (secondsRemaining <= 0) {
-      setChallengeCode('');
-      return;
-    }
-    const timer = setInterval(() => {
-      setSecondsRemaining(prev => Math.max(0, prev - 1));
+    if (!isOpen || isUnlocked || secondsRemaining <= 0) return;
+    const interval = setInterval(() => {
+      setSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          setChallengeCode('');
+          setInputCode('');
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, [isOpen, isUnlocked, secondsRemaining]);
 
-  // Initial gate load: auto-generate dynamic challenge and fetch audit logs
+  // Load audit history
   useEffect(() => {
-    if (isOpen && !isUnlocked) {
-      requestChallenge();
-      apiGetAdminAuditLogs().then(setAuditLogs).catch(() => {});
-    }
-  }, [isOpen, isUnlocked]);
+    if (!isOpen) return;
+    apiGetAdminAuditLogs()
+      .then((logs) => setAuditLogs(logs || []))
+      .catch(() => {});
+  }, [isOpen]);
 
-  // Verify dynamic challenge passkey
-  const handleVerifyChallenge = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  // Verify challenge
+  const handleVerifyChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!inputCode.trim()) {
-      setAuthError('Please enter the active dynamic challenge passkey.');
+      setAuthError('Please enter the active 6-digit challenge passkey.');
       return;
     }
-
     setAuthenticating(true);
     setAuthError('');
-
     try {
-      const res = await apiVerifyAdminChallenge(inputCode.trim(), operatorEmail);
-      if (res.success) {
-        sessionStorage.setItem('collabflow_admin_session', res.session_token || `active_${Date.now()}`);
+      const result = await apiVerifyAdminChallenge(inputCode.trim(), operatorEmail);
+      if (result.success) {
+        sessionStorage.setItem('collabflow_admin_session', result.session_token || 'active');
         setIsUnlocked(true);
-        confetti({ particleCount: 60, spread: 55, origin: { y: 0.6 } });
-        loadMetrics();
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ['#10b981', '#6366f1', '#06b6d4']
+        });
+        loadAllData();
       }
     } catch (err: any) {
-      setAuthError(err.message || 'Dynamic passkey verification failed.');
+      setAuthError(err.message || 'Challenge code incorrect or expired. Try generating a new one.');
     } finally {
       setAuthenticating(false);
     }
   };
 
-  // Lock session / Revoke admin authorization
   const handleLockSession = () => {
     sessionStorage.removeItem('collabflow_admin_session');
-    setIsUnlocked(false);
+    if (!isAdminUser) {
+      setIsUnlocked(false);
+    }
     setChallengeCode('');
     setInputCode('');
-    requestChallenge();
+    setSecondsRemaining(0);
   };
 
-  // Load telemetry metrics when unlocked
+  // Load telemetry metrics
   const loadMetrics = async (isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
-
     try {
-      const res = await fetchAdminMetrics();
-      setData(res);
-      if (res?.active_users?.realtime_active) {
-        setPulseCount(res.active_users.realtime_active);
-      }
+      const metrics = await fetchAdminMetrics();
+      setData(metrics);
       setLastHeartbeat(new Date().toLocaleTimeString());
+      setPulseCount(metrics?.active_users?.realtime_active || 48);
     } catch (err) {
       console.error('Failed to load admin telemetry:', err);
     } finally {
@@ -172,29 +213,106 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
     }
   };
 
+  // Load users
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const res = await fetchAdminUsers();
+      if (res && res.users) {
+        setUsersList(res.users);
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin users:', err);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  // Load communication logs
+  const loadCommLogs = async () => {
+    setCommLoading(true);
+    try {
+      const res = await fetchAdminCommunicationLogs();
+      if (res && res.logs) {
+        setCommLogs(res.logs);
+        setCommSummary(res.summary);
+      }
+    } catch (err) {
+      console.error('Failed to fetch communication logs:', err);
+    } finally {
+      setCommLoading(false);
+    }
+  };
+
+  const loadAllData = (isManual = false) => {
+    loadMetrics(isManual);
+    loadUsers();
+    loadCommLogs();
+  };
+
+  // Load all on unlock or open
   useEffect(() => {
     if (isOpen && isUnlocked) {
-      loadMetrics();
+      loadAllData();
     }
   }, [isOpen, isUnlocked]);
 
-  // Simulated live telemetry heartbeat pulse
+  // Pulse heartbeat
   useEffect(() => {
     if (!isOpen || !isUnlocked) return;
     const interval = setInterval(() => {
-      setPulseCount(prev => {
+      setPulseCount((prev) => {
         const delta = Math.floor(Math.random() * 5) - 2;
-        return Math.max(38, Math.min(65, prev + delta));
+        return Math.max(35, Math.min(85, prev + delta));
       });
-      setLastHeartbeat('Few seconds ago');
-    }, 4500);
+      setLastHeartbeat(new Date().toLocaleTimeString());
+    }, 12000);
     return () => clearInterval(interval);
   }, [isOpen, isUnlocked]);
 
-  if (!isOpen) return null;
+  // Toggle user role
+  const handleToggleRole = async (userId: string, currentRole: string) => {
+    const newRole = currentRole === 'admin' ? 'creator' : 'admin';
+    setRoleUpdatingId(userId);
+    try {
+      await updateAdminUserRole(userId, newRole);
+      setUsersList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole as any } : u))
+      );
+    } catch (err) {
+      console.error('Failed to update role:', err);
+    } finally {
+      setRoleUpdatingId(null);
+    }
+  };
+
+  // Filtered users
+  const filteredUsers = usersList.filter((u) => {
+    const q = userSearch.toLowerCase();
+    return (
+      (u.name || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.handle || '').toLowerCase().includes(q) ||
+      (u.category || '').toLowerCase().includes(q)
+    );
+  });
+
+  // Filtered communication logs
+  const filteredCommLogs = commLogs.filter((log) => {
+    const matchesChannel = channelFilter === 'all' || log.channel === channelFilter;
+    const matchesStatus = statusFilter === 'all' || log.status === statusFilter;
+    const q = commSearch.toLowerCase();
+    const matchesSearch =
+      !q ||
+      (log.recipient || '').toLowerCase().includes(q) ||
+      (log.purpose || '').toLowerCase().includes(q) ||
+      (log.provider || '').toLowerCase().includes(q) ||
+      (log.details || '').toLowerCase().includes(q);
+    return matchesChannel && matchesStatus && matchesSearch;
+  });
 
   // Filter cohorts
-  const filteredCohorts = (data?.cohorts || []).filter(c => {
+  const filteredCohorts = (data?.cohorts || []).filter((c) => {
     const matchesSearch =
       c.cohort_id.toLowerCase().includes(cohortSearch.toLowerCase()) ||
       c.category.toLowerCase().includes(cohortSearch.toLowerCase());
@@ -202,88 +320,75 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
     return matchesSearch && matchesPlatform;
   });
 
-  // Export GDPR Audit CSV (strictly zero prices or personal financial figures)
+  // Export GDPR Audit CSV
   const handleExportTelemetryCsv = () => {
-    if (!data) return;
+    if (!data?.cohorts) return;
     const headers = [
       'Cohort_ID',
-      'Creator_Category',
-      'Platform',
-      'Onboarded_Date',
-      'Last_Active_Ping',
+      'Category',
+      'Primary_Platform',
+      'Onboarded_At',
       'Active_Deliverables',
       'Total_Impressions',
       'Total_Link_Clicks',
       'CTR_Percentage',
-      'PWA_Installed',
-      'Financial_Data_Access'
+      'GDPR_Protection_Status'
     ];
-
-    const rows = filteredCohorts.map(c => [
+    const rows = data.cohorts.map((c) => [
       c.cohort_id,
       `"${c.category}"`,
       c.primary_platform,
       c.onboarded_at,
-      `"${c.last_active}"`,
       c.active_deliverables,
       c.total_impressions,
       c.total_link_clicks,
       `${c.click_through_rate}%`,
-      c.pwa_installed ? 'YES' : 'NO',
-      'GDPR_PROTECTED_MASKED'
+      'GDPR_ARTICLE_25_COMPLIANT'
     ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [
-        '# CollabFlow Platform Observability & Telemetry Audit Report',
-        '# GDPR Article 25 & 32 Compliance: Zero financial, pricing, or contract values are included in this export.',
-        headers.join(','),
-        ...rows.map(e => e.join(','))
-      ].join('\n');
-
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `collabflow_gdpr_telemetry_${Date.now()}.csv`);
+    link.href = url;
+    link.setAttribute('download', `collabflow_gdpr_telemetry_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-5xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] text-zinc-900 dark:text-zinc-100 animate-in fade-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-6xl max-h-[92vh] flex flex-col rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden">
+        
         {/* Top Header */}
-        <div className="px-5 py-4 bg-zinc-50 dark:bg-zinc-900/70 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-600 to-indigo-600 p-0.5 shadow-sm">
-              <div className="w-full h-full bg-white dark:bg-zinc-950 rounded-[10px] flex items-center justify-center">
-                <Activity size={18} className="text-emerald-500 dark:text-emerald-400" />
-              </div>
+            <div className="p-2 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-600 dark:text-teal-400">
+              <ShieldCheck size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white flex items-center gap-1.5">
-                  Platform Observability & Telemetry Portal
+                <h3 className="text-sm sm:text-base font-extrabold text-zinc-900 dark:text-white tracking-tight">
+                  CollabFlow Administrative Observatory
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  User-Based (Awareness Auth)
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/25">
+                  Platform Admin
                 </span>
+                {isAdminUser && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-purple-500/10 text-purple-600 dark:text-purple-300 border border-purple-500/20 hidden sm:inline">
+                    Root Privileges
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                <Radio size={11} className="text-emerald-500 animate-pulse" />
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Live Heartbeat:</span>
                 <span className="font-mono text-zinc-700 dark:text-zinc-300 font-semibold">{lastHeartbeat}</span>
                 <span className="mx-1">•</span>
                 <span>Active Creators:</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{pulseCount} online now</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{pulseCount} online</span>
               </p>
             </div>
           </div>
@@ -292,25 +397,28 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
             {isUnlocked && (
               <>
                 <button
-                  onClick={() => loadMetrics(true)}
-                  disabled={refreshing}
+                  onClick={() => loadAllData(true)}
+                  disabled={refreshing || usersLoading || commLoading}
                   className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
-                  title="Refresh Telemetry Metrics"
+                  title="Refresh All Records"
                 >
-                  <RefreshCw size={15} className={refreshing ? 'animate-spin text-indigo-500' : ''} />
+                  <RefreshCw
+                    size={15}
+                    className={refreshing || usersLoading || commLoading ? 'animate-spin text-teal-500' : ''}
+                  />
                 </button>
                 <button
                   onClick={handleExportTelemetryCsv}
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-850 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors"
-                  title="Export GDPR-compliant telemetry audit"
+                  title="Export telemetry audit CSV"
                 >
                   <Download size={13} />
-                  <span>Export Audit</span>
+                  <span>Export</span>
                 </button>
                 <button
                   onClick={handleLockSession}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-500/20 transition-colors"
-                  title="Lock Administrative Session"
+                  title="Lock Session"
                 >
                   <Lock size={12} />
                   <span className="hidden sm:inline">Lock</span>
@@ -326,13 +434,57 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
           </div>
         </div>
 
+        {/* Tab Navigation (Visible when unlocked) */}
+        {isUnlocked && (
+          <div className="flex items-center gap-1 px-5 pt-1 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all shrink-0 ${
+                activeTab === 'users'
+                  ? 'border-teal-500 text-teal-700 dark:text-teal-300'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Users size={14} />
+              <span>Active Creators & Channels</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono">
+                {usersList.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('communication')}
+              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all shrink-0 ${
+                activeTab === 'communication'
+                  ? 'border-indigo-500 text-indigo-700 dark:text-indigo-300'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Radio size={14} />
+              <span>Communication Logs (SMS & Email)</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-mono">
+                {commSummary?.total_dispatches ?? commLogs.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('telemetry')}
+              className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all shrink-0 ${
+                activeTab === 'telemetry'
+                  ? 'border-emerald-500 text-emerald-700 dark:text-emerald-300'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Activity size={14} />
+              <span>Platform Telemetry & GDPR</span>
+            </button>
+          </div>
+        )}
+
         {/* Scrollable Main Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
 
-          {/* DYNAMIC AWARENESS SECURITY GATE IF NOT UNLOCKED */}
+          {/* DYNAMIC SECURITY GATE IF LOCKED */}
           {!isUnlocked ? (
             <div className="py-8 px-4 max-w-xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-200">
-              {/* Awareness Security Box */}
               <div className="p-5 rounded-3xl bg-zinc-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-4">
                 <div className="flex items-center gap-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
                   <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-500">
@@ -348,18 +500,16 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                   </div>
                 </div>
 
-                {/* Awareness Notice */}
                 <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-900 dark:text-indigo-200 space-y-1">
                   <div className="font-semibold flex items-center gap-1.5">
                     <Radio size={13} className="text-indigo-500 animate-pulse" />
                     <span>Access Awareness & Accountability</span>
                   </div>
                   <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-                    You are accessing administrative telemetry. To ensure accountability with <strong>zero static passwords</strong>, the system requires verifying a live, rolling 60-second cryptographic challenge associated with your session.
+                    You are accessing administrative telemetry. To ensure accountability with <strong>zero static passwords</strong>, the system requires verifying a live, rolling 60-second cryptographic challenge.
                   </p>
                 </div>
 
-                {/* Operator Identity Badge */}
                 <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-100 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 text-xs">
                   <div>
                     <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-semibold">Verified Operator</span>
@@ -370,7 +520,6 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                   </span>
                 </div>
 
-                {/* Dynamic 60-Second Challenge Display */}
                 <div className="space-y-3 pt-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
@@ -416,32 +565,31 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                     </button>
                   )}
 
-                  {/* Code Input & Verification */}
                   <form onSubmit={handleVerifyChallenge} className="space-y-3 pt-2">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 block">
-                        Confirm Active Passkey to Unlock
+                      <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        Enter Active Challenge Code:
                       </label>
                       <input
                         type="text"
                         maxLength={6}
+                        placeholder="123456"
                         value={inputCode}
                         onChange={(e) => setInputCode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="Enter 6-digit rolling code..."
-                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-center font-mono text-lg font-bold tracking-widest text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                        className="w-full font-mono text-center tracking-widest text-lg py-2.5 px-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:border-indigo-500 text-zinc-900 dark:text-white"
                       />
                     </div>
 
                     {authError && (
-                      <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
-                        <AlertTriangle size={13} className="shrink-0" />
+                      <p className="text-xs text-rose-500 font-semibold flex items-center gap-1.5">
+                        <AlertTriangle size={13} />
                         <span>{authError}</span>
-                      </div>
+                      </p>
                     )}
 
                     <button
                       type="submit"
-                      disabled={authenticating || !inputCode.trim()}
+                      disabled={authenticating || inputCode.length < 6}
                       className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95"
                     >
                       {authenticating ? (
@@ -459,540 +607,649 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                   </form>
                 </div>
               </div>
-
-              {/* Awareness Access Audit History */}
-              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-semibold text-zinc-500">
-                  <span className="flex items-center gap-1.5">
-                    <History size={13} />
-                    <span>Recent Administrative Audit Awareness Log</span>
-                  </span>
-                  <span className="text-[10px] text-emerald-500">Immutable Trail</span>
-                </div>
-
-                <div className="space-y-1.5 text-[11px]">
-                  {auditLogs.slice(0, 3).map((log, idx) => (
-                    <div
-                      key={log.id || idx}
-                      className="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-200">{log.operator}</span>
-                        <span className="text-zinc-400 text-[10px] font-mono">({log.action})</span>
-                      </div>
-                      <span className="text-zinc-500 font-mono text-[10px]">
-                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : (
-            /* UNLOCKED OBSERVATORY DASHBOARD */
+            /* UNLOCKED TABS */
             <>
-              {/* GDPR Article 25 & Zero-Financial Telemetry Compliance Banner */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/25 dark:border-emerald-500/30">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
-                      <ShieldCheck size={20} />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
-                          Strict GDPR Article 25 & Zero-Financial Privacy Guarantee
-                        </h4>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-                          Privacy by Design
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-3xl">
-                        This portal provides operational system observability only. In strict accordance with creator privacy policies and GDPR data minimization rules, <strong>all individual deal prices, payout balances, rates, and banking details are cryptographically isolated and completely excluded</strong> from platform telemetry.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-lg border border-emerald-500/30">
-                      <Lock size={12} />
-                      <span>Financial Data Masked</span>
-                    </div>
-                    <span className="text-[10px] text-zinc-500">Zero Commercial Exposure</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeframe Filter Bar */}
-              <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-                  <span>Telemetry Interval:</span>
-                  <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                    {(['24h', '7d', '30d', 'all'] as const).map(t => (
-                      <button
-                        key={t}
-                        onClick={() => setTimeframe(t)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                          timeframe === t
-                            ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
-                            : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                        }`}
-                      >
-                        {t === '24h' ? '24 Hours' : t === '7d' ? '7 Days' : t === '30d' ? '30 Days' : 'All Time'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span>Realtime Ingestion: Active</span>
-                </div>
-              </div>
-
-              {/* Primary Top KPIs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                {/* KPI 1: Onboarded Creators */}
-                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-zinc-500 text-xs">
-                    <span className="font-semibold">Onboarded Creators</span>
-                    <Users size={16} className="text-indigo-500" />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
-                      {(data?.total_onboarded_users || 1424).toLocaleString()}
-                    </span>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
-                      <ArrowUpRight size={13} />
-                      +{data?.onboarded_growth_rate || 19.4}%
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-zinc-500 flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800/60">
-                    <span>Verified profiles</span>
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">100% Onboarding rate</span>
-                  </div>
-                </div>
-
-                {/* KPI 2: Active Users (DAU / MAU) */}
-                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-zinc-500 text-xs">
-                    <span className="font-semibold">Active Users (DAU)</span>
-                    <Activity size={16} className="text-emerald-500" />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
-                      {(data?.active_users?.daily_active_users || 398).toLocaleString()}
-                    </span>
-                    <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      {pulseCount} Live
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-zinc-500 flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800/60">
-                    <span>WAU: {(data?.active_users?.weekly_active_users || 1025).toLocaleString()}</span>
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                      {data?.active_users?.dau_to_mau_stickiness || 29.7}% Stickiness
-                    </span>
-                  </div>
-                </div>
-
-                {/* KPI 3: Click-Through Rate (CTR) */}
-                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-zinc-500 text-xs">
-                    <span className="font-semibold">Campaign Link CTR</span>
-                    <MousePointerClick size={16} className="text-amber-500" />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
-                      {data?.click_through_rates?.overall_campaign_ctr || 5.8}%
-                    </span>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      2.3x benchmark
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-zinc-500 flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800/60">
-                    <span>Tracking tags CTR</span>
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                      {data?.click_through_rates?.tracking_link_ctr || 6.4}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* KPI 4: Campaign Completion Velocity */}
-                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-zinc-500 text-xs">
-                    <span className="font-semibold">Deliverables Tracked</span>
-                    <CheckCircle2 size={16} className="text-purple-500" />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
-                      {(data?.deliverables_velocity?.total_campaigns_tracked || 3844).toLocaleString()}
-                    </span>
-                    <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                      {data?.deliverables_velocity?.completion_rate || 88.6}% Done
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-zinc-500 flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-800/60">
-                    <span>Completed: {(data?.deliverables_velocity?.completed_deliverables || 3120).toLocaleString()}</span>
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                      {data?.deliverables_velocity?.live_in_transit || 484} Live
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Deep-Dive Metrics: Click-Through Rates & Platform Distribution */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                
-                {/* CTR Benchmark Gauge & Breakdown */}
-                <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                        <MousePointerClick size={15} className="text-indigo-500" />
-                        <span>Click-Through Rate (CTR) Performance Breakdown</span>
-                      </h4>
-                      <p className="text-[11px] text-zinc-500">
-                        Aggregated engagement rates across creator media links and marketing funnels
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                      High Conversion
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 pt-1">
-                    {/* Metric 1 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-zinc-600 dark:text-zinc-400">Direct Tracking Links (Link-in-Bio & Stickers)</span>
-                        <span className="font-mono font-bold text-zinc-900 dark:text-white">
-                          {data?.click_through_rates?.tracking_link_ctr || 6.4}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: '64%' }} />
+              {/* TAB 1: ACTIVE CREATORS & CHANNELS */}
+              {activeTab === 'users' && (
+                <div className="space-y-5 animate-in fade-in duration-150">
+                  {/* Top Stats Summary */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <span className="text-[11px] text-zinc-500 uppercase font-semibold">Total Creators</span>
+                      <div className="text-2xl font-black text-zinc-900 dark:text-white mt-1">
+                        {usersList.length}
                       </div>
                     </div>
-
-                    {/* Metric 2 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-zinc-600 dark:text-zinc-400">Media Kit Brand View CTR</span>
-                        <span className="font-mono font-bold text-zinc-900 dark:text-white">
-                          {data?.click_through_rates?.media_kit_views_ctr || 12.1}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                        <div className="h-full bg-pink-500 rounded-full" style={{ width: '82%' }} />
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <span className="text-[11px] text-zinc-500 uppercase font-semibold">Verified Emails</span>
+                      <div className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-1">
+                        {usersList.filter((u) => u.email_verified).length}
                       </div>
                     </div>
-
-                    {/* Metric 3 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-zinc-600 dark:text-zinc-400">AI Pitch Studio Brand Conversion Response</span>
-                        <span className="font-mono font-bold text-zinc-900 dark:text-white">
-                          {data?.click_through_rates?.pitch_generator_conversion_ctr || 34.8}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                        <div className="h-full bg-amber-500 rounded-full" style={{ width: '70%' }} />
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <span className="text-[11px] text-zinc-500 uppercase font-semibold">Verified Phones</span>
+                      <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                        {usersList.filter((u) => u.phone_verified).length}
                       </div>
                     </div>
-
-                    {/* Metric 4 */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-zinc-600 dark:text-zinc-400">Dynamic Rate Card Quote Acceptance Rate</span>
-                        <span className="font-mono font-bold text-zinc-900 dark:text-white">
-                          {data?.click_through_rates?.rate_card_quote_acceptance_ctr || 41.5}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '78%' }} />
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <span className="text-[11px] text-zinc-500 uppercase font-semibold">Total Deals Tracked</span>
+                      <div className="text-2xl font-black text-zinc-900 dark:text-white mt-1">
+                        {usersList.reduce((acc, u) => acc + (u.collabs_count || 0), 0)}
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
-                    <span>Industry Average Social CTR Benchmark: ~2.5%</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">+132% Platform Outperformance</span>
-                  </div>
-                </div>
-
-                {/* Platform Distribution & Infrastructure Health */}
-                <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                        <Layers size={15} className="text-emerald-500" />
-                        <span>Channel Distribution & Core System Health</span>
-                      </h4>
-                      <p className="text-[11px] text-zinc-500">
-                        Live platform ecosystem breakdown and API synchronization state
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-200 dark:bg-zinc-800 px-2 py-0.5 rounded">
-                      Uptime 99.98%
-                    </span>
-                  </div>
-
-                  {/* Platform Distribution Bars */}
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 space-y-1">
-                      <div className="flex items-center justify-center gap-1 text-red-500 text-xs font-semibold">
-                        <Youtube size={14} />
-                        <span>YouTube</span>
-                      </div>
-                      <div className="text-lg font-extrabold text-zinc-900 dark:text-white">
-                        {data?.platform_distribution?.youtube_percentage || 44.5}%
-                      </div>
-                      <div className="text-[10px] text-zinc-500">Primary video reviews</div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 space-y-1">
-                      <div className="flex items-center justify-center gap-1 text-pink-500 text-xs font-semibold">
-                        <Instagram size={14} />
-                        <span>Instagram</span>
-                      </div>
-                      <div className="text-lg font-extrabold text-zinc-900 dark:text-white">
-                        {data?.platform_distribution?.instagram_percentage || 41.2}%
-                      </div>
-                      <div className="text-[10px] text-zinc-500">Reels & story linkers</div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 space-y-1">
-                      <div className="flex items-center justify-center gap-1 text-indigo-500 text-xs font-semibold">
-                        <Zap size={14} />
-                        <span>Cross-Post</span>
-                      </div>
-                      <div className="text-lg font-extrabold text-zinc-900 dark:text-white">
-                        {data?.platform_distribution?.cross_platform_percentage || 14.3}%
-                      </div>
-                      <div className="text-[10px] text-zinc-500">Omni-channel creators</div>
-                    </div>
-                  </div>
-
-                  {/* API Integration Health Matrix */}
-                  <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-                    <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-                      Sync Infrastructure Latency
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800">
-                        <span className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          YouTube oEmbed / API
-                        </span>
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                          Healthy (32ms)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800">
-                        <span className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          Instagram Graph / Embed
-                        </span>
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                          Healthy (41ms)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800">
-                        <span className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          AI Pitch LLM Pipeline
-                        </span>
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                          Instant Safe
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800">
-                        <span className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          PWA Offline ServiceWorker
-                        </span>
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                          Active (v1.2.0)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Anonymized Creator Cohorts Table (Strict GDPR Protection) */}
-              <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                        <Users size={15} className="text-indigo-500" />
-                        <span>Anonymized Creator Cohorts Telemetry</span>
-                      </h4>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                        Pseudonymized Streams
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-zinc-500">
-                      Tracking onboarding velocity, activity heartbeats, and link CTR while strictly withholding private financial records
-                    </p>
-                  </div>
-
-                  {/* Filters */}
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-48">
-                      <Search size={13} className="absolute left-2.5 top-2.5 text-zinc-400" />
+                  {/* Search Bar */}
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="relative flex-1 min-w-[240px]">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                       <input
                         type="text"
-                        placeholder="Search cohort or niche..."
-                        value={cohortSearch}
-                        onChange={(e) => setCohortSearch(e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 focus:outline-none focus:border-indigo-500"
+                        placeholder="Search creator by name, email, or handle..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-teal-500"
                       />
                     </div>
-
-                    <select
-                      value={platformFilter}
-                      onChange={(e) => setPlatformFilter(e.target.value as any)}
-                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none"
-                    >
-                      <option value="all">All Channels</option>
-                      <option value="youtube">YouTube</option>
-                      <option value="instagram">Instagram</option>
-                      <option value="both">Cross-Platform</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-950">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="bg-zinc-100/80 dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-zinc-800 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-                        <th className="py-2.5 px-3">Anonymized Cohort ID</th>
-                        <th className="py-2.5 px-3">Creator Niche / Category</th>
-                        <th className="py-2.5 px-3">Primary Channel</th>
-                        <th className="py-2.5 px-3">Onboarded</th>
-                        <th className="py-2.5 px-3">Last Active</th>
-                        <th className="py-2.5 px-3">Deliverables</th>
-                        <th className="py-2.5 px-3">Impressions & CTR</th>
-                        <th className="py-2.5 px-3 text-right">Deal Prices & Valuations</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-200 dark:divide-zinc-850">
-                      {filteredCohorts.length > 0 ? (
-                        filteredCohorts.map((cohort) => (
-                          <tr
-                            key={cohort.cohort_id}
-                            className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors"
-                          >
-                            <td className="py-3 px-3 font-mono font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              <span>{cohort.cohort_id}</span>
-                            </td>
-                            <td className="py-3 px-3 text-zinc-700 dark:text-zinc-300">
-                              {cohort.category}
-                            </td>
-                            <td className="py-3 px-3">
-                              {cohort.primary_platform === 'youtube' ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-                                  <Youtube size={11} /> YouTube
-                                </span>
-                              ) : cohort.primary_platform === 'instagram' ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20">
-                                  <Instagram size={11} /> Instagram
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                                  <Zap size={11} /> Cross-Platform
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-3 px-3 font-mono text-[11px] text-zinc-500">
-                              {cohort.onboarded_at}
-                            </td>
-                            <td className="py-3 px-3 text-zinc-600 dark:text-zinc-400">
-                              <span className="inline-flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                {cohort.last_active}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                                {cohort.active_deliverables} active
-                              </span>
-                            </td>
-                            <td className="py-3 px-3">
-                              <div className="space-y-0.5">
-                                <div className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                  {cohort.total_impressions.toLocaleString()} views
-                                </div>
-                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                                  {cohort.click_through_rate}% CTR ({cohort.total_link_clicks.toLocaleString()} clicks)
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-3 text-right">
-                              <span
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800"
-                                title="End-to-End Privacy Enforced: Contract values and prices are excluded by design under GDPR Art. 25."
-                              >
-                                <Lock size={10} className="text-emerald-500" />
-                                <span>Hidden / GDPR Protected</span>
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={8} className="py-8 text-center text-zinc-500 text-xs">
-                            No cohorts matching current filter criteria.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Privacy Summary Footer */}
-                <div className="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-zinc-500">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                    <span>
-                      Admin Privacy Sandbox: Data minimization audited. No unencrypted creator compensation records stored in log telemetry.
+                    <span className="text-xs text-zinc-500">
+                      Showing {filteredUsers.length} of {usersList.length} registered accounts
                     </span>
                   </div>
-                  <div className="font-mono text-zinc-400">
-                    Audit Hash: SHA256-TELEMETRY-VERIFIED
+
+                  {/* Users Table */}
+                  <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-zinc-100/70 dark:bg-zinc-900/70 border-b border-zinc-200 dark:border-zinc-800 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+                          <th className="py-3 px-3.5">Creator</th>
+                          <th className="py-3 px-3.5">Contact & Auth</th>
+                          <th className="py-3 px-3.5">Connected Channels</th>
+                          <th className="py-3 px-3.5">Collabs</th>
+                          <th className="py-3 px-3.5">Role</th>
+                          <th className="py-3 px-3.5">Joined</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-850">
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.map((u) => (
+                            <tr key={u.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
+                              {/* Creator Avatar & Name */}
+                              <td className="py-3 px-3.5">
+                                <div className="flex items-center gap-2.5">
+                                  <img
+                                    src={u.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name || 'User')}`}
+                                    alt={u.name}
+                                    className="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 object-cover shrink-0"
+                                  />
+                                  <div>
+                                    <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                                      <span>{u.name}</span>
+                                      {u.role === 'admin' && (
+                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/25">
+                                          ADMIN
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[11px] text-zinc-500 font-mono">
+                                      {u.handle || '@creator'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Contact & Verification Status */}
+                              <td className="py-3 px-3.5 space-y-1">
+                                <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 font-mono text-[11px]">
+                                  <Mail size={11} className="text-zinc-400 shrink-0" />
+                                  <span>{u.email}</span>
+                                  {u.email_verified ? (
+                                    <span title="Email verified via OTP">
+                                      <CheckCircle2 size={12} className="text-teal-500 shrink-0" />
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-sans px-1 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                      Unverified
+                                    </span>
+                                  )}
+                                </div>
+                                {u.phone && (
+                                  <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400 font-mono text-[11px]">
+                                    <PhoneCall size={11} className="text-zinc-400 shrink-0" />
+                                    <span>{u.phone}</span>
+                                    {u.phone_verified && (
+                                      <span title="Phone verified via SMS OTP">
+                                        <CheckCircle2 size={12} className="text-indigo-500 shrink-0" />
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Connected Social Accounts */}
+                              <td className="py-3 px-3.5">
+                                {u.social_accounts && u.social_accounts.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {u.social_accounts.map((acc, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-100 dark:bg-zinc-850 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800"
+                                      >
+                                        {acc.platform === 'youtube' ? (
+                                          <Youtube size={10} className="text-rose-500" />
+                                        ) : (
+                                          <Instagram size={10} className="text-pink-500" />
+                                        )}
+                                        <span>{acc.account_name || acc.handle_or_url}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-zinc-400 text-[11px] italic">
+                                    {u.platform === 'youtube'
+                                      ? 'YouTube Primary'
+                                      : u.platform === 'instagram'
+                                      ? 'Instagram Primary'
+                                      : 'Multi-platform'}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Collaborations Count */}
+                              <td className="py-3 px-3.5 font-bold text-zinc-800 dark:text-zinc-200">
+                                {u.collabs_count || 0} deals
+                              </td>
+
+                              {/* Role & Toggle */}
+                              <td className="py-3 px-3.5">
+                                <button
+                                  onClick={() => handleToggleRole(u.id, u.role)}
+                                  disabled={roleUpdatingId === u.id || u.email === 'vbvsingh2905@gmail.com'}
+                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                    u.role === 'admin'
+                                      ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 hover:bg-purple-500/20'
+                                      : 'bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200'
+                                  }`}
+                                  title={u.email === 'vbvsingh2905@gmail.com' ? 'Root Admin cannot be demoted' : 'Click to toggle admin role'}
+                                >
+                                  {roleUpdatingId === u.id
+                                    ? 'Updating...'
+                                    : u.role === 'admin'
+                                    ? 'Admin (Active)'
+                                    : 'Creator'}
+                                </button>
+                              </td>
+
+                              {/* Joined Date */}
+                              <td className="py-3 px-3.5 text-zinc-500 font-mono text-[11px]">
+                                {u.created_at ? u.created_at.split('T')[0] : '—'}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-zinc-500 text-xs">
+                              {usersLoading ? 'Loading registered creators...' : 'No creators found matching criteria.'}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 2: COMMUNICATION LOGS (SMS & EMAIL) */}
+              {activeTab === 'communication' && (
+                <div className="space-y-5 animate-in fade-in duration-150">
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-500 uppercase font-semibold">
+                        <MessageSquare size={13} className="text-indigo-500" />
+                        <span>SMS Dispatches</span>
+                      </div>
+                      <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                        {commSummary?.total_sms ?? 0}
+                      </div>
+                      <span className="text-[10px] text-zinc-400">Twilio & Console dispatches</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-500 uppercase font-semibold">
+                        <Mail size={13} className="text-teal-500" />
+                        <span>Email Dispatches</span>
+                      </div>
+                      <div className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-1">
+                        {commSummary?.total_email ?? 0}
+                      </div>
+                      <span className="text-[10px] text-zinc-400">Resend & Console deliveries</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-500 uppercase font-semibold">
+                        <CheckCircle2 size={13} className="text-emerald-500" />
+                        <span>Delivered / Sent</span>
+                      </div>
+                      <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                        {(commSummary?.total_delivered ?? 0) + (commSummary?.total_simulated ?? 0)}
+                      </div>
+                      <span className="text-[10px] text-zinc-400">
+                        {commSummary?.total_delivered ?? 0} live API • {commSummary?.total_simulated ?? 0} dev console
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800">
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-500 uppercase font-semibold">
+                        <AlertCircle size={13} className="text-rose-500" />
+                        <span>Failed Deliveries</span>
+                      </div>
+                      <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">
+                        {commSummary?.total_failed ?? 0}
+                      </div>
+                      <span className="text-[10px] text-zinc-400">Credentials/network errors</span>
+                    </div>
+                  </div>
+
+                  {/* Filters Bar */}
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Channel filter */}
+                      <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs">
+                        <button
+                          onClick={() => setChannelFilter('all')}
+                          className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                            channelFilter === 'all'
+                              ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                          }`}
+                        >
+                          All Channels
+                        </button>
+                        <button
+                          onClick={() => setChannelFilter('sms')}
+                          className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                            channelFilter === 'sms'
+                              ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                          }`}
+                        >
+                          <MessageSquare size={11} />
+                          <span>SMS</span>
+                        </button>
+                        <button
+                          onClick={() => setChannelFilter('email')}
+                          className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                            channelFilter === 'email'
+                              ? 'bg-white dark:bg-zinc-800 text-teal-600 dark:text-teal-400 shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                          }`}
+                        >
+                          <Mail size={11} />
+                          <span>Email</span>
+                        </button>
+                      </div>
+
+                      {/* Status filter */}
+                      <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs">
+                        <button
+                          onClick={() => setStatusFilter('all')}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            statusFilter === 'all'
+                              ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                          }`}
+                        >
+                          All Status
+                        </button>
+                        <button
+                          onClick={() => setStatusFilter('delivered')}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            statusFilter === 'delivered'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800'
+                          }`}
+                        >
+                          Delivered
+                        </button>
+                        <button
+                          onClick={() => setStatusFilter('simulated')}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            statusFilter === 'simulated'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800'
+                          }`}
+                        >
+                          Dev Console
+                        </button>
+                        <button
+                          onClick={() => setStatusFilter('failed')}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            statusFilter === 'failed'
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 shadow-xs'
+                              : 'text-zinc-500 hover:text-zinc-800'
+                          }`}
+                        >
+                          Failed
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search by recipient */}
+                    <div className="relative min-w-[200px]">
+                      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        type="text"
+                        placeholder="Search recipient phone/email..."
+                        value={commSearch}
+                        onChange={(e) => setCommSearch(e.target.value)}
+                        className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Communication Logs Table */}
+                  <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-zinc-100/70 dark:bg-zinc-900/70 border-b border-zinc-200 dark:border-zinc-800 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+                          <th className="py-3 px-3.5">Timestamp</th>
+                          <th className="py-3 px-3.5">Channel</th>
+                          <th className="py-3 px-3.5">Purpose</th>
+                          <th className="py-3 px-3.5">Recipient</th>
+                          <th className="py-3 px-3.5">Provider</th>
+                          <th className="py-3 px-3.5">Status</th>
+                          <th className="py-3 px-3.5">Technical Details</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-850">
+                        {filteredCommLogs.length > 0 ? (
+                          filteredCommLogs.map((log) => (
+                            <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
+                              {/* Timestamp */}
+                              <td className="py-3 px-3.5 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                                {new Date(log.created_at).toLocaleString([], {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit'
+                                })}
+                              </td>
+
+                              {/* Channel */}
+                              <td className="py-3 px-3.5">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                    log.channel === 'sms'
+                                      ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/25'
+                                      : 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/25'
+                                  }`}
+                                >
+                                  {log.channel === 'sms' ? <MessageSquare size={10} /> : <Mail size={10} />}
+                                  <span className="uppercase">{log.channel}</span>
+                                </span>
+                              </td>
+
+                              {/* Purpose */}
+                              <td className="py-3 px-3.5 font-medium text-zinc-800 dark:text-zinc-200">
+                                {log.purpose === 'phone_verification'
+                                  ? 'Phone OTP Verify'
+                                  : log.purpose === 'email_verification'
+                                  ? 'Email OTP Verify'
+                                  : 'Password Reset'}
+                              </td>
+
+                              {/* Recipient */}
+                              <td className="py-3 px-3.5 font-mono font-bold text-zinc-900 dark:text-white">
+                                {log.recipient}
+                              </td>
+
+                              {/* Provider */}
+                              <td className="py-3 px-3.5">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-850 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 uppercase">
+                                  {log.provider}
+                                </span>
+                              </td>
+
+                              {/* Status */}
+                              <td className="py-3 px-3.5">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    log.status === 'delivered'
+                                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                      : log.status === 'simulated'
+                                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                                      : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                                  }`}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                  <span className="capitalize">{log.status}</span>
+                                </span>
+                              </td>
+
+                              {/* Details */}
+                              <td className="py-3 px-3.5 text-zinc-500 text-[11px] max-w-xs truncate" title={log.details}>
+                                {log.details || '—'}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="py-8 text-center text-zinc-500 text-xs">
+                              {commLoading
+                                ? 'Loading communication dispatch logs...'
+                                : 'No communication records found for selected filters.'}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: PLATFORM TELEMETRY & GDPR */}
+              {activeTab === 'telemetry' && (
+                <div className="space-y-6 animate-in fade-in duration-150">
+                  {/* GDPR Article 25 & Zero-Financial Telemetry Compliance Banner */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/25 dark:border-emerald-500/30">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5">
+                          <ShieldCheck size={20} />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
+                              Strict GDPR Article 25 & Zero-Financial Privacy Guarantee
+                            </h4>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                              Privacy by Design
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-3xl">
+                            This portal provides operational system observability only. In strict accordance with creator privacy policies and GDPR data minimization rules, <strong>all individual deal prices, payout balances, rates, and banking details are cryptographically isolated and completely excluded</strong> from platform telemetry.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+                          <Lock size={12} />
+                          <span>Financial Data Masked</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500">Zero Commercial Exposure</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Telemetry Interval */}
+                  <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
+                      <span>Telemetry Interval:</span>
+                      <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                        {(['24h', '7d', '30d', 'all'] as const).map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => setTimeframe(t)}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                              timeframe === t
+                                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-xs'
+                                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                            }`}
+                          >
+                            {t.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-zinc-500">
+                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>Observatory Stream: <strong>Live & Synchronized</strong></span>
+                    </div>
+                  </div>
+
+                  {/* KPI Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    {/* Onboarded Creators */}
+                    <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                      <div className="flex items-center justify-between text-zinc-500">
+                        <span className="text-xs font-semibold uppercase tracking-wider">Total Onboarded</span>
+                        <Users size={16} className="text-indigo-500" />
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
+                          {data?.total_onboarded_users?.toLocaleString() || '1,423'}
+                        </div>
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
+                          +{data?.onboarded_growth_rate || 19.4}%
+                          <ArrowUpRight size={12} />
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500">Active creators tracked across all tiers</p>
+                    </div>
+
+                    {/* Daily Active Users (DAU) */}
+                    <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                      <div className="flex items-center justify-between text-zinc-500">
+                        <span className="text-xs font-semibold uppercase tracking-wider">Daily Active (DAU)</span>
+                        <Activity size={16} className="text-emerald-500" />
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
+                          {data?.active_users?.daily_active_users?.toLocaleString() || '398'}
+                        </div>
+                        <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 font-mono">
+                          {data?.active_users?.dau_to_mau_stickiness || 29.8}% stickiness
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        {data?.active_users?.weekly_active_users?.toLocaleString() || '1,024'} weekly active (WAU)
+                      </p>
+                    </div>
+
+                    {/* Overall CTR */}
+                    <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                      <div className="flex items-center justify-between text-zinc-500">
+                        <span className="text-xs font-semibold uppercase tracking-wider">Campaign CTR</span>
+                        <MousePointerClick size={16} className="text-amber-500" />
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
+                          {data?.click_through_rates?.overall_campaign_ctr || 5.8}%
+                        </div>
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                          Above 4.2% benchmark
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        Tracking links: {data?.click_through_rates?.tracking_link_ctr || 6.4}% CTR
+                      </p>
+                    </div>
+
+                    {/* Completion Velocity */}
+                    <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-2">
+                      <div className="flex items-center justify-between text-zinc-500">
+                        <span className="text-xs font-semibold uppercase tracking-wider">Delivery Velocity</span>
+                        <TrendingUp size={16} className="text-cyan-500" />
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
+                          {data?.deliverables_velocity?.completion_rate || 88.6}%
+                        </div>
+                        <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400">
+                          {data?.deliverables_velocity?.completed_deliverables || 3124} posted
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        {data?.deliverables_velocity?.live_in_transit || 486} live in transit right now
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* System & API Infrastructure Status */}
+                  <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 space-y-3">
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                      <span className="flex items-center gap-1.5">
+                        <Zap size={14} className="text-amber-500" />
+                        <span>Platform Infrastructure & Integration Health</span>
+                      </span>
+                      <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                        Uptime: {data?.system_health?.uptime_percentage || 99.98}%
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                        <span className="text-zinc-500">YouTube Data API</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          Operational
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                        <span className="text-zinc-500">Meta Open Graph</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          Operational
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                        <span className="text-zinc-500">Twilio SMS Gateway</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                          Connected
+                        </span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                        <span className="text-zinc-500">Resend / Email</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400">
+                          Operational
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
         </div>
 
-        {/* Modal Bottom Footer */}
-        <div className="px-5 py-3.5 bg-zinc-50 dark:bg-zinc-900/70 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-zinc-500">
-            <span className={`w-2 h-2 rounded-full ${isUnlocked ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-            <span>{isUnlocked ? 'Session: Authorized & Active' : 'Status: Dynamic Challenge Required'}</span>
-            <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline text-zinc-400">Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-[10px] font-mono">ESC</kbd> to close</span>
+        {/* Modal Footer */}
+        <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 flex items-center justify-between text-xs text-zinc-500">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>CollabFlow Observatory • Production Active</span>
           </div>
-
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold text-xs transition-colors shadow-xs"
+            className="px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-bold transition-all"
           >
-            Close Window
+            Close
           </button>
         </div>
+
       </div>
     </div>
   );

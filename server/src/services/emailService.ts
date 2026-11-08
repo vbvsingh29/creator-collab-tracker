@@ -1,4 +1,5 @@
 import https from 'https';
+import { logCommunication } from './communicationLogService';
 
 /**
  * emailService.ts
@@ -101,25 +102,70 @@ export async function sendEmailOtp(
   type: 'verify' | 'reset'
 ): Promise<boolean> {
   const { subject, html, text } = buildEmailBody(code, type);
+  const purpose = type === 'verify' ? 'email_verification' : 'password_reset';
 
   const hasResend = Boolean(process.env.RESEND_API_KEY);
   const hasSMTP = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
   if (hasResend) {
-    await sendViaResend(to, subject, html, text);
-    return true;
+    try {
+      await sendViaResend(to, subject, html, text);
+      logCommunication({
+        recipient: to,
+        channel: 'email',
+        purpose,
+        status: 'delivered',
+        provider: 'resend',
+        details: 'Dispatched via Resend API'
+      });
+      return true;
+    } catch (resendErr: any) {
+      logCommunication({
+        recipient: to,
+        channel: 'email',
+        purpose,
+        status: 'failed',
+        provider: 'resend',
+        details: resendErr.message || 'Resend delivery failed'
+      });
+      throw resendErr;
+    }
   }
 
   if (hasSMTP) {
     try {
       await sendViaSMTP(to, subject, text);
+      logCommunication({
+        recipient: to,
+        channel: 'email',
+        purpose,
+        status: 'delivered',
+        provider: 'smtp',
+        details: 'Dispatched via SMTP relay'
+      });
       return true;
     } catch (smtpErr: any) {
+      logCommunication({
+        recipient: to,
+        channel: 'email',
+        purpose,
+        status: 'failed',
+        provider: 'smtp',
+        details: smtpErr.message || 'SMTP delivery failed'
+      });
       console.error('⚠️ [SMTP] Failed:', smtpErr.message, '— falling through to console log');
     }
   }
 
   // No email service configured — log to console only (dev/test mode)
   console.log(`📧 [DEV-ONLY EMAIL OTP] To: ${to} | Type: ${type} | Code: ${code} (not sent, no email service configured)`);
+  logCommunication({
+    recipient: to,
+    channel: 'email',
+    purpose,
+    status: 'simulated',
+    provider: 'console',
+    details: 'Email service not configured; OTP written to console'
+  });
   return false;
 }

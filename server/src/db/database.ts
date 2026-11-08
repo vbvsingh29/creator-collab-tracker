@@ -136,6 +136,20 @@ export function initDB() {
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_verifications_target ON verifications(target);
+
+    CREATE TABLE IF NOT EXISTS communication_logs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      recipient TEXT NOT NULL,
+      channel TEXT NOT NULL, -- 'sms' | 'email'
+      purpose TEXT NOT NULL, -- 'phone_verification' | 'email_verification' | 'password_reset'
+      status TEXT NOT NULL,  -- 'delivered' | 'sent' | 'failed' | 'simulated'
+      provider TEXT NOT NULL, -- 'twilio' | 'resend' | 'smtp' | 'console'
+      details TEXT DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_comm_logs_created_at ON communication_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_comm_logs_channel ON communication_logs(channel);
   `);
 
   console.log('✓ Database initialized successfully at:', DB_PATH);

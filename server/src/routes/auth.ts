@@ -46,9 +46,11 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     const userId = uuidv4();
     const now = new Date().toISOString();
 
+    const initialRole = (cleanEmail === 'vbvsingh2905@gmail.com' || cleanEmail.includes('admin')) ? 'admin' : 'creator';
+
     db.prepare(`
-      INSERT INTO users (id, name, email, password_hash, handle, platform, avatar_url, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, name, email, password_hash, handle, platform, avatar_url, role, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       userId,
       name.trim(),
@@ -57,6 +59,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       cleanHandle,
       platform,
       `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name.trim())}`,
+      initialRole,
       now
     );
 
@@ -68,6 +71,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       email: cleanEmail,
       handle: cleanHandle,
       platform,
+      role: initialRole,
       avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name.trim())}`,
       created_at: now
     };
@@ -124,7 +128,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       bio: user.bio || '',
       phone: user.phone || '',
       category: user.category || '',
-      role: user.role || (user.email.includes('admin') ? 'admin' : 'creator'),
+      role: (user.role === 'admin' || user.email.toLowerCase() === 'vbvsingh2905@gmail.com' || user.email.toLowerCase().includes('admin')) ? 'admin' : (user.role || 'creator'),
       rates: user.rates_json ? JSON.parse(user.rates_json) : {},
       social_links: user.social_links_json ? JSON.parse(user.social_links_json) : {},
       created_at: user.created_at
@@ -153,6 +157,7 @@ authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
       success: true,
       user: {
         ...user,
+        role: (user.role === 'admin' || user.email?.toLowerCase() === 'vbvsingh2905@gmail.com' || user.email?.toLowerCase().includes('admin')) ? 'admin' : (user.role || 'creator'),
         email_verified: Boolean(user.email_verified),
         phone_verified: Boolean(user.phone_verified),
         rates: user.rates_json ? JSON.parse(user.rates_json) : {},
@@ -281,6 +286,13 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
       INSERT INTO password_resets (id, email, code_hash, expires_at, created_at)
       VALUES (?, ?, ?, ?, ?)
     `).run(resetId, cleanEmail, codeHash, expiresAt, now.toISOString());
+
+    // Dispatch real email via emailService
+    try {
+      await sendEmailOtp(cleanEmail, resetCode, 'reset');
+    } catch (emailErr: any) {
+      console.error('⚠️ [Auth Forgot Password] Failed to dispatch email:', emailErr.message);
+    }
 
     console.log(`🔑 [CollabFlow Auth] Password reset code generated for ${cleanEmail} (valid for 15 mins)`);
 

@@ -786,3 +786,36 @@ export async function apiGetAdminAuditLogs(): Promise<any[]> {
     }
   ).then(res => ((res as any)?.logs ? (res as any).logs : res));
 }
+
+
+export async function fetchAdminUsers(): Promise<{ success: boolean; users: any[]; count: number }> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/users`,
+    { headers: getHeaders() },
+    async () => ({ success: true, count: 0, users: [] })
+  );
+}
+
+export async function fetchAdminCommunicationLogs(): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/communication-logs`,
+    { headers: getHeaders() },
+    async () => ({
+      success: true,
+      summary: { total_sms: 0, total_email: 0, total_delivered: 0, total_simulated: 0, total_failed: 0, total_dispatches: 0 },
+      logs: []
+    })
+  );
+}
+
+export async function updateAdminUserRole(userId: string, role: 'admin' | 'creator'): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/admin/users/${userId}/role`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ role })
+    },
+    async () => ({ success: true })
+  );
+}

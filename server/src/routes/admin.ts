@@ -1,7 +1,21 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db/database';
+import { requireAuth, AuthRequest } from '../middleware/auth';
 
 export const adminRouter = Router();
+
+// Helper to check if requesting user has admin access
+function verifyIsAdmin(req: AuthRequest): boolean {
+  if (!req.userId) return false;
+  try {
+    const user = db.prepare('SELECT email, role FROM users WHERE id = ?').get(req.userId) as any;
+    if (!user) return false;
+    const emailLower = (user.email || '').toLowerCase().trim();
+    return user.role === 'admin' || emailLower === 'vbvsingh2905@gmail.com' || emailLower.includes('admin');
+  } catch {
+    return false;
+  }
+}
 
 // GET /api/admin/metrics
 // User-based platform monitoring & telemetry (no specific admin login needed).
@@ -296,4 +310,109 @@ adminRouter.get('/audit-logs', (_req: Request, res: Response) => {
     success: true,
     logs: auditLogs
   });
+});
+
+
+// GET /api/admin/users
+// Admin-only: retrieve full list of registered creators, social accounts, and status
+adminRouter.get('/users', requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    if (!verifyIsAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Access denied: Administrator privileges required.' });
+    }
+
+    const users = db.prepare(`
+      SELECT 
+        u.id, u.name, u.email, u.phone, u.role, u.handle, u.platform, u.avatar_url,
+        u.bio, u.category, u.email_verified, u.phone_verified, 
+        u.social_accounts_json, u.created_at,
+        COUNT(c.id) as collabs_count
+      FROM users u
+      LEFT JOIN collabs c ON c.user_id = u.id
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `).all();
+
+    // Parse social_accounts_json safely
+    const parsedUsers = (users as any[]).map(u => {
+      let accounts = [];
+      try {
+        accounts = JSON.parse(u.social_accounts_json || '[]');
+      } catch {}
+      return {
+        ...u,
+        social_accounts: accounts
+      };
+    });
+
+    res.json({
+      success: true,
+      count: parsedUsers.length,
+      users: parsedUsers
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/communication-logs
+// Admin-only: audit stream of SMS and Email dispatches & volume metrics
+adminRouter.get('/communication-logs', requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    if (!verifyIsAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Access denied: Administrator privileges required.' });
+    }
+
+    const totalSms = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE channel = 'sms'").get() as any)?.c || 0;
+    const totalEmail = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE channel = 'email'").get() as any)?.c || 0;
+    const totalDelivered = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'delivered'").get() as any)?.c || 0;
+    const totalSimulated = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'simulated'").get() as any)?.c || 0;
+    const totalFailed = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'failed'").get() as any)?.c || 0;
+
+    const logs = db.prepare(`
+      SELECT id, user_id, recipient, channel, purpose, status, provider, details, created_at
+      FROM communication_logs
+      ORDER BY created_at DESC
+      LIMIT 200
+    `).all();
+
+    res.json({
+      success: true,
+      summary: {
+        total_sms: totalSms,
+        total_email: totalEmail,
+        total_delivered: totalDelivered,
+        total_simulated: totalSimulated,
+        total_failed: totalFailed,
+        total_dispatches: totalSms + totalEmail
+      },
+      logs
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/users/:id/role
+// Admin-only: promote / demote creator or admin
+adminRouter.post('/users/:id/role', requireAuth, (req: AuthRequest, res: Response) => {
+  try {
+    if (!verifyIsAdmin(req)) {
+      return res.status(403).json({ success: false, error: 'Access denied: Administrator privileges required.' });
+    }
+
+    const { role } = req.body;
+    if (!['admin', 'creator'].includes(role)) {
+      return res.status(400).json({ success: false, error: 'Invalid role. Must be admin or creator.' });
+    }
+
+    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, req.params.id);
+
+    res.json({
+      success: true,
+      message: `User role successfully updated to ${role}.`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });

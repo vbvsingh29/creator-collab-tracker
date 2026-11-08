@@ -91,6 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
+  const isAdmin = user?.role === 'admin' || user?.email?.toLowerCase() === 'vbvsingh2905@gmail.com' || Boolean(user?.email?.toLowerCase().includes('admin'));
   const { theme, setTheme } = useTheme();
 
   const toolsRef = useRef<HTMLDivElement>(null);
@@ -124,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 CollabFlow
               </span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 hidden sm:inline">
-                {(user?.role === 'admin' || user?.email?.includes('admin')) ? 'Admin' : appMode === 'simple' ? 'Starter' : 'Agency'}
+                {isAdmin ? 'Admin' : appMode === 'simple' ? 'Starter' : 'Agency'}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-zinc-400 hidden sm:flex items-center gap-1.5">
@@ -215,7 +216,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* ADMIN TELEMETRY PILL (Only visible for Admin accounts) */}
-        {(user?.role === 'admin' || user?.email?.includes('admin')) && onOpenAdmin && (
+        {isAdmin && onOpenAdmin && (
           <button
             onClick={onOpenAdmin}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-500/40 bg-teal-500/10 hover:bg-teal-500/20 text-xs font-bold text-teal-800 dark:text-teal-300 transition-all shadow-xs"

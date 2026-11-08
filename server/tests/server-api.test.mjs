@@ -268,4 +268,35 @@ test('Backend API Security, Authentication & GDPR Suite', async (t) => {
     assert.equal(verifyData.success, true);
     assert.equal(verifyData.email_verified, true);
   });
+
+  await t.test('11. Admin users endpoint and communication logs audit stream', async () => {
+    // 1. Promote test user to admin in DB
+    const { db } = await import('../dist/db/database.js');
+    db.prepare("UPDATE users SET role = 'admin' WHERE email = ?").run('creator@production.test');
+
+    // 2. Fetch admin users list
+    const usersRes = await fetch(`${baseUrl}/api/admin/users`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    assert.equal(usersRes.status, 200, 'Admin users list should return 200');
+    const usersData = await usersRes.json();
+    assert.equal(usersData.success, true);
+    assert.ok(Array.isArray(usersData.users));
+    assert.ok(usersData.users.length >= 1);
+    const foundAdmin = usersData.users.find(u => u.email === 'creator@production.test');
+    assert.ok(foundAdmin, 'creator@production.test must be in users list');
+    assert.equal(foundAdmin.role, 'admin');
+
+    // 3. Fetch communication logs
+    const logsRes = await fetch(`${baseUrl}/api/admin/communication-logs`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    assert.equal(logsRes.status, 200, 'Communication logs should return 200');
+    const logsData = await logsRes.json();
+    assert.equal(logsData.success, true);
+    assert.ok(logsData.summary.total_dispatches >= 2, 'Should have logged SMS and Email dispatches from tests #8 and #10');
+    assert.ok(Array.isArray(logsData.logs));
+    assert.ok(logsData.logs.some(l => l.channel === 'sms'));
+    assert.ok(logsData.logs.some(l => l.channel === 'email'));
+  });
 });

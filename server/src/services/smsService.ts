@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import https from 'https';
 import querystring from 'querystring';
 import { hashPassword, verifyPassword } from '../utils/security';
+import { logCommunication } from './communicationLogService';
 
 interface OtpRecord {
   codeHash: string;
@@ -128,6 +129,14 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
   if (!isConfigured) {
     // Dev-only: log to server console, never expose in API response
     console.log(`📱 [DEV-ONLY OTP] ${phone}: ${otp} (valid 5 min — not sent, Twilio not configured)`);
+    logCommunication({
+      recipient: phone,
+      channel: 'sms',
+      purpose: 'phone_verification',
+      status: 'simulated',
+      provider: 'console',
+      details: 'Twilio credentials not configured; OTP written to console'
+    });
     return {
       success: true,
       message: `Verification code sent to ${phone}.`,
@@ -138,7 +147,27 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
   }
 
   // Production: send real Twilio SMS (throws on failure)
-  await sendTwilioSms(phone, smsText);
+  try {
+    await sendTwilioSms(phone, smsText);
+    logCommunication({
+      recipient: phone,
+      channel: 'sms',
+      purpose: 'phone_verification',
+      status: 'delivered',
+      provider: 'twilio',
+      details: 'Successfully dispatched via Twilio REST API'
+    });
+  } catch (smsErr: any) {
+    logCommunication({
+      recipient: phone,
+      channel: 'sms',
+      purpose: 'phone_verification',
+      status: 'failed',
+      provider: 'twilio',
+      details: smsErr.message || 'Twilio delivery failed'
+    });
+    throw smsErr;
+  }
 
   return {
     success: true,
