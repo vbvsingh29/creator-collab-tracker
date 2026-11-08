@@ -51,6 +51,20 @@ app.use(express.json({ limit: '1mb' }));
 initDB();
 autoSeedIfEmpty();
 
+// Initialize remote Turso Cloud database if configured
+if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+  import('./db/tursoAdapter').then(({ TursoAdapter, initializeTursoSchema }) => {
+    const turso = new TursoAdapter(process.env.TURSO_DATABASE_URL!, process.env.TURSO_AUTH_TOKEN!);
+    initializeTursoSchema(turso).catch((err: any) => {
+      console.error('❌ [Turso Cloud Connection Failed]:', err.message);
+    });
+  }).catch((err: any) => {
+    console.error('❌ [Turso Import Error]:', err.message);
+  });
+} else if (process.env.NODE_ENV === 'production') {
+  console.warn('⚠️ [Production Database Warning]: TURSO_DATABASE_URL is not set. Data is stored on local instance disk.');
+}
+
 // API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/collabs', collabsRouter);

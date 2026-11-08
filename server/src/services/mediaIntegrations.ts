@@ -145,6 +145,13 @@ export async function getYouTubeMediaDetails(url: string): Promise<MediaDetails>
 
       hasAdDisclosure = html.toLowerCase().includes('#ad') || html.toLowerCase().includes('paid promotion');
 
+      const pubMatch = html.match(/itemprop="datePublished"\s+content="([^"]+)"/i) ||
+                        html.match(/"publishDate":"([^"]+)"/i) ||
+                        html.match(/"uploadDate":"([^"]+)"/i);
+      if (pubMatch && !publishedAt) {
+        publishedAt = pubMatch[1];
+      }
+
       if (viewsCount > 0) {
         metricsSource = 'public_scrape';
         console.log(`📊 [YouTube Scraper] ${videoId}: ${viewsCount.toLocaleString()} views`);

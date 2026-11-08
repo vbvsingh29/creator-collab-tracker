@@ -86,18 +86,31 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       }
       if (details.platform) {
         setPlatform(details.platform);
+        const lowerUrl = autoFillUrl.toLowerCase();
         if (details.platform === 'youtube') {
-          setDeliverableFormat('yt_integrated_midroll');
+          if (lowerUrl.includes('/shorts/')) {
+            setDeliverableFormat('yt_short');
+          } else {
+            setDeliverableFormat('yt_integrated_midroll');
+          }
         } else {
           setDeliverableFormat('ig_integrated_reel');
         }
       }
+      if (details.publishedAt) {
+        // Format ISO date (e.g. 2024-05-12T10:00:00Z -> 2024-05-12) for the calendar input
+        const cleanDate = details.publishedAt.split('T')[0];
+        setScheduledDate(cleanDate);
+      }
       if (details.authorName && details.authorName !== 'Creator') {
+        if (!brandName) {
+          setBrandName(details.authorName);
+        }
         setContactPerson(details.authorName);
       }
       setAutoFillFeedback({
         type: 'success',
-        text: `✓ Integration verified: Auto-detected ${details.platform.toUpperCase()} media "${details.title}". Deliverables & platform updated.`
+        text: `✓ Auto-detected ${details.platform.toUpperCase()} content: Title, platform${details.publishedAt ? ', and publish date (' + details.publishedAt.split('T')[0] + ')' : ''} auto-filled! (You can freely edit any field below).`
       });
     } catch (err: any) {
       setAutoFillFeedback({
@@ -324,6 +337,32 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
+          </div>
+
+          {/* Publish Date Calendar View (Always visible & editable for both Simple & Advanced) */}
+          <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar size={13} className="text-teal-400" />
+                <span>Publish / Live Date</span>
+              </label>
+              {scheduledDate && (
+                <span className="text-[10px] text-teal-400 font-mono font-medium">
+                  {scheduledDate} (Click calendar to change)
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-teal-500 cursor-pointer font-mono"
+              />
+            </div>
+            <p className="text-[10px] text-zinc-500">
+              Select or change your planned/live release date on the interactive calendar.
+            </p>
           </div>
 
           {/* Category & Contact - Advanced Only */}
