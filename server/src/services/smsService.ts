@@ -41,7 +41,7 @@ export async function sendTwilioSms(to: string, message: string): Promise<boolea
   const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
   if (!accountSid || !authToken || !fromNumber) {
-    return false; // Not configured, fallback to sandbox
+    throw new Error('SMS service is not configured. Please contact the platform administrator.');
   }
 
   const postData = querystring.stringify({
@@ -72,14 +72,20 @@ export async function sendTwilioSms(to: string, message: string): Promise<boolea
           resolve(true);
         } else {
           console.error(`⚠️ [Twilio SMS Error] HTTP ${res.statusCode}: ${data}`);
-          resolve(false);
+          // Parse Twilio error message for better feedback
+          try {
+            const parsed = JSON.parse(data);
+            reject(new Error(parsed.message || `Twilio error ${res.statusCode}`));
+          } catch {
+            reject(new Error(`SMS delivery failed (HTTP ${res.statusCode}). Check Twilio credentials.`));
+          }
         }
       });
     });
 
     req.on('error', (err) => {
       console.error('⚠️ [Twilio SMS Network Error]:', err);
-      resolve(false);
+      reject(new Error('SMS delivery failed due to a network error. Please try again.'));
     });
 
     req.write(postData);
@@ -90,8 +96,6 @@ export async function sendTwilioSms(to: string, message: string): Promise<boolea
 export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
   success: boolean;
   message: string;
-  preview_code?: string;
-  preview_mode: boolean;
   normalized_phone: string;
 }> {
   const phone = normalizePhoneNumber(rawPhone);
@@ -99,12 +103,13 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
     throw new Error('Please enter a valid phone number with country code (e.g. +91 98765 43210)');
   }
 
-  // Generate secure 6-digit OTP
-  const otp = crypto.randomInt(100000, 999999).toString();
+  // In test mode use a fixed OTP so automated tests can verify without reading logs
+  const isTestMode = process.env.NODE_ENV === 'test';
+  const otp = isTestMode ? '000000' : crypto.randomInt(100000, 999999).toString();
   const codeHash = hashPassword(otp);
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-  // Save to store
+  // Save to store before attempting delivery (so test-mode can still verify)
   otpStore.set(phone, {
     codeHash,
     expiresAt,
@@ -113,24 +118,31 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
 
   const smsText = `CollabFlow: Your verification code is ${otp}. Valid for 5 minutes. Do not share this with anyone.`;
 
-  const twilioSent = await sendTwilioSms(phone, smsText);
+  // In unit-test / local-dev mode (no Twilio env vars): log to console only
+  const isConfigured = Boolean(
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_PHONE_NUMBER
+  );
 
-  if (twilioSent) {
+  if (!isConfigured) {
+    // Dev-only: log to server console, never expose in API response
+    console.log(`📱 [DEV-ONLY OTP] ${phone}: ${otp} (valid 5 min — not sent, Twilio not configured)`);
     return {
       success: true,
-      message: `Verification code sent via SMS to ${phone}.`,
-      preview_mode: false,
-      normalized_phone: phone
+      message: `Verification code sent to ${phone}.`,
+      normalized_phone: phone,
+      // Only exposed in NODE_ENV=test for automated testing — never in production
+      ...(isTestMode ? { preview_code: otp } : {})
     };
   }
 
-  // Sandbox fallback for local dev / free tier without paid Twilio
-  console.log(`📱 [CollabFlow SMS Gateway] Generated OTP for ${phone}: ${otp} (valid for 5 mins)`);
+  // Production: send real Twilio SMS (throws on failure)
+  await sendTwilioSms(phone, smsText);
+
   return {
     success: true,
-    message: `Verification code sent to ${phone} (Development Sandbox Preview active).`,
-    preview_code: otp,
-    preview_mode: true,
+    message: `Verification code sent via SMS to ${phone}. Please check your messages.`,
     normalized_phone: phone
   };
 }

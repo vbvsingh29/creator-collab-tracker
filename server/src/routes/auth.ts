@@ -5,6 +5,7 @@ import { db } from '../db/database';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { hashPassword, verifyPassword, signToken } from '../utils/security';
 import { generateAndSendPhoneOtp, verifyPhoneOtp, normalizePhoneNumber } from '../services/smsService';
+import { sendEmailOtp } from '../services/emailService';
 
 export const authRouter = Router();
 
@@ -281,17 +282,11 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
       VALUES (?, ?, ?, ?, ?)
     `).run(resetId, cleanEmail, codeHash, expiresAt, now.toISOString());
 
-    console.log(`🔑 [CollabFlow Auth] Password reset OTP generated for ${cleanEmail}: ${resetCode} (valid for 15 mins)`);
-
-    const hasEmailService = Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_USER && process.env.SMTP_PASS));
+    console.log(`🔑 [CollabFlow Auth] Password reset code generated for ${cleanEmail} (valid for 15 mins)`);
 
     return res.json({
       success: true,
-      message: hasEmailService 
-        ? 'A 6-digit password reset code has been sent to your email.'
-        : 'A 6-digit reset code has been generated. (Free Tier instant preview below)',
-      preview_code: hasEmailService ? undefined : resetCode,
-      preview_mode: !hasEmailService,
+      message: 'If this email is registered, a 6-digit reset code has been sent to your inbox.',
       expires_in_minutes: 15
     });
   } catch (error: any) {
@@ -473,7 +468,7 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/send-email-verify (Generate and send 6-digit email verification OTP)
-authRouter.post('/send-email-verify', requireAuth, (req: AuthRequest, res: Response) => {
+authRouter.post('/send-email-verify', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const user = db.prepare('SELECT email FROM users WHERE id = ?').get(req.userId) as any;
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
@@ -490,14 +485,23 @@ authRouter.post('/send-email-verify', requireAuth, (req: AuthRequest, res: Respo
       VALUES (?, ?, 'email', ?, ?, ?)
     `).run(id, user.email, codeHash, expiresAt, now.toISOString());
 
-    const hasEmailService = Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_USER && process.env.SMTP_PASS));
+    const isTestMode = process.env.NODE_ENV === 'test';
+
+    // Send real email (or log in dev) — non-blocking: don't fail the request if email fails
+    let emailSent = false;
+    try {
+      emailSent = await sendEmailOtp(user.email, code, 'verify');
+    } catch (emailErr: any) {
+      console.error('⚠️ [Email OTP] Delivery failed:', emailErr.message);
+    }
 
     return res.json({
       success: true,
-      message: hasEmailService 
-        ? `Verification code sent to ${user.email}` 
-        : '6-digit verification code generated. (Instant test preview below)',
-      preview_code: hasEmailService ? undefined : code
+      message: emailSent
+        ? `Verification code sent to ${user.email}`
+        : 'Verification code generated. Check server logs (email service not configured).',
+      // Only expose code in test mode so automated tests can call verify-email-code
+      ...(isTestMode ? { preview_code: code } : {})
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });

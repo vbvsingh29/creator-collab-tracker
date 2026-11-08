@@ -110,13 +110,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [emailVerifyCode, setEmailVerifyCode] = useState('');
   const [isSendingEmailCode, setIsSendingEmailCode] = useState(false);
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
-  const [emailFeedback, setEmailFeedback] = useState<{ type: 'success' | 'error'; message: string; previewCode?: string } | null>(null);
+  const [emailFeedback, setEmailFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [phoneInput, setPhoneInput] = useState(user?.phone || '');
   const [phoneOtp, setPhoneOtp] = useState('');
   const [isSendingPhoneOtp, setIsSendingPhoneOtp] = useState(false);
   const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
-  const [phoneFeedback, setPhoneFeedback] = useState<{ type: 'success' | 'error'; message: string; previewCode?: string } | null>(null);
+  const [phoneFeedback, setPhoneFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // 3. Multi-Channel & Multi-Page Management State
   const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>(() => {
@@ -209,12 +209,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const res = await apiSendEmailVerify();
       setEmailFeedback({
         type: 'success',
-        message: res.message,
-        previewCode: res.preview_code
+        message: res.message
       });
-      if (res.preview_code) {
-        setEmailVerifyCode(res.preview_code);
-      }
     } catch (err: any) {
       setEmailFeedback({
         type: 'error',
@@ -259,12 +255,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const res = await apiSendSmsOtp(phoneInput.trim());
       setPhoneFeedback({
         type: 'success',
-        message: res.message,
-        previewCode: res.preview_code
+        message: res.message
       });
-      if (res.preview_code) {
-        setPhoneOtp(res.preview_code);
-      }
     } catch (err: any) {
       setPhoneFeedback({
         type: 'error',
@@ -752,9 +744,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       emailFeedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-300' : 'bg-red-500/10 border-red-500/25 text-red-700 dark:text-red-300'
                     }`}>
                       <p>{emailFeedback.message}</p>
-                      {emailFeedback.previewCode && (
-                        <p className="mt-1 font-mono font-bold">Instant Code Preview: {emailFeedback.previewCode}</p>
-                      )}
                     </div>
                   )}
 
@@ -826,9 +815,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       phoneFeedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-300' : 'bg-red-500/10 border-red-500/25 text-red-700 dark:text-red-300'
                     }`}>
                       <p>{phoneFeedback.message}</p>
-                      {phoneFeedback.previewCode && (
-                        <p className="mt-1 font-mono font-bold">Instant Sandbox OTP: {phoneFeedback.previewCode}</p>
-                      )}
                     </div>
                   )}
 

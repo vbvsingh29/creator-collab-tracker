@@ -43,14 +43,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [smsOtpCode, setSmsOtpCode] = useState('');
   const [smsOtpSent, setSmsOtpSent] = useState(false);
-  const [smsPreviewCode, setSmsPreviewCode] = useState<string | null>(null);
 
   // Forgot / Reset Password State
   const [resetEmail, setResetEmail] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [previewCode, setPreviewCode] = useState<string | null>(null);
 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -93,9 +91,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
       } else if (mode === 'forgot') {
         const res = await apiForgotPassword(resetEmail.trim());
         setSuccessMsg(res.message);
-        if (res.preview_code) {
-          setPreviewCode(res.preview_code);
-        }
         setMode('reset');
       } else if (mode === 'reset') {
         if (newPassword !== confirmPassword) {
@@ -113,9 +108,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
           const res = await apiSendSmsOtp(phoneNumber.trim());
           setSmsOtpSent(true);
           setSuccessMsg(res.message);
-          if (res.preview_code) {
-            setSmsPreviewCode(res.preview_code);
-          }
         } else {
           // Verify SMS OTP
           const res = await apiVerifySmsOtp(phoneNumber.trim(), smsOtpCode.trim(), name.trim());
@@ -243,51 +235,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
           <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
             <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
             <span>{successMsg}</span>
-          </div>
-        )}
-
-        {/* Sandbox OTP Code Fill Pill for Phone SMS */}
-        {mode === 'phone_otp' && smsPreviewCode && smsOtpSent && (
-          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/40 text-xs space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                <Smartphone size={13} className="text-amber-600" /> Twilio Sandbox Code
-              </span>
-              <span className="font-mono font-bold text-sm tracking-wider text-amber-900 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded border border-amber-300">
-                {smsPreviewCode}
-              </span>
-            </div>
-            <p className="text-[11px] text-amber-700 dark:text-amber-400">
-              Live Twilio API sends this to real phone. For zero-cost dev preview, click below:
-            </p>
-            <button
-              type="button"
-              onClick={() => setSmsOtpCode(smsPreviewCode)}
-              className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-1"
-            >
-              Auto-fill code {smsPreviewCode} &rarr;
-            </button>
-          </div>
-        )}
-
-        {/* Password Reset Preview Code Banner */}
-        {previewCode && mode === 'reset' && (
-          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 text-xs space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-amber-800 flex items-center gap-1.5">
-                <KeyRound size={13} className="text-amber-600" /> Reset Code
-              </span>
-              <span className="font-mono font-bold text-sm tracking-wider text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
-                {previewCode}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setResetCode(previewCode)}
-              className="text-[11px] font-semibold text-amber-800 hover:underline"
-            >
-              Auto-fill code into field &rarr;
-            </button>
           </div>
         )}
 
@@ -566,7 +513,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
                 setMode('login');
                 setError('');
                 setSuccessMsg('');
-                setPreviewCode(null);
               }}
               className="w-full py-2 text-center text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center gap-1"
             >
