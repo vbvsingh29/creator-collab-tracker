@@ -11,6 +11,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "ts-node-dev --transpile-only src/db/seed.ts",
+    "db:turso": "node scripts/sync-turso.mjs",
     "test": "npm run build && node --test tests/server-api.test.mjs"
   },
   "dependencies": {
