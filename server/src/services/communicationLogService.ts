@@ -34,7 +34,9 @@ export function logCommunication(entry: CommunicationLogEntry): void {
       entry.provider,
       entry.details || '',
       now
-    );
+    ).catch((err: any) => {
+      console.warn('⚠️ [CommLog] Unable to persist communication event:', err.message);
+    });
   } catch (err: any) {
     // Fail silently in telemetry without interrupting primary user auth flows
     console.warn('⚠️ [CommLog] Unable to persist communication event:', err.message);

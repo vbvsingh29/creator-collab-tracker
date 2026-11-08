@@ -5,10 +5,10 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 export const adminRouter = Router();
 
 // Helper to check if requesting user has admin access
-function verifyIsAdmin(req: AuthRequest): boolean {
+async function verifyIsAdmin(req: AuthRequest): Promise<boolean> {
   if (!req.userId) return false;
   try {
-    const user = db.prepare('SELECT email, role FROM users WHERE id = ?').get(req.userId) as any;
+    const user = await db.prepare('SELECT email, role FROM users WHERE id = ?').get(req.userId) as any;
     if (!user) return false;
     const emailLower = (user.email || '').toLowerCase().trim();
     return user.role === 'admin' || emailLower === 'vbvsingh2905@gmail.com' || emailLower.includes('admin');
@@ -20,12 +20,12 @@ function verifyIsAdmin(req: AuthRequest): boolean {
 // GET /api/admin/metrics
 // User-based platform monitoring & telemetry (no specific admin login needed).
 // STRICT PRIVACY & GDPR COMPLIANT: Excludes all private financial details, deal amounts, rates, and bank details.
-adminRouter.get('/metrics', (_req: Request, res: Response) => {
+adminRouter.get('/metrics', async (_req: Request, res: Response) => {
   try {
     // 1. Query total onboarded creators from DB
     let dbUserCount = 0;
     try {
-      const userRow = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
+      const userRow = await db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
       dbUserCount = userRow?.count || 0;
     } catch {
       dbUserCount = 3;
@@ -38,7 +38,7 @@ adminRouter.get('/metrics', (_req: Request, res: Response) => {
     let platformCounts = { youtube: 0, instagram: 0, both: 0 };
 
     try {
-      const collabsRows = db.prepare(`
+      const collabsRows = await db.prepare(`
         SELECT platform, pipeline_stage, views_count, likes_count, created_at 
         FROM collabs
       `).all() as Array<{
@@ -315,13 +315,13 @@ adminRouter.get('/audit-logs', (_req: Request, res: Response) => {
 
 // GET /api/admin/users
 // Admin-only: retrieve full list of registered creators, social accounts, and status
-adminRouter.get('/users', requireAuth, (req: AuthRequest, res: Response) => {
+adminRouter.get('/users', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!verifyIsAdmin(req)) {
+    if (!await verifyIsAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Access denied: Administrator privileges required.' });
     }
 
-    const users = db.prepare(`
+    const users = await db.prepare(`
       SELECT 
         u.id, u.name, u.email, u.phone, u.role, u.handle, u.platform, u.avatar_url,
         u.bio, u.category, u.email_verified, u.phone_verified, 
@@ -357,19 +357,19 @@ adminRouter.get('/users', requireAuth, (req: AuthRequest, res: Response) => {
 
 // GET /api/admin/communication-logs
 // Admin-only: audit stream of SMS and Email dispatches & volume metrics
-adminRouter.get('/communication-logs', requireAuth, (req: AuthRequest, res: Response) => {
+adminRouter.get('/communication-logs', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!verifyIsAdmin(req)) {
+    if (!await verifyIsAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Access denied: Administrator privileges required.' });
     }
 
-    const totalSms = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE channel = 'sms'").get() as any)?.c || 0;
-    const totalEmail = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE channel = 'email'").get() as any)?.c || 0;
-    const totalDelivered = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'delivered'").get() as any)?.c || 0;
-    const totalSimulated = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'simulated'").get() as any)?.c || 0;
-    const totalFailed = (db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'failed'").get() as any)?.c || 0;
+    const totalSms = ((await db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE channel = 'sms'").get()) as any)?.c || 0;
+    const totalEmail = ((await db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE channel = 'email'").get()) as any)?.c || 0;
+    const totalDelivered = ((await db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'delivered'").get()) as any)?.c || 0;
+    const totalSimulated = ((await db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'simulated'").get()) as any)?.c || 0;
+    const totalFailed = ((await db.prepare("SELECT COUNT(*) as c FROM communication_logs WHERE status = 'failed'").get()) as any)?.c || 0;
 
-    const logs = db.prepare(`
+    const logs = await db.prepare(`
       SELECT id, user_id, recipient, channel, purpose, status, provider, details, created_at
       FROM communication_logs
       ORDER BY created_at DESC
@@ -395,9 +395,9 @@ adminRouter.get('/communication-logs', requireAuth, (req: AuthRequest, res: Resp
 
 // POST /api/admin/users/:id/role
 // Admin-only: promote / demote creator or admin
-adminRouter.post('/users/:id/role', requireAuth, (req: AuthRequest, res: Response) => {
+adminRouter.post('/users/:id/role', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    if (!verifyIsAdmin(req)) {
+    if (!await verifyIsAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Access denied: Administrator privileges required.' });
     }
 
@@ -406,7 +406,7 @@ adminRouter.post('/users/:id/role', requireAuth, (req: AuthRequest, res: Respons
       return res.status(400).json({ success: false, error: 'Invalid role. Must be admin or creator.' });
     }
 
-    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, req.params.id);
+    await db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, req.params.id);
 
     res.json({
       success: true,

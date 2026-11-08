@@ -1,5 +1,4 @@
 import https from 'https';
-import { db } from '../db/database';
 
 // Extract YouTube Video ID from standard, short, or Shorts URLs
 export function extractYouTubeId(url: string): string | null {

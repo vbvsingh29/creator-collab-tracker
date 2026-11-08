@@ -8,10 +8,10 @@ export const statsRouter = Router();
 statsRouter.use(requireAuth);
 
 // GET /api/stats (Tenant isolated to logged in creator)
-statsRouter.get('/', (req: AuthRequest, res: Response) => {
+statsRouter.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
-    const collabs = db.prepare('SELECT * FROM collabs WHERE user_id = ?').all(userId) as any[];
+    const collabs = (await db.prepare('SELECT * FROM collabs WHERE user_id = ?').all(userId)) as any[];
 
     let total_deals = collabs.length;
     let total_revenue_inr = 0;

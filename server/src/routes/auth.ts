@@ -34,7 +34,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       : `@${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
     // Check if email already registered
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
+    const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -48,7 +48,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
 
     const initialRole = (cleanEmail === 'vbvsingh2905@gmail.com' || cleanEmail.includes('admin')) ? 'admin' : 'creator';
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO users (id, name, email, password_hash, handle, platform, avatar_url, role, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -99,7 +99,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail) as any;
+    const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail) as any;
 
     if (!user) {
       return res.status(401).json({
@@ -145,9 +145,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 });
 
 // GET /api/auth/me (Current creator session)
-authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
+authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, role, email_verified, phone_verified, social_accounts_json, team_members_json, created_at FROM users WHERE id = ?').get(req.userId) as any;
+    const user = await db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, role, email_verified, phone_verified, social_accounts_json, team_members_json, created_at FROM users WHERE id = ?').get(req.userId) as any;
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User account not found' });
@@ -172,7 +172,7 @@ authRouter.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/auth/profile (Update creator profile details)
-authRouter.put('/profile', requireAuth, (req: AuthRequest, res: Response) => {
+authRouter.put('/profile', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     const {
@@ -198,11 +198,11 @@ authRouter.put('/profile', requireAuth, (req: AuthRequest, res: Response) => {
       team_members
     } = req.body;
 
-    const existingUser = db.prepare('SELECT social_accounts_json, team_members_json FROM users WHERE id = ?').get(userId) as any;
+    const existingUser = await db.prepare('SELECT social_accounts_json, team_members_json FROM users WHERE id = ?').get(userId) as any;
     const finalSocialAccounts = social_accounts !== undefined ? JSON.stringify(social_accounts) : (existingUser?.social_accounts_json || '[]');
     const finalTeamMembers = team_members !== undefined ? JSON.stringify(team_members) : (existingUser?.team_members_json || '[]');
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE users 
       SET name = ?, handle = ?, platform = ?, avatar_url = ?, bio = ?, phone = ?, category = ?, rates_json = ?, social_links_json = ?, social_accounts_json = ?, team_members_json = ?
       WHERE id = ?
@@ -221,7 +221,7 @@ authRouter.put('/profile', requireAuth, (req: AuthRequest, res: Response) => {
       userId
     );
 
-    const updatedUser = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, email_verified, phone_verified, social_accounts_json, team_members_json, created_at FROM users WHERE id = ?').get(userId) as any;
+    const updatedUser = await db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, email_verified, phone_verified, social_accounts_json, team_members_json, created_at FROM users WHERE id = ?').get(userId) as any;
 
     return res.json({
       success: true,
@@ -242,9 +242,9 @@ authRouter.put('/profile', requireAuth, (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/auth/demo-creators (Sanitized list for 1-click test logins)
-authRouter.get('/demo-creators', (_req: Request, res: Response) => {
+authRouter.get('/demo-creators', async (_req: Request, res: Response) => {
   try {
-    const users = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category FROM users LIMIT 5').all();
+    const users = await db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category FROM users LIMIT 5').all();
     res.json({ success: true, data: users });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -261,7 +261,7 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const user = db.prepare('SELECT id, name FROM users WHERE email = ?').get(cleanEmail) as { id: string; name: string } | undefined;
+    const user = await db.prepare('SELECT id, name FROM users WHERE email = ?').get(cleanEmail) as { id: string; name: string } | undefined;
 
     if (!user) {
       return res.json({
@@ -279,10 +279,10 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
     const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString(); // 15 mins validity
 
     // Invalidate any older reset codes for this email
-    db.prepare('DELETE FROM password_resets WHERE email = ?').run(cleanEmail);
+    await db.prepare('DELETE FROM password_resets WHERE email = ?').run(cleanEmail);
 
     // Save new reset record
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO password_resets (id, email, code_hash, expires_at, created_at)
       VALUES (?, ?, ?, ?, ?)
     `).run(resetId, cleanEmail, codeHash, expiresAt, now.toISOString());
@@ -307,7 +307,7 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/verify-reset-code
-authRouter.post('/verify-reset-code', (req: Request, res: Response) => {
+authRouter.post('/verify-reset-code', async (req: Request, res: Response) => {
   try {
     const { email, code } = req.body;
 
@@ -318,7 +318,7 @@ authRouter.post('/verify-reset-code', (req: Request, res: Response) => {
     const cleanEmail = email.toLowerCase().trim();
     const now = new Date().toISOString();
 
-    const record = db.prepare(`
+    const record = await db.prepare(`
       SELECT * FROM password_resets 
       WHERE email = ? AND expires_at > ?
       ORDER BY created_at DESC LIMIT 1
@@ -350,7 +350,7 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
     const cleanEmail = email.toLowerCase().trim();
     const now = new Date().toISOString();
 
-    const record = db.prepare(`
+    const record = await db.prepare(`
       SELECT * FROM password_resets 
       WHERE email = ? AND expires_at > ?
       ORDER BY created_at DESC LIMIT 1
@@ -367,13 +367,13 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
     const newHash = hashPassword(newPassword);
 
     // Update user password
-    db.prepare('UPDATE users SET password_hash = ? WHERE email = ?').run(newHash, cleanEmail);
+    await db.prepare('UPDATE users SET password_hash = ? WHERE email = ?').run(newHash, cleanEmail);
 
     // Delete used reset code
-    db.prepare('DELETE FROM password_resets WHERE email = ?').run(cleanEmail);
+    await db.prepare('DELETE FROM password_resets WHERE email = ?').run(cleanEmail);
 
     // Fetch updated user to automatically log them in
-    const user = db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, created_at FROM users WHERE email = ?').get(cleanEmail) as any;
+    const user = await db.prepare('SELECT id, name, email, handle, platform, avatar_url, bio, phone, category, rates_json, social_links_json, created_at FROM users WHERE email = ?').get(cleanEmail) as any;
     const token = signToken({ userId: user.id, email: user.email, handle: user.handle });
 
     console.log(`✓ Password successfully reset for user: ${cleanEmail}`);
@@ -424,7 +424,7 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
     }
 
     // Check if user already exists with this phone
-    let user = db.prepare('SELECT * FROM users WHERE phone = ?').get(cleanPhone) as any;
+    let user = await db.prepare('SELECT * FROM users WHERE phone = ?').get(cleanPhone) as any;
 
     if (!user) {
       // Auto-register creator via phone
@@ -435,7 +435,7 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
       const handle = '@creator_' + cleanPhone.slice(-4);
       const now = new Date().toISOString();
 
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO users (id, name, email, password_hash, handle, phone, platform, avatar_url, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
@@ -450,7 +450,7 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
         now
       );
 
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any;
+      user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any;
     }
 
     const token = signToken({ userId: user.id, email: user.email, handle: user.handle });
@@ -482,7 +482,7 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
 // POST /api/auth/send-email-verify (Generate and send 6-digit email verification OTP)
 authRouter.post('/send-email-verify', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const user = db.prepare('SELECT email FROM users WHERE id = ?').get(req.userId) as any;
+    const user = await db.prepare('SELECT email FROM users WHERE id = ?').get(req.userId) as any;
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     const code = crypto.randomInt(100000, 999999).toString();
@@ -491,8 +491,8 @@ authRouter.post('/send-email-verify', requireAuth, async (req: AuthRequest, res:
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
 
-    db.prepare("DELETE FROM verifications WHERE target = ? AND type = 'email'").run(user.email);
-    db.prepare(`
+    await db.prepare("DELETE FROM verifications WHERE target = ? AND type = 'email'").run(user.email);
+    await db.prepare(`
       INSERT INTO verifications (id, target, type, code_hash, expires_at, created_at)
       VALUES (?, ?, 'email', ?, ?, ?)
     `).run(id, user.email, codeHash, expiresAt, now.toISOString());
@@ -521,16 +521,16 @@ authRouter.post('/send-email-verify', requireAuth, async (req: AuthRequest, res:
 });
 
 // POST /api/auth/verify-email-code
-authRouter.post('/verify-email-code', requireAuth, (req: AuthRequest, res: Response) => {
+authRouter.post('/verify-email-code', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ success: false, error: '6-digit code is required' });
 
-    const user = db.prepare('SELECT email FROM users WHERE id = ?').get(req.userId) as any;
+    const user = await db.prepare('SELECT email FROM users WHERE id = ?').get(req.userId) as any;
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
     const now = new Date().toISOString();
-    const record = db.prepare(`
+    const record = await db.prepare(`
       SELECT * FROM verifications 
       WHERE target = ? AND type = 'email' AND expires_at > ?
       ORDER BY created_at DESC LIMIT 1
@@ -540,8 +540,8 @@ authRouter.post('/verify-email-code', requireAuth, (req: AuthRequest, res: Respo
       return res.status(400).json({ success: false, error: 'Invalid or expired verification code' });
     }
 
-    db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(req.userId);
-    db.prepare("DELETE FROM verifications WHERE target = ? AND type = 'email'").run(user.email);
+    await db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(req.userId);
+    await db.prepare("DELETE FROM verifications WHERE target = ? AND type = 'email'").run(user.email);
 
     return res.json({
       success: true,
@@ -554,7 +554,7 @@ authRouter.post('/verify-email-code', requireAuth, (req: AuthRequest, res: Respo
 });
 
 // POST /api/auth/verify-account-phone
-authRouter.post('/verify-account-phone', requireAuth, (req: AuthRequest, res: Response) => {
+authRouter.post('/verify-account-phone', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { phone, otp } = req.body;
     if (!phone || !otp) {
@@ -567,7 +567,7 @@ authRouter.post('/verify-account-phone', requireAuth, (req: AuthRequest, res: Re
       return res.status(400).json({ success: false, error: 'Invalid or expired OTP code' });
     }
 
-    db.prepare('UPDATE users SET phone = ?, phone_verified = 1 WHERE id = ?').run(cleanPhone, req.userId);
+    await db.prepare('UPDATE users SET phone = ?, phone_verified = 1 WHERE id = ?').run(cleanPhone, req.userId);
 
     return res.json({
       success: true,

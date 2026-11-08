@@ -20,7 +20,7 @@ function mapCollabRow(row: any): Collab {
 }
 
 // GET /api/collabs with user tenant isolation & filters
-collabsRouter.get('/', (req: AuthRequest, res: Response) => {
+collabsRouter.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
     const {
@@ -74,7 +74,7 @@ collabsRouter.get('/', (req: AuthRequest, res: Response) => {
 
     query += ` ORDER BY ${safeSortBy} ${safeSortOrder}`;
 
-    const rows = db.prepare(query).all(...params);
+    const rows = await db.prepare(query).all(...params);
     const collabs = rows.map(mapCollabRow);
 
     res.json({ success: true, count: collabs.length, data: collabs });
@@ -84,9 +84,9 @@ collabsRouter.get('/', (req: AuthRequest, res: Response) => {
 });
 
 // GET /api/collabs/:id (Tenant isolated)
-collabsRouter.get('/:id', (req: AuthRequest, res: Response) => {
+collabsRouter.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const row = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+    const row = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
     if (!row) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
@@ -97,7 +97,7 @@ collabsRouter.get('/:id', (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/collabs (Always associates created record with req.userId)
-collabsRouter.post('/', (req: AuthRequest, res: Response) => {
+collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const body = req.body;
     const id = uuidv4();
@@ -126,7 +126,7 @@ collabsRouter.post('/', (req: AuthRequest, res: Response) => {
       )
     `);
 
-    insertStmt.run(
+    await insertStmt.run(
       id,
       userId,
       body.title || 'Untitled Collaboration',
@@ -170,7 +170,7 @@ collabsRouter.post('/', (req: AuthRequest, res: Response) => {
       now
     );
 
-    const created = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
+    const created = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
     res.status(201).json({ success: true, data: mapCollabRow(created) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -178,14 +178,14 @@ collabsRouter.post('/', (req: AuthRequest, res: Response) => {
 });
 
 // PUT & PATCH /api/collabs/:id (Tenant isolated partial & full update)
-const handleUpdateCollab = (req: AuthRequest, res: Response) => {
+const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const body = req.body;
     const userId = req.userId;
     const now = new Date().toISOString();
 
-    const existing = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId) as any;
+    const existing = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId) as any;
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
@@ -275,7 +275,7 @@ const handleUpdateCollab = (req: AuthRequest, res: Response) => {
       WHERE id = ? AND user_id = ?
     `);
 
-    updateStmt.run(
+    await updateStmt.run(
       merged.title,
       merged.brand_id || null,
       merged.brand_name,
@@ -318,7 +318,7 @@ const handleUpdateCollab = (req: AuthRequest, res: Response) => {
       userId
     );
 
-    const updated = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
+    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
     res.json({ success: true, data: mapCollabRow(updated) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -329,19 +329,19 @@ collabsRouter.put('/:id', handleUpdateCollab);
 collabsRouter.patch('/:id', handleUpdateCollab);
 
 // PATCH /api/collabs/:id/stage (Strictly tenant isolated)
-collabsRouter.patch('/:id/stage', (req: AuthRequest, res: Response) => {
+collabsRouter.patch('/:id/stage', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { stage } = req.body;
     const userId = req.userId;
     const now = new Date().toISOString();
 
-    const result = db.prepare('UPDATE collabs SET pipeline_stage = ?, updated_at = ? WHERE id = ? AND user_id = ?').run(stage, now, id, userId);
+    const result = await db.prepare('UPDATE collabs SET pipeline_stage = ?, updated_at = ? WHERE id = ? AND user_id = ?').run(stage, now, id, userId);
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
 
-    const updated = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
+    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
     res.json({ success: true, data: mapCollabRow(updated) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -349,14 +349,14 @@ collabsRouter.patch('/:id/stage', (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/collabs/:id/payment (Strictly tenant isolated)
-collabsRouter.patch('/:id/payment', (req: AuthRequest, res: Response) => {
+collabsRouter.patch('/:id/payment', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { payment_status, amount_paid, payment_received_date, invoice_number } = req.body;
     const userId = req.userId;
     const now = new Date().toISOString();
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       UPDATE collabs SET
         payment_status = COALESCE(?, payment_status),
         amount_paid = COALESCE(?, amount_paid),
@@ -370,7 +370,7 @@ collabsRouter.patch('/:id/payment', (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
 
-    const updated = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
+    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
     res.json({ success: true, data: mapCollabRow(updated) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -378,7 +378,7 @@ collabsRouter.patch('/:id/payment', (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/collabs/:id/live (Strictly tenant isolated)
-collabsRouter.patch('/:id/live', (req: AuthRequest, res: Response) => {
+collabsRouter.patch('/:id/live', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { live_post_url, actual_posted_date } = req.body;
@@ -386,7 +386,7 @@ collabsRouter.patch('/:id/live', (req: AuthRequest, res: Response) => {
     const now = new Date().toISOString();
     const postDate = actual_posted_date || now.split('T')[0];
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       UPDATE collabs SET
         live_post_url = ?,
         actual_posted_date = ?,
@@ -399,7 +399,7 @@ collabsRouter.patch('/:id/live', (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
 
-    const updated = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
+    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
     res.json({ success: true, data: mapCollabRow(updated) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -475,7 +475,7 @@ collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) 
     const { id } = req.params;
     const userId = req.userId;
 
-    const collab = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId) as any;
+    const collab = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId) as any;
     if (!collab) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
@@ -512,7 +512,7 @@ collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) 
     const likes = (details && details.likesCount > 0) ? details.likesCount : collab.likes_count;
 
     const now = new Date().toISOString();
-    db.prepare(`
+    await db.prepare(`
       UPDATE collabs SET
         views_count = ?,
         likes_count = ?,
@@ -520,7 +520,7 @@ collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) 
       WHERE id = ? AND user_id = ?
     `).run(views, likes, now, id, userId);
 
-    const updated = db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
+    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
     
     res.json({ 
       success: true, 
@@ -541,11 +541,11 @@ collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) 
 });
 
 // DELETE /api/collabs/:id (Strictly tenant isolated)
-collabsRouter.delete('/:id', (req: AuthRequest, res: Response) => {
+collabsRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
-    const result = db.prepare('DELETE FROM collabs WHERE id = ? AND user_id = ?').run(id, userId);
+    const result = await db.prepare('DELETE FROM collabs WHERE id = ? AND user_id = ?').run(id, userId);
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }

@@ -9,11 +9,11 @@ export const brandsRouter = Router();
 brandsRouter.use(requireAuth);
 
 // GET /api/brands - STRICTLY SCOPED: collabs_count and total_spent only reflect the authenticated creator's deals
-brandsRouter.get('/', (req: AuthRequest, res: Response) => {
+brandsRouter.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId;
 
-    const brands = db.prepare(`
+    const brands = await db.prepare(`
       SELECT b.*,
         COUNT(c.id) as collabs_count,
         COALESCE(SUM(CASE WHEN c.user_id = ? THEN c.deal_amount ELSE 0 END), 0) as total_spent
@@ -30,7 +30,7 @@ brandsRouter.get('/', (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/brands
-brandsRouter.post('/', (req: AuthRequest, res: Response) => {
+brandsRouter.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const { name, category, contact_person, contact_email, contact_phone, avg_payment_speed_days, rating, notes } = req.body;
     
@@ -41,7 +41,7 @@ brandsRouter.post('/', (req: AuthRequest, res: Response) => {
     const id = uuidv4();
     const created_at = new Date().toISOString();
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO brands (id, name, category, contact_person, contact_email, contact_phone, avg_payment_speed_days, rating, notes, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
@@ -57,7 +57,7 @@ brandsRouter.post('/', (req: AuthRequest, res: Response) => {
       created_at
     );
 
-    const created = db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
+    const created = await db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
     res.status(201).json({ success: true, data: created });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -65,17 +65,17 @@ brandsRouter.post('/', (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/brands/:id
-brandsRouter.put('/:id', (req: AuthRequest, res: Response) => {
+brandsRouter.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, category, contact_person, contact_email, contact_phone, avg_payment_speed_days, rating, notes } = req.body;
 
-    const exists = db.prepare('SELECT id FROM brands WHERE id = ?').get(id);
+    const exists = await db.prepare('SELECT id FROM brands WHERE id = ?').get(id);
     if (!exists) {
       return res.status(404).json({ success: false, error: 'Brand not found' });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE brands SET
         name = ?,
         category = ?,
@@ -98,7 +98,7 @@ brandsRouter.put('/:id', (req: AuthRequest, res: Response) => {
       id
     );
 
-    const updated = db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
+    const updated = await db.prepare('SELECT * FROM brands WHERE id = ?').get(id);
     res.json({ success: true, data: updated });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -106,10 +106,10 @@ brandsRouter.put('/:id', (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/brands/:id
-brandsRouter.delete('/:id', (req: AuthRequest, res: Response) => {
+brandsRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    db.prepare('DELETE FROM brands WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM brands WHERE id = ?').run(id);
     res.json({ success: true, message: 'Brand deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });

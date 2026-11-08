@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initDB } from './db/database';
-import { autoSeedIfEmpty } from './db/seed';
 import { authRouter } from './routes/auth';
 import { collabsRouter } from './routes/collabs';
 import { brandsRouter } from './routes/brands';
@@ -47,22 +46,15 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 
-// Initialize database
+// Initialize database in strict hosted mode (zero local SQLite fallback)
 initDB();
-autoSeedIfEmpty();
 
-// Initialize remote Turso Cloud database if configured
 if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
-  import('./db/tursoAdapter').then(({ TursoAdapter, initializeTursoSchema }) => {
-    const turso = new TursoAdapter(process.env.TURSO_DATABASE_URL!, process.env.TURSO_AUTH_TOKEN!);
-    initializeTursoSchema(turso).catch((err: any) => {
-      console.error('❌ [Turso Cloud Connection Failed]:', err.message);
-    });
-  }).catch((err: any) => {
-    console.error('❌ [Turso Import Error]:', err.message);
-  });
-} else if (process.env.NODE_ENV === 'production') {
-  console.warn('⚠️ [Production Database Warning]: TURSO_DATABASE_URL is not set. Data is stored on local instance disk.');
+  console.log('📡 [Database Layer] Connected to remote Turso Cloud database.');
+  console.log(`   URL: ${process.env.TURSO_DATABASE_URL.replace(/:[^:]*@/, ':***@')}`);
+} else {
+  console.error('❌ [FATAL DATABASE ERROR]: Local SQLite is completely decommissioned.');
+  console.error('   TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be configured in environment variables.');
 }
 
 // API Routes
