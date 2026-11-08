@@ -718,6 +718,7 @@ export function App() {
           onMarkPaid={(c) => handleQuickMarkPaid(c.id)}
           onOpenInvoice={(c) => setInvoiceCollab(c)}
           onOpenPitchGenerator={(c) => { setPitchCollab(c); setIsPitchOpen(true); }}
+          onDeleteCollab={handleDeleteCollab}
         />
       )}
 

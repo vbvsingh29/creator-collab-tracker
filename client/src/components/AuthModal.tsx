@@ -15,7 +15,9 @@ import {
   ShieldCheck,
   Activity,
   Phone,
-  Smartphone
+  Smartphone,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
@@ -53,6 +55,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

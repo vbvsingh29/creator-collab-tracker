@@ -24,7 +24,10 @@ import {
   ChevronRight,
   TrendingUp,
   FileText,
-  Sparkles
+  Sparkles,
+  Trash2,
+  Archive,
+  RotateCcw
 } from 'lucide-react';
 import { Collab, Currency, PipelineStage } from '../types';
 import { formatCurrency, getDeliverableLabel, getPaymentBadge, getStageConfig } from '../utils/formatters';
@@ -41,6 +44,7 @@ interface CollabDrawerProps {
   onMarkPaid: (collab: Collab) => void;
   onOpenInvoice?: (collab: Collab) => void;
   onOpenPitchGenerator?: (collab: Collab) => void;
+  onDeleteCollab?: (id: string) => Promise<void> | void;
 }
 
 export const CollabDrawer: React.FC<CollabDrawerProps> = ({
@@ -53,7 +57,8 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   onOpenFollowUp,
   onMarkPaid,
   onOpenInvoice,
-  onOpenPitchGenerator
+  onOpenPitchGenerator,
+  onDeleteCollab
 }) => {
   const [drawerMode, setDrawerMode] = useState<'simple' | 'advanced'>(appMode);
   const [showDeepDetails, setShowDeepDetails] = useState(false);
@@ -645,14 +650,18 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
 
         {/* Drawer Footer Actions */}
         <div className="sticky bottom-0 bg-zinc-950/90 backdrop-blur-md border-t border-zinc-800 p-4 flex items-center justify-between">
-          <button
-            onClick={() => {
-              if (confirm('Are you sure you want to delete this collaboration?')) {
-                // Delete handled in parent
+                    <button
+            onClick={async () => {
+              if (confirm(`Are you sure you want to permanently delete "${collab.title}"?`)) {
+                if (onDeleteCollab) {
+                  await onDeleteCollab(collab.id);
+                }
+                onClose();
               }
             }}
-            className="text-xs text-red-400 hover:text-red-300 hover:underline"
+            className="text-xs text-red-400 hover:text-red-300 hover:underline flex items-center gap-1.5 font-medium"
           >
+            <Trash2 size={13} />
             Delete Collaboration
           </button>
 

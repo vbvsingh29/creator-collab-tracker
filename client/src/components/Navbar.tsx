@@ -27,7 +27,8 @@ import {
   Globe,
   Share2,
   Wrench,
-  Calendar
+  Calendar,
+  ShieldCheck
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -370,7 +371,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* CREATOR PROFILE & SETTINGS DROPDOWN */}
         {user ? (
-          <div className="relative" ref={profileRef}>
+          <div className="flex items-center gap-1.5">
+            {onOpenProfile && (
+              <button
+                onClick={onOpenProfile}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/80 text-xs font-semibold text-slate-700 dark:text-zinc-200 transition-colors shadow-2xs mr-1"
+                title="Manage Creator Profile & Verification"
+              >
+                <UserIcon size={13} className="text-indigo-500" />
+                <span>Profile</span>
+                {user.email_verified && <ShieldCheck size={12} className="text-emerald-500" />}
+              </button>
+            )}
+            <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
               className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 transition-colors"
@@ -498,6 +511,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
             )}
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-2">

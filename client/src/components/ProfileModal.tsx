@@ -12,13 +12,22 @@ import {
   Mail, 
   Phone, 
   ShieldCheck, 
-  Layers, 
+  Lock,
+  Smartphone,
+  CheckCircle2,
+  RefreshCw,
   Camera,
   AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { User, Platform } from '../types';
-import { apiUpdateProfile } from '../services/api';
+import { 
+  apiUpdateProfile, 
+  apiSendEmailVerify, 
+  apiVerifyEmailCode, 
+  apiSendSmsOtp, 
+  apiVerifyAccountPhone 
+} from '../services/api';
 
 interface ProfileModalProps {
   user: User | null;
@@ -27,8 +36,6 @@ interface ProfileModalProps {
   onProfileUpdated?: (updatedUser: User) => void;
   onOpenAuth?: () => void;
 }
-
-// No static demo user
 
 const CATEGORIES = [
   'Tech & Consumer Electronics',
@@ -68,7 +75,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <div>
             <h3 className="text-base font-bold text-zinc-900 dark:text-white">Sign In to Edit Your Profile</h3>
             <p className="text-xs text-zinc-500 mt-1">
-              Create an account or sign in to customize your creator profile, set your baseline rate card, and link your social handles.
+              Create an account or sign in to customize your creator profile, verify your email and phone, and set your baseline rate card.
             </p>
           </div>
           <div className="flex gap-2 justify-center pt-2">
@@ -86,30 +93,47 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     );
   }
 
-  const activeUser = user;
-
   // Profile Form State
-  const [name, setName] = useState(activeUser.name || '');
-  const [handle, setHandle] = useState(activeUser.handle || '');
-  const [platform, setPlatform] = useState<Platform>(activeUser.platform || 'both');
-  const [category, setCategory] = useState(activeUser.category || 'Tech & Consumer Electronics');
-  const [bio, setBio] = useState(activeUser.bio || '');
-  const [phone, setPhone] = useState(activeUser.phone || '');
+  const [name, setName] = useState(user.name || '');
+  const [handle, setHandle] = useState(user.handle || '');
+  const [email, setEmail] = useState(user.email || '');
+  const [platform, setPlatform] = useState<Platform>(user.platform || 'both');
+  const [category, setCategory] = useState(user.category || 'Tech & Consumer Electronics');
+  const [bio, setBio] = useState(user.bio || '');
+  const [phone, setPhone] = useState(user.phone || '');
   const [avatarUrl, setAvatarUrl] = useState(
-    activeUser.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeUser.name || 'creator')}`
+    user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'creator')}`
   );
 
+  // Verification Flags
+  const [emailVerified, setEmailVerified] = useState(Boolean(user.email_verified));
+  const [phoneVerified, setPhoneVerified] = useState(Boolean(user.phone_verified));
+
+  // Email Verification UI State
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  // Phone Verification UI State
+  const [smsOtpSent, setSmsOtpSent] = useState(false);
+  const [smsOtpCode, setSmsOtpCode] = useState('');
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsVerifying, setSmsVerifying] = useState(false);
+  const [smsFeedback, setSmsFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+
   // Baseline Rates State
-  const [reelRate, setReelRate] = useState<number>(activeUser.rates?.reel_rate || 0);
-  const [videoRate, setVideoRate] = useState<number>(activeUser.rates?.video_rate || 0);
-  const [storyRate, setStoryRate] = useState<number>(activeUser.rates?.story_rate || 0);
-  const [whitelistingRate, setWhitelistingRate] = useState<number>(activeUser.rates?.whitelisting_monthly_rate || 0);
+  const [reelRate, setReelRate] = useState<number>(user.rates?.reel_rate || 0);
+  const [videoRate, setVideoRate] = useState<number>(user.rates?.video_rate || 0);
+  const [storyRate, setStoryRate] = useState<number>(user.rates?.story_rate || 0);
+  const [whitelistingRate, setWhitelistingRate] = useState<number>(user.rates?.whitelisting_monthly_rate || 0);
 
   // Social Links State
-  const [igUrl, setIgUrl] = useState(activeUser.social_links?.instagram || '');
-  const [ytUrl, setYtUrl] = useState(activeUser.social_links?.youtube || '');
-  const [twitterUrl, setTwitterUrl] = useState(activeUser.social_links?.twitter || '');
-  const [websiteUrl, setWebsiteUrl] = useState(activeUser.social_links?.website || '');
+  const [igUrl, setIgUrl] = useState(user.social_links?.instagram || '');
+  const [ytUrl, setYtUrl] = useState(user.social_links?.youtube || '');
+  const [twitterUrl, setTwitterUrl] = useState(user.social_links?.twitter || '');
+  const [websiteUrl, setWebsiteUrl] = useState(user.social_links?.website || '');
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -133,49 +157,122 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   }, [onClose]);
 
   useEffect(() => {
-    if (!user) {
-      setName('');
-      setHandle('');
-      setPlatform('both');
-      setCategory('Tech & Consumer Electronics');
-      setBio('');
-      setPhone('');
-      setAvatarUrl('');
-      setReelRate(0);
-      setVideoRate(0);
-      setStoryRate(0);
-      setWhitelistingRate(0);
-      return;
+    if (user) {
+      setName(user.name || '');
+      setHandle(user.handle || '');
+      setEmail(user.email || '');
+      setPlatform(user.platform || 'both');
+      setCategory(user.category || 'Tech & Consumer Electronics');
+      setBio(user.bio || '');
+      setPhone(user.phone || '');
+      setEmailVerified(Boolean(user.email_verified));
+      setPhoneVerified(Boolean(user.phone_verified));
+      setAvatarUrl(user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`);
+      setReelRate(user.rates?.reel_rate || 0);
+      setVideoRate(user.rates?.video_rate || 0);
+      setStoryRate(user.rates?.story_rate || 0);
+      setWhitelistingRate(user.rates?.whitelisting_monthly_rate || 0);
     }
-    setName(user.name || '');
-    setHandle(user.handle || '');
-    setPlatform(user.platform || 'both');
-    setCategory(user.category || 'Tech & Consumer Electronics');
-    setBio(user.bio || '');
-    setPhone(user.phone || '');
-    setAvatarUrl(user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`);
-    setReelRate(user.rates?.reel_rate || 0);
-    setVideoRate(user.rates?.video_rate || 0);
-    setStoryRate(user.rates?.story_rate || 0);
-    setWhitelistingRate(user.rates?.whitelisting_monthly_rate || 0);
   }, [user, isOpen]);
 
+  // Trigger Email OTP Verification
+  const handleSendEmailOtp = async () => {
+    setEmailSending(true);
+    setEmailFeedback(null);
+    try {
+      const res = await apiSendEmailVerify();
+      setEmailOtpSent(true);
+      setEmailFeedback({ type: 'success', msg: res.message || 'Verification code sent to your email.' });
+    } catch (err: any) {
+      setEmailFeedback({ type: 'error', msg: err.message || 'Failed to send email verification code.' });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  // Confirm Email OTP Code
+  const handleVerifyEmailCode = async () => {
+    if (!emailOtpCode.trim() || emailOtpCode.trim().length !== 6) {
+      setEmailFeedback({ type: 'error', msg: 'Please enter the 6-digit code received in your inbox.' });
+      return;
+    }
+    setEmailVerifying(true);
+    setEmailFeedback(null);
+    try {
+      const res = await apiVerifyEmailCode(emailOtpCode.trim());
+      if (res.email_verified) {
+        setEmailVerified(true);
+        setEmailOtpSent(false);
+        setEmailFeedback({ type: 'success', msg: '✓ Email address verified and permanently locked!' });
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        if (onProfileUpdated && user) {
+          onProfileUpdated({ ...user, email_verified: true });
+        }
+      }
+    } catch (err: any) {
+      setEmailFeedback({ type: 'error', msg: err.message || 'Invalid or expired code. Please try again.' });
+    } finally {
+      setEmailVerifying(false);
+    }
+  };
+
+  // Trigger SMS OTP Verification
+  const handleSendSmsOtp = async () => {
+    if (!phone || phone.trim().length < 8) {
+      setSmsFeedback({ type: 'error', msg: 'Please enter a valid mobile number with country code (e.g. +91 9876543210).' });
+      return;
+    }
+    setSmsSending(true);
+    setSmsFeedback(null);
+    try {
+      const res = await apiSendSmsOtp(phone.trim());
+      setSmsOtpSent(true);
+      setSmsFeedback({ type: 'success', msg: res.message || '6-digit SMS OTP dispatched to your mobile.' });
+    } catch (err: any) {
+      setSmsFeedback({ type: 'error', msg: err.message || 'Failed to dispatch SMS verification.' });
+    } finally {
+      setSmsSending(false);
+    }
+  };
+
+  // Confirm SMS OTP Code
+  const handleVerifySmsCode = async () => {
+    if (!smsOtpCode.trim() || smsOtpCode.trim().length !== 6) {
+      setSmsFeedback({ type: 'error', msg: 'Please enter the 6-digit SMS OTP received.' });
+      return;
+    }
+    setSmsVerifying(true);
+    setSmsFeedback(null);
+    try {
+      const res = await apiVerifyAccountPhone(phone.trim(), smsOtpCode.trim());
+      if (res.phone_verified) {
+        setPhoneVerified(true);
+        setSmsOtpSent(false);
+        setSmsFeedback({ type: 'success', msg: '✓ Mobile number successfully verified!' });
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        if (onProfileUpdated && user) {
+          onProfileUpdated({ ...user, phone: res.phone, phone_verified: true });
+        }
+      }
+    } catch (err: any) {
+      setSmsFeedback({ type: 'error', msg: err.message || 'Invalid or expired OTP code.' });
+    } finally {
+      setSmsVerifying(false);
+    }
+  };
+
+  // Save General Profile Edits
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     setSuccess(false);
 
-    if (!user) {
-      setSaving(false);
-      setError('You are viewing in Demo Mode. Please log in or select a demo creator account to save permanent edits.');
-      return;
-    }
-
     try {
       const updatedData: Partial<User> = {
         name: name.trim(),
         handle: handle.trim(),
+        email: email.trim(),
         platform,
         category,
         bio: bio.trim(),
@@ -225,8 +322,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <UserIcon size={16} />
             </div>
             <div>
-              <h3 className="font-bold text-sm">Creator Profile & Brand Kit</h3>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Manage your creator identity, public bio, and baseline commercials</p>
+              <h3 className="font-bold text-sm">Creator Profile & Verification</h3>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Manage verified contact channels, security locks, and baseline commercials</p>
             </div>
           </div>
           <button 
@@ -237,11 +334,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
 
-        
-
         {/* Modal Body */}
         <form onSubmit={handleSave} className="p-6 space-y-6 text-xs max-h-[82vh] overflow-y-auto">
-          {/* Avatar & Cover Section */}
+          {/* Avatar Section */}
           <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-2xl bg-zinc-100/80 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800">
             <div className="relative group">
               <img 
@@ -255,8 +350,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
 
             <div className="space-y-2 flex-1 text-center sm:text-left">
-              <div className="font-bold text-sm">{name} <span className="text-zinc-400 font-mono font-normal">{handle}</span></div>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Choose from animated avatar styles or paste custom image URL:</p>
+              <div className="font-bold text-sm flex items-center justify-center sm:justify-start gap-2">
+                <span>{name}</span>
+                <span className="text-zinc-400 font-mono font-normal">{handle}</span>
+                {emailVerified && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
+                    <ShieldCheck size={11} /> Verified Creator
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Choose from avatar styles or paste external HTTPS image URL:</p>
               <div className="flex items-center justify-center sm:justify-start gap-1.5">
                 {avatarPresets.map((preset, idx) => (
                   <button
@@ -278,6 +381,194 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 placeholder="Or paste external avatar image URL (HTTPS)"
                 className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
+            </div>
+          </div>
+
+          {/* SECTION: VERIFIED CONTACT & SECURITY LOCKS */}
+          <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 space-y-4">
+            <h4 className="font-bold text-zinc-800 dark:text-zinc-200 text-xs flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-emerald-500" />
+              <span>Verified Security Channels & Account Locks</span>
+            </h4>
+
+            {/* Email Address + Lock */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                  <Mail size={12} className="text-zinc-400" />
+                  <span>Primary Creator Email</span>
+                </label>
+                {emailVerified ? (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 text-[10px] font-bold flex items-center gap-1">
+                    <ShieldCheck size={11} /> Verified & Locked
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/25 text-[10px] font-bold">
+                    Unverified
+                  </span>
+                )}
+              </div>
+
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  disabled={emailVerified}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-xl text-xs font-mono transition-colors ${
+                    emailVerified
+                      ? 'bg-zinc-100 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 cursor-not-allowed pl-8'
+                      : 'bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100'
+                  }`}
+                />
+                {emailVerified && (
+                  <Lock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-500" />
+                )}
+              </div>
+
+              {emailVerified ? (
+                <p className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium">
+                  <Lock size={10} className="text-emerald-500 inline" />
+                  Verified email address is locked for account security and cannot be modified.
+                </p>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  {!emailOtpSent ? (
+                    <button
+                      type="button"
+                      onClick={handleSendEmailOtp}
+                      disabled={emailSending}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                    >
+                      <RefreshCw size={12} className={emailSending ? 'animate-spin' : ''} />
+                      <span>{emailSending ? 'Sending 6-Digit Code...' : 'Verify Email via OTP'}</span>
+                    </button>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 space-y-2">
+                      <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                        Enter the 6-digit verification code sent to {email}:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="123456"
+                          value={emailOtpCode}
+                          onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, ''))}
+                          className="w-32 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-indigo-400 text-center font-mono font-bold tracking-widest text-sm focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyEmailCode}
+                          disabled={emailVerifying}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                        >
+                          {emailVerifying ? 'Verifying...' : 'Confirm Code'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSendEmailOtp}
+                          disabled={emailSending}
+                          className="text-xs text-zinc-500 hover:underline"
+                        >
+                          Resend
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {emailFeedback && (
+                    <p className={`text-[11px] font-medium ${emailFeedback.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                      {emailFeedback.msg}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Phone Verification */}
+            <div className="space-y-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                  <Phone size={12} className="text-zinc-400" />
+                  <span>Mobile Phone Number (WhatsApp & SMS OTP Login)</span>
+                </label>
+                {phoneVerified ? (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 text-[10px] font-bold flex items-center gap-1">
+                    <Smartphone size={11} /> Phone Verified
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[10px] font-bold">
+                    Unverified
+                  </span>
+                )}
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100 font-mono text-xs"
+                />
+              </div>
+
+              {!phoneVerified ? (
+                <div className="space-y-2 pt-1">
+                  {!smsOtpSent ? (
+                    <button
+                      type="button"
+                      onClick={handleSendSmsOtp}
+                      disabled={smsSending}
+                      className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                    >
+                      <Smartphone size={12} className={smsSending ? 'animate-spin' : ''} />
+                      <span>{smsSending ? 'Dispatching SMS...' : 'Verify Mobile via SMS OTP'}</span>
+                    </button>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 space-y-2">
+                      <p className="text-[11px] text-teal-600 dark:text-teal-400 font-semibold">
+                        Enter the 6-digit SMS code sent to {phone}:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="123456"
+                          value={smsOtpCode}
+                          onChange={(e) => setSmsOtpCode(e.target.value.replace(/\D/g, ''))}
+                          className="w-32 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-teal-400 text-center font-mono font-bold tracking-widest text-sm focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifySmsCode}
+                          disabled={smsVerifying}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+                        >
+                          {smsVerifying ? 'Verifying...' : 'Confirm OTP'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSendSmsOtp}
+                          disabled={smsSending}
+                          className="text-xs text-zinc-500 hover:underline"
+                        >
+                          Resend
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {smsFeedback && (
+                    <p className={`text-[11px] font-medium ${smsFeedback.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                      {smsFeedback.msg}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                  <CheckCircle2 size={11} /> Verified for 1-click mobile SMS OTP login.
+                </p>
+              )}
             </div>
           </div>
 
@@ -371,20 +662,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
               />
             </div>
-
-            <div>
-              <label className="block text-zinc-500 dark:text-zinc-400 text-[11px] mb-1 font-medium">Direct WhatsApp / Mobile Phone (for Agency Escalations)</label>
-              <div className="relative">
-                <Phone size={14} className="absolute left-3.5 top-3 text-zinc-400" />
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+91 98200 12345"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
-                />
-              </div>
-            </div>
           </div>
 
           {/* Section: Baseline Commercial Rates */}
@@ -451,10 +728,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Section: Social Profiles & Links */}
+          {/* Section: Social & Portfolio Links */}
           <div className="space-y-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
             <h4 className="font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-              <Globe size={13} className="text-indigo-500" /> Verified Social Links
+              <Globe size={13} className="text-sky-500" /> Public Social Links & Media Kit
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -464,8 +741,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   type="text"
                   value={igUrl}
                   onChange={(e) => setIgUrl(e.target.value)}
-                  placeholder="https://instagram.com/yourhandle"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="https://instagram.com/username"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
                 />
               </div>
 
@@ -475,36 +752,35 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   type="text"
                   value={ytUrl}
                   onChange={(e) => setYtUrl(e.target.value)}
-                  placeholder="https://youtube.com/@yourchannel"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="https://youtube.com/@channel"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
                 />
               </div>
 
               <div className="relative">
-                <Twitter size={14} className="absolute left-3 top-3 text-sky-400" />
+                <Twitter size={14} className="absolute left-3 top-3 text-sky-500" />
                 <input
                   type="text"
                   value={twitterUrl}
                   onChange={(e) => setTwitterUrl(e.target.value)}
-                  placeholder="https://x.com/yourhandle"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="https://x.com/handle"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
                 />
               </div>
 
               <div className="relative">
-                <Globe size={14} className="absolute left-3 top-3 text-zinc-400" />
+                <Globe size={14} className="absolute left-3 top-3 text-indigo-500" />
                 <input
                   type="text"
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="https://yourwebsite.com"
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="https://yourportfolio.com"
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
                 />
               </div>
             </div>
           </div>
 
-          {/* Feedback & Actions */}
           {error && (
             <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 flex items-center gap-2">
               <AlertCircle size={14} className="shrink-0" />
@@ -514,25 +790,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
           {success && (
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-              <Check size={14} />
-              <span>Profile, commercials, and brand kit updated successfully!</span>
+              <Check size={14} className="shrink-0" />
+              <span>Profile and baseline commercials updated successfully!</span>
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+          {/* Modal Footer Controls */}
+          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 font-semibold"
+              className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 font-semibold"
             >
-              Close
+              Cancel
             </button>
+
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+              className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold shadow-md hover:shadow-indigo-500/20 transition-all"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving...' : 'Save Profile Changes'}
             </button>
           </div>
         </form>

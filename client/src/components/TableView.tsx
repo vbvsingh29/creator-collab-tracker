@@ -73,7 +73,7 @@ export const TableView: React.FC<TableViewProps> = ({
           comparison = dateA.localeCompare(dateB);
           break;
         case 'stage':
-          const stageOrder = ['pitching', 'brief_received', 'script_submitted', 'brand_review', 'revisions', 'approved', 'posted_live', 'completed'];
+          const stageOrder = ['pitch_inquiry', 'negotiating', 'script_approved', 'content_production', 'brand_review', 'scheduled', 'posted_live', 'completed', 'closed'];
           comparison = stageOrder.indexOf(a.pipeline_stage) - stageOrder.indexOf(b.pipeline_stage);
           break;
       }

@@ -138,7 +138,8 @@ export function computeLocalStats(collabs: Collab[]): StatsSummary {
     brand_review: 0,
     scheduled: 0,
     posted_live: 0,
-    completed: 0
+    completed: 0,
+    closed: 0
   };
   const dealsByCommercial = { paid: 0, barter: 0, affiliate: 0, hybrid: 0 };
 

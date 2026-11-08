@@ -99,7 +99,8 @@ export type PipelineStage =
   | 'brand_review'
   | 'scheduled'
   | 'posted_live'
-  | 'completed';
+  | 'completed'
+  | 'closed';
 
 export interface DeliverableItem {
   id: string;

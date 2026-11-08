@@ -30,7 +30,8 @@ const STAGES: PipelineStage[] = [
   'brand_review',
   'scheduled',
   'posted_live',
-  'completed'
+  'completed',
+  'closed'
 ];
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({

@@ -198,16 +198,30 @@ authRouter.put('/profile', requireAuth, async (req: AuthRequest, res: Response) 
       team_members
     } = req.body;
 
-    const existingUser = await db.prepare('SELECT social_accounts_json, team_members_json FROM users WHERE id = ?').get(userId) as any;
+    const existingUser = await db.prepare('SELECT email, email_verified, phone_verified, social_accounts_json, team_members_json FROM users WHERE id = ?').get(userId) as any;
+
+    // Enforce email lock once email is verified
+    let finalEmail = existingUser?.email;
+    if (req.body.email && req.body.email.trim().toLowerCase() !== existingUser?.email?.toLowerCase()) {
+      if (existingUser?.email_verified) {
+        return res.status(400).json({
+          success: false,
+          error: 'Verified email address is locked for account security and cannot be changed.'
+        });
+      }
+      finalEmail = req.body.email.trim().toLowerCase();
+    }
+
     const finalSocialAccounts = social_accounts !== undefined ? JSON.stringify(social_accounts) : (existingUser?.social_accounts_json || '[]');
     const finalTeamMembers = team_members !== undefined ? JSON.stringify(team_members) : (existingUser?.team_members_json || '[]');
 
     await db.prepare(`
       UPDATE users 
-      SET name = ?, handle = ?, platform = ?, avatar_url = ?, bio = ?, phone = ?, category = ?, rates_json = ?, social_links_json = ?, social_accounts_json = ?, team_members_json = ?
+      SET name = ?, email = ?, handle = ?, platform = ?, avatar_url = ?, bio = ?, phone = ?, category = ?, rates_json = ?, social_links_json = ?, social_accounts_json = ?, team_members_json = ?
       WHERE id = ?
     `).run(
       name.trim(),
+      finalEmail,
       cleanHandle,
       platform || 'both',
       avatar_url || '',

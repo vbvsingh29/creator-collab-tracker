@@ -140,5 +140,7 @@ export function getStageConfig(stage: PipelineStage): { label: string; step: num
       return { label: 'Posted Live', step: 7, color: 'text-emerald-600' };
     case 'completed':
       return { label: 'Completed & Paid', step: 8, color: 'text-teal-600' };
+    case 'closed':
+      return { label: 'Closed / Archived', step: 9, color: 'text-zinc-400' };
   }
 }

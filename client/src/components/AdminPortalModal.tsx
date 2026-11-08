@@ -92,7 +92,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
   const [cohortSearch, setCohortSearch] = useState<string>('');
   const [platformFilter, setPlatformFilter] = useState<'all' | 'youtube' | 'instagram' | 'both'>('all');
   const [lastHeartbeat, setLastHeartbeat] = useState<string>('Just now');
-  const [pulseCount, setPulseCount] = useState<number>(48);
+  const [pulseCount, setPulseCount] = useState<number>(1);
   const [healthData, setHealthData] = useState<any>(null);
   const [healthLoading, setHealthLoading] = useState<boolean>(false);
 
@@ -221,7 +221,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
       const metrics = await fetchAdminMetrics();
       setData(metrics);
       setLastHeartbeat(new Date().toLocaleTimeString());
-      setPulseCount(metrics?.active_users?.realtime_active || 48);
+      setPulseCount(metrics?.active_users?.realtime_active ?? 1);
     } catch (err) {
       console.error('Failed to load admin telemetry:', err);
     } finally {
@@ -1140,10 +1140,10 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                       </div>
                       <div className="flex items-baseline justify-between">
                         <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-                          {data?.total_onboarded_users?.toLocaleString() || '1,423'}
+                          {data?.total_onboarded_users?.toLocaleString() ?? 0}
                         </div>
                         <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center">
-                          +{data?.onboarded_growth_rate || 19.4}%
+                          +{data?.onboarded_growth_rate ?? 0}%
                           <ArrowUpRight size={12} />
                         </span>
                       </div>
@@ -1158,14 +1158,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                       </div>
                       <div className="flex items-baseline justify-between">
                         <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-                          {data?.active_users?.daily_active_users?.toLocaleString() || '398'}
+                          {data?.active_users?.daily_active_users?.toLocaleString() ?? 0}
                         </div>
                         <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 font-mono">
-                          {data?.active_users?.dau_to_mau_stickiness || 29.8}% stickiness
+                          {data?.active_users?.dau_to_mau_stickiness ?? 100}% real stickiness
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500">
-                        {data?.active_users?.weekly_active_users?.toLocaleString() || '1,024'} weekly active (WAU)
+                        {data?.active_users?.weekly_active_users?.toLocaleString() ?? 0} active creators
                       </p>
                     </div>
 
@@ -1177,14 +1177,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                       </div>
                       <div className="flex items-baseline justify-between">
                         <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-                          {data?.click_through_rates?.overall_campaign_ctr || 5.8}%
+                          {data?.click_through_rates?.overall_campaign_ctr ?? 0}%
                         </div>
                         <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                           Above 4.2% benchmark
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500">
-                        Tracking links: {data?.click_through_rates?.tracking_link_ctr || 6.4}% CTR
+                        Engagement ratio across active deliverables
                       </p>
                     </div>
 
@@ -1196,14 +1196,14 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({ isOpen, onCl
                       </div>
                       <div className="flex items-baseline justify-between">
                         <div className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-                          {data?.deliverables_velocity?.completion_rate || 88.6}%
+                          {data?.deliverables_velocity?.completion_rate ?? 0}%
                         </div>
                         <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400">
-                          {data?.deliverables_velocity?.completed_deliverables || 3124} posted
+                          {data?.deliverables_velocity?.completed_deliverables ?? 0} posted
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500">
-                        {data?.deliverables_velocity?.live_in_transit || 486} live in transit right now
+                        {data?.deliverables_velocity?.live_in_transit ?? 0} live in transit right now
                       </p>
                     </div>
                   </div>
