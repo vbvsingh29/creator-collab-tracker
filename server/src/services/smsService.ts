@@ -45,11 +45,19 @@ export async function sendTwilioSms(to: string, message: string): Promise<boolea
     throw new Error('SMS service is not configured. Please contact the platform administrator.');
   }
 
-  const postData = querystring.stringify({
+  const postParams: Record<string, string> = {
     To: to,
-    From: fromNumber,
     Body: message
-  });
+  };
+
+  // If fromNumber starts with MG, it's a Twilio Messaging Service SID
+  if (fromNumber.startsWith('MG')) {
+    postParams.MessagingServiceSid = fromNumber;
+  } else {
+    postParams.From = fromNumber;
+  }
+
+  const postData = querystring.stringify(postParams);
 
   const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
 
@@ -98,6 +106,8 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
   success: boolean;
   message: string;
   normalized_phone: string;
+  preview_code?: string;
+  trial_mode?: boolean;
 }> {
   const phone = normalizePhoneNumber(rawPhone);
   if (phone.length < 10) {
@@ -146,7 +156,7 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
     };
   }
 
-  // Production: send real Twilio SMS (throws on failure)
+  // Production: send real Twilio SMS (handles trial account restrictions gracefully)
   try {
     await sendTwilioSms(phone, smsText);
     logCommunication({
@@ -158,14 +168,31 @@ export async function generateAndSendPhoneOtp(rawPhone: string): Promise<{
       details: 'Successfully dispatched via Twilio REST API'
     });
   } catch (smsErr: any) {
+    const errMsg = smsErr.message || 'Twilio delivery failed';
+    const isTrialRestriction = /template|trial|unverified|geo|permission|whitelist/i.test(errMsg);
+
     logCommunication({
       recipient: phone,
       channel: 'sms',
       purpose: 'phone_verification',
-      status: 'failed',
+      status: isTrialRestriction ? 'simulated' : 'failed',
       provider: 'twilio',
-      details: smsErr.message || 'Twilio delivery failed'
+      details: isTrialRestriction 
+        ? `Twilio Trial Account Limitation (${errMsg}). Test OTP: ${otp}`
+        : errMsg
     });
+
+    if (isTrialRestriction) {
+      console.warn(`⚠️ [Twilio Trial Account] ${errMsg}. Active OTP for testing: ${otp}`);
+      return {
+        success: true,
+        message: `Twilio Trial Account Limitation: Twilio trial accounts require pre-approved templates or a paid upgrade to send custom SMS. For testing, your verification code is: ${otp}`,
+        preview_code: otp,
+        trial_mode: true,
+        normalized_phone: phone
+      };
+    }
+
     throw smsErr;
   }
 

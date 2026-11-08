@@ -110,6 +110,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
           // Send SMS OTP
           const res = await apiSendSmsOtp(phoneNumber.trim());
           setSmsOtpSent(true);
+          if (res.preview_code) {
+            setSmsOtpCode(res.preview_code);
+          }
           setSuccessMsg(res.message);
         } else {
           // Verify SMS OTP

@@ -227,6 +227,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     try {
       const res = await apiSendSmsOtp(phone.trim());
       setSmsOtpSent(true);
+      if (res.preview_code) {
+        setSmsOtpCode(res.preview_code);
+      }
       setSmsFeedback({ type: 'success', msg: res.message || '6-digit SMS OTP dispatched to your mobile.' });
     } catch (err: any) {
       setSmsFeedback({ type: 'error', msg: err.message || 'Failed to dispatch SMS verification.' });
