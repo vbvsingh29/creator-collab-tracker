@@ -87,7 +87,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
           email: email.trim(),
           password,
           handle: handle.trim(),
-          platform
+          platform,
+          phone: phoneNumber.trim() || undefined
         });
         confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
         if (onClose) onClose();
@@ -107,8 +108,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
         }, 1200);
       } else if (mode === 'phone_otp') {
         if (!smsOtpSent) {
-          // Send SMS OTP
-          const res = await apiSendSmsOtp(phoneNumber.trim());
+          // Send SMS OTP for login purpose (rejects if account not registered)
+          const res = await apiSendSmsOtp(phoneNumber.trim(), 'login');
           setSmsOtpSent(true);
           if (res.preview_code) {
             setSmsOtpCode(res.preview_code);
@@ -128,7 +129,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Operation failed');
+      const msg = err.message || 'Operation failed';
+      const isUnregistered = err.not_registered || /not registered|no account found|register first/i.test(msg);
+      if (isUnregistered) {
+        setMode('signup');
+        setSmsOtpSent(false);
+        setError(msg);
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }

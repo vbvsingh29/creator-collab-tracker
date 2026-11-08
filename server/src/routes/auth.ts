@@ -5,6 +5,54 @@ import { db } from '../db/database';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { hashPassword, verifyPassword, signToken } from '../utils/security';
 import { generateAndSendPhoneOtp, verifyPhoneOtp, normalizePhoneNumber } from '../services/smsService';
+
+// Helper: Find user by phone number across E.164, raw 10-digit, and prefixed formats
+export async function findUserByPhone(phoneInput: string): Promise<any> {
+  if (!phoneInput || typeof phoneInput !== 'string') return null;
+  const clean = normalizePhoneNumber(phoneInput);
+  const rawDigits = phoneInput.replace(/[^\d]/g, '');
+  const tenDigits = rawDigits.slice(-10);
+
+  // Search by normalized E.164 (+91...), raw 10 digits, or prefixed digits
+  // Prioritize primary admin/creator accounts over auto-generated ghost accounts
+  const user = await db.prepare(`
+    SELECT * FROM users 
+    WHERE phone = ? 
+       OR phone = ? 
+       OR phone = ? 
+       OR phone LIKE ?
+    ORDER BY (CASE WHEN email = 'vbvsingh2905@gmail.com' THEN 0 WHEN email NOT LIKE '%@phone.collabflow.app' THEN 1 ELSE 2 END), created_at ASC
+    LIMIT 1
+  `).get(clean, tenDigits, `91${tenDigits}`, `%${tenDigits}`) as any;
+
+  // Auto-normalize stored phone number to standardized format
+  if (user && user.phone !== clean) {
+    try {
+      await db.prepare('UPDATE users SET phone = ? WHERE id = ?').run(clean, user.id);
+      user.phone = clean;
+    } catch {
+      // Non-fatal if already indexed
+    }
+  }
+
+  return user;
+}
+
+// Clean up any orphan auto-created ghost phone accounts
+async function cleanupGhostPhoneAccounts(realUserId: string, phone: string) {
+  try {
+    const clean = normalizePhoneNumber(phone);
+    const tenDigits = phone.replace(/[^\d]/g, '').slice(-10);
+    await db.prepare(`
+      DELETE FROM users 
+      WHERE (phone = ? OR phone = ? OR phone = ? OR phone LIKE ?)
+        AND id != ?
+        AND email LIKE 'user_%@phone.collabflow.app'
+    `).run(clean, tenDigits, `91${tenDigits}`, `%${tenDigits}`, realUserId);
+  } catch (err: any) {
+    console.warn('⚠️ [CleanupGhost] Non-fatal cleanup warning:', err.message);
+  }
+}
 import { sendEmailOtp } from '../services/emailService';
 
 export const authRouter = Router();
@@ -14,7 +62,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // POST /api/auth/register
 authRouter.post('/register', async (req: Request, res: Response) => {
   try {
-    const { name, email, password, handle, platform = 'both' } = req.body;
+    const { name, email, password, handle, platform = 'both', phone } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Name is required.' });
@@ -42,6 +90,19 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       });
     }
 
+    // Validate phone number uniqueness if provided
+    let cleanPhone: string | null = null;
+    if (phone && phone.trim()) {
+      cleanPhone = normalizePhoneNumber(phone.trim());
+      const existingPhoneUser = await findUserByPhone(cleanPhone);
+      if (existingPhoneUser) {
+        return res.status(400).json({
+          success: false,
+          error: 'An account with this mobile phone number already exists. Please log in.'
+        });
+      }
+    }
+
     const passwordHash = hashPassword(password);
     const userId = uuidv4();
     const now = new Date().toISOString();
@@ -49,8 +110,8 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     const initialRole = (cleanEmail === 'vbvsingh2905@gmail.com' || cleanEmail.includes('admin')) ? 'admin' : 'creator';
 
     await db.prepare(`
-      INSERT INTO users (id, name, email, password_hash, handle, platform, avatar_url, role, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, name, email, password_hash, handle, platform, avatar_url, role, phone, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       userId,
       name.trim(),
@@ -60,6 +121,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       platform,
       `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name.trim())}`,
       initialRole,
+      cleanPhone,
       now
     );
 
@@ -71,6 +133,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       email: cleanEmail,
       handle: cleanHandle,
       platform,
+      phone: cleanPhone || '',
       role: initialRole,
       avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name.trim())}`,
       created_at: now
@@ -102,9 +165,10 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail) as any;
 
     if (!user) {
-      return res.status(401).json({
+      return res.status(404).json({
         success: false,
-        error: 'Invalid credentials. Please verify your email and password.'
+        not_registered: true,
+        error: 'No account found with this email. Please register your creator profile first.'
       });
     }
 
@@ -212,6 +276,27 @@ authRouter.put('/profile', requireAuth, async (req: AuthRequest, res: Response) 
       finalEmail = req.body.email.trim().toLowerCase();
     }
 
+    // Normalize phone number and enforce uniqueness
+    let finalPhone = existingUser?.phone || '';
+    if (phone !== undefined) {
+      if (phone && phone.trim()) {
+        const normalized = normalizePhoneNumber(phone.trim());
+        const existingPhoneUser = await findUserByPhone(normalized);
+        if (existingPhoneUser && existingPhoneUser.id !== userId) {
+          if (!existingPhoneUser.email?.includes('@phone.collabflow.app')) {
+            return res.status(400).json({
+              success: false,
+              error: 'This mobile phone number is already registered to another account.'
+            });
+          }
+        }
+        finalPhone = normalized;
+        await cleanupGhostPhoneAccounts(userId!, finalPhone);
+      } else {
+        finalPhone = '';
+      }
+    }
+
     const finalSocialAccounts = social_accounts !== undefined ? JSON.stringify(social_accounts) : (existingUser?.social_accounts_json || '[]');
     const finalTeamMembers = team_members !== undefined ? JSON.stringify(team_members) : (existingUser?.team_members_json || '[]');
 
@@ -226,7 +311,7 @@ authRouter.put('/profile', requireAuth, async (req: AuthRequest, res: Response) 
       platform || 'both',
       avatar_url || '',
       bio.trim(),
-      phone.trim(),
+      finalPhone,
       category.trim(),
       JSON.stringify(rates),
       JSON.stringify(social_links),
@@ -410,12 +495,26 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
 // POST /api/auth/send-sms-otp
 authRouter.post('/send-sms-otp', async (req: Request, res: Response) => {
   try {
-    const { phone } = req.body;
+    const { phone, purpose = 'verify' } = req.body;
     if (!phone || typeof phone !== 'string' || phone.trim().length < 8) {
       return res.status(400).json({ success: false, error: 'Please provide a valid mobile phone number.' });
     }
 
-    const result = await generateAndSendPhoneOtp(phone.trim());
+    const cleanPhone = normalizePhoneNumber(phone.trim());
+
+    // Strict account check for login purpose (do not auto-create on login)
+    if (purpose === 'login') {
+      const existingUser = await findUserByPhone(cleanPhone);
+      if (!existingUser) {
+        return res.status(404).json({
+          success: false,
+          not_registered: true,
+          error: 'No account found with this mobile number. Please register your creator profile first.'
+        });
+      }
+    }
+
+    const result = await generateAndSendPhoneOtp(cleanPhone);
     return res.json(result);
   } catch (error: any) {
     return res.status(400).json({ success: false, error: error.message || 'Failed to send SMS code.' });
@@ -425,7 +524,7 @@ authRouter.post('/send-sms-otp', async (req: Request, res: Response) => {
 // POST /api/auth/verify-sms-otp
 authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
   try {
-    const { phone, otp, name } = req.body;
+    const { phone, otp } = req.body;
     if (!phone || !otp) {
       return res.status(400).json({ success: false, error: 'Phone number and 6-digit OTP code are required.' });
     }
@@ -438,33 +537,14 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
     }
 
     // Check if user already exists with this phone
-    let user = await db.prepare('SELECT * FROM users WHERE phone = ?').get(cleanPhone) as any;
+    const user = await findUserByPhone(cleanPhone);
 
     if (!user) {
-      // Auto-register creator via phone
-      const userId = uuidv4();
-      const displayName = (name && name.trim()) ? name.trim() : 'Creator ' + cleanPhone.slice(-4);
-      const generatedEmail = 'user_' + cleanPhone.replace(/[^0-9]/g, '') + '@phone.collabflow.app';
-      const dummyPassHash = hashPassword(uuidv4());
-      const handle = '@creator_' + cleanPhone.slice(-4);
-      const now = new Date().toISOString();
-
-      await db.prepare(`
-        INSERT INTO users (id, name, email, password_hash, handle, phone, platform, avatar_url, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        userId,
-        displayName,
-        generatedEmail,
-        dummyPassHash,
-        handle,
-        cleanPhone,
-        'both',
-        'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(displayName),
-        now
-      );
-
-      user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any;
+      return res.status(404).json({
+        success: false,
+        not_registered: true,
+        error: 'No account found with this mobile number. Please register your creator profile first.'
+      });
     }
 
     const token = signToken({ userId: user.id, email: user.email, handle: user.handle });
@@ -580,6 +660,20 @@ authRouter.post('/verify-account-phone', requireAuth, async (req: AuthRequest, r
     if (!isValid) {
       return res.status(400).json({ success: false, error: 'Invalid or expired OTP code' });
     }
+
+    // Check if phone belongs to another real user (uniqueness check)
+    const existingUserWithPhone = await findUserByPhone(cleanPhone);
+    if (existingUserWithPhone && existingUserWithPhone.id !== req.userId) {
+      if (existingUserWithPhone.email && !existingUserWithPhone.email.includes('@phone.collabflow.app')) {
+        return res.status(400).json({
+          success: false,
+          error: 'This mobile phone number is already verified on another account.'
+        });
+      }
+    }
+
+    // Clean up any ghost account holding this number
+    await cleanupGhostPhoneAccounts(req.userId!, cleanPhone);
 
     await db.prepare('UPDATE users SET phone = ?, phone_verified = 1 WHERE id = ?').run(cleanPhone, req.userId);
 

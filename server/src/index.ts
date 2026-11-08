@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { initDB } from './db/database';
+import { initDB, db } from './db/database';
 import { authRouter } from './routes/auth';
 import { collabsRouter } from './routes/collabs';
 import { brandsRouter } from './routes/brands';
@@ -48,6 +48,11 @@ app.use(express.json({ limit: '1mb' }));
 
 // Initialize database in strict hosted mode (zero local SQLite fallback)
 initDB();
+
+// Clean up any orphan auto-created ghost accounts from previous phone tests
+db.prepare("DELETE FROM users WHERE email LIKE 'user_%@phone.collabflow.app'").run()
+  .then(() => console.log('✓ Cleaned up ghost test accounts in Turso DB'))
+  .catch((err: any) => console.warn('⚠️ [Cleanup warning]:', err.message));
 
 if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
   console.log('📡 [Database Layer] Connected to remote Turso Cloud database.');

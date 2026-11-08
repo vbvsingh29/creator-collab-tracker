@@ -130,6 +130,7 @@ export async function apiRegister(userData: {
   password: string;
   handle: string;
   platform: string;
+  phone?: string;
 }): Promise<{ token: string; user: User }> {
   return safeJsonRequest(
     `${API_BASE}/auth/register`,
@@ -245,7 +246,10 @@ export async function apiResetPassword(email: string, code: string, newPassword:
 }
 
 
-export async function apiSendSmsOtp(phone: string): Promise<{
+export async function apiSendSmsOtp(
+  phone: string,
+  purpose: 'login' | 'register' | 'verify' = 'verify'
+): Promise<{
   success: boolean;
   message: string;
   preview_code?: string;
@@ -257,7 +261,7 @@ export async function apiSendSmsOtp(phone: string): Promise<{
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone, purpose }),
     },
     async () => {
       return {
