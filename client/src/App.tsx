@@ -166,12 +166,15 @@ export function App() {
   // Listen for session expiry from API calls and prompt fresh login
   useEffect(() => {
     const handleSessionExpired = () => {
+      logout();
       setIsProfileOpen(false);
+      setIsSettingsOpen(false);
+      setIsNewCollabOpen(false);
       setIsAuthModalOpen(true);
     };
     window.addEventListener('collabflow_session_expired', handleSessionExpired);
     return () => window.removeEventListener('collabflow_session_expired', handleSessionExpired);
-  }, []);
+  }, [logout]);
 
   // Filtered collaborations
   const filteredCollabs = collabs.filter((c) => {

@@ -460,6 +460,8 @@ export async function getInstagramMediaDetails(
       } else {
         title = decodedRaw;
       }
+      // Clean trailing hashtags and excess whitespace
+      title = title.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
     }
 
     const imageMatch = html.match(/property="og:image"\s+content="([^"]+)"/i);
@@ -487,10 +489,11 @@ export async function getInstagramMediaDetails(
         authorName = `@${handleMatch[1]}`;
       }
 
-      const likesMatch = content.match(/([\d.,]+)([KkMm]?)\s+likes/i);
+      const likesMatch = content.match(/([\d.,]+)([KkMm]?)\s+likes/i) ||
+                         html.match(/([\d.,]+)([KkMm]?)\s+likes/i);
       if (likesMatch) {
         let val = parseFloat(likesMatch[1].replace(/,/g, ''));
-        const unit = likesMatch[2].toUpperCase();
+        const unit = (likesMatch[2] || '').toUpperCase();
         if (unit === 'K') val *= 1000;
         if (unit === 'M') val *= 1000000;
         likesCount = Math.round(val);
@@ -506,10 +509,11 @@ export async function getInstagramMediaDetails(
         viewsCount = Math.round(val);
       }
 
-      const commentsMatch = content.match(/([\d.,]+)([KkMm]?)\s+comments/i);
+      const commentsMatch = content.match(/([\d.,]+)([KkMm]?)\s+comments/i) ||
+                            html.match(/([\d.,]+)([KkMm]?)\s+comments/i);
       if (commentsMatch) {
         let val = parseFloat(commentsMatch[1].replace(/,/g, ''));
-        const unit = commentsMatch[2].toUpperCase();
+        const unit = (commentsMatch[2] || '').toUpperCase();
         if (unit === 'K') val *= 1000;
         if (unit === 'M') val *= 1000000;
         commentsCount = Math.round(val);

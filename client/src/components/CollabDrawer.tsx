@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Instagram, 
@@ -47,6 +47,27 @@ interface CollabDrawerProps {
   onDeleteCollab?: (id: string) => Promise<void> | void;
 }
 
+function decodeCleanText(text?: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#x2019;/g, '’')
+    .replace(/&#8217;/g, '’')
+    .replace(/&#x2018;/g, '‘')
+    .replace(/&#8216;/g, '‘')
+    .replace(/&#x201c;/g, '“')
+    .replace(/&#8220;/g, '“')
+    .replace(/&#x201d;/g, '”')
+    .replace(/&#8221;/g, '”')
+    .replace(/&#x20b9;/g, '₹')
+    .replace(/&#8377;/g, '₹')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'");
+}
+
 export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   collab,
   currency,
@@ -73,6 +94,7 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   const [editingMetrics, setEditingMetrics] = useState(false);
   const [customViews, setCustomViews] = useState<number>(collab?.views_count ?? 0);
   const [customLikes, setCustomLikes] = useState<number>(collab?.likes_count ?? 0);
+  const drawerDateInputRef = useRef<HTMLInputElement>(null);
 
   if (!collab) return null;
 
@@ -259,7 +281,7 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
               {collab.brand_name} • {collab.brand_category}
             </div>
             <h2 className="text-lg font-bold text-white tracking-tight leading-snug">
-              {collab.title}
+              {decodeCleanText(collab.title)}
             </h2>
           </div>
 
@@ -378,7 +400,10 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                           value={customTds === 0 ? '' : customTds}
                           placeholder="0"
                           onFocus={(e) => e.target.select()}
-                          onChange={(e) => setCustomTds(e.target.value === '' ? 0 : Number(e.target.value))}
+                          onChange={(e) => {
+                          const val = e.target.value.replace(/^0+(?=\d)/, '');
+                          setCustomTds(val === '' ? 0 : Number(val));
+                        }}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
                         />
                       </div>
@@ -394,7 +419,10 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                           value={customAgency === 0 ? '' : customAgency}
                           placeholder="0"
                           onFocus={(e) => e.target.select()}
-                          onChange={(e) => setCustomAgency(e.target.value === '' ? 0 : Number(e.target.value))}
+                          onChange={(e) => {
+                          const val = e.target.value.replace(/^0+(?=\d)/, '');
+                          setCustomAgency(val === '' ? 0 : Number(val));
+                        }}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
                         />
                       </div>
@@ -461,28 +489,83 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
 
           {/* Live Post Verification & Performance */}
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                 <ExternalLink size={13} className="text-emerald-400" />
                 Live Post & Release Date
               </h3>
-              <div className="flex items-center gap-1.5">
-                <Calendar size={12} className="text-teal-400" />
-                <label className="text-[10px] text-zinc-400">Live Date:</label>
-                <input
-                  type="date"
-                  value={collab.actual_posted_date || collab.scheduled_post_date || ''}
-                  onChange={(e) => {
-                    const newDate = e.target.value;
-                    onUpdateCollab(collab.id, {
-                      actual_posted_date: newDate,
-                      scheduled_post_date: newDate
-                    });
-                  }}
-                  style={{ colorScheme: 'dark' }}
-                  className="bg-zinc-950 border border-zinc-800 hover:border-teal-500 rounded px-2 py-0.5 text-xs text-zinc-200 font-mono focus:outline-none cursor-pointer"
-                />
+              <div className="flex items-center gap-2">
+                <div 
+                  onClick={() => drawerDateInputRef.current?.showPicker?.()}
+                  className="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 hover:border-teal-500 rounded-lg px-2.5 py-1 text-xs transition-colors cursor-pointer"
+                >
+                  <Calendar size={13} className="text-teal-400" />
+                  <input
+                    ref={drawerDateInputRef}
+                    type="date"
+                    value={collab.actual_posted_date || collab.scheduled_post_date || ''}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      onUpdateCollab(collab.id, {
+                        actual_posted_date: newDate,
+                        scheduled_post_date: newDate
+                      });
+                    }}
+                    onClick={(e) => (e.target as any).showPicker?.()}
+                    style={{ colorScheme: 'dark' }}
+                    className="bg-transparent text-xs text-zinc-200 font-mono focus:outline-none cursor-pointer"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      drawerDateInputRef.current?.showPicker?.();
+                    }}
+                    className="text-[10px] text-teal-400 hover:text-teal-300 font-semibold"
+                  >
+                    Change
+                  </button>
+                </div>
               </div>
+            </div>
+
+            {/* Quick Date Presets for Drawer */}
+            <div className="flex flex-wrap items-center gap-1 text-[10px]">
+              <span className="text-zinc-500 mr-1">Quick Select:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  onUpdateCollab(collab.id, { actual_posted_date: today, scheduled_post_date: today });
+                }}
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const y = new Date();
+                  y.setDate(y.getDate() - 1);
+                  const yStr = y.toISOString().split('T')[0];
+                  onUpdateCollab(collab.id, { actual_posted_date: yStr, scheduled_post_date: yStr });
+                }}
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 7);
+                  const dStr = d.toISOString().split('T')[0];
+                  onUpdateCollab(collab.id, { actual_posted_date: dStr, scheduled_post_date: dStr });
+                }}
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors"
+              >
+                In 1 Week
+              </button>
             </div>
 
             {/* Live URL Display or Input */}
@@ -601,7 +684,10 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                           value={customViews === 0 ? '' : customViews}
                           placeholder="0"
                           onFocus={(e) => e.target.select()}
-                          onChange={(e) => setCustomViews(e.target.value === '' ? 0 : Number(e.target.value))}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/^0+(?=\d)/, '');
+                            setCustomViews(val === '' ? 0 : Number(val));
+                          }}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
                         />
                       </div>
@@ -612,7 +698,10 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                           value={customLikes === 0 ? '' : customLikes}
                           placeholder="0"
                           onFocus={(e) => e.target.select()}
-                          onChange={(e) => setCustomLikes(e.target.value === '' ? 0 : Number(e.target.value))}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/^0+(?=\d)/, '');
+                            setCustomLikes(val === '' ? 0 : Number(val));
+                          }}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
                         />
                       </div>

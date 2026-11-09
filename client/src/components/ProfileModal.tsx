@@ -714,7 +714,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     value={reelRate === 0 ? '' : reelRate}
                     placeholder="0"
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setReelRate(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/^0+(?=\d)/, '');
+                      setReelRate(val === '' ? 0 : Number(val));
+                    }}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>
@@ -729,7 +732,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     value={videoRate === 0 ? '' : videoRate}
                     placeholder="0"
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setVideoRate(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/^0+(?=\d)/, '');
+                      setVideoRate(val === '' ? 0 : Number(val));
+                    }}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>
@@ -744,7 +750,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     value={storyRate === 0 ? '' : storyRate}
                     placeholder="0"
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setStoryRate(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/^0+(?=\d)/, '');
+                      setStoryRate(val === '' ? 0 : Number(val));
+                    }}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>
@@ -759,7 +768,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                     value={whitelistingRate === 0 ? '' : whitelistingRate}
                     placeholder="0"
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setWhitelistingRate(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/^0+(?=\d)/, '');
+                      setWhitelistingRate(val === '' ? 0 : Number(val));
+                    }}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>

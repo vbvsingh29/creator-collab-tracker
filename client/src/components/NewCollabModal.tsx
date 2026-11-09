@@ -94,9 +94,37 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
     try {
       const details = await previewMediaUrl(autoFillUrl.trim());
       if (details.title && details.title !== 'YouTube Content' && details.title !== 'Instagram Reel') {
-        // Strip any residual HTML entities or formatting artifacts
-        const cleanTitle = details.title.replace(/&quot;/g, '"').replace(/&#x2019;/g, '’').replace(/&#x20b9;/g, '₹').replace(/&amp;/g, '&');
-        setTitle(cleanTitle);
+        // Strip any residual HTML entities, hashtags, or formatting artifacts
+        let cleanTitle = details.title
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2019;/g, '’')
+          .replace(/&#8217;/g, '’')
+          .replace(/&#x2018;/g, '‘')
+          .replace(/&#8216;/g, '‘')
+          .replace(/&#x201c;/g, '“')
+          .replace(/&#8220;/g, '“')
+          .replace(/&#x201d;/g, '”')
+          .replace(/&#8221;/g, '”')
+          .replace(/&#x20b9;/g, '₹')
+          .replace(/&#8377;/g, '₹')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&apos;/g, "'")
+          .replace(/&#39;/g, "'")
+          .replace(/#\w+/g, '') // remove trailing hashtags from title
+          .replace(/\s+/g, ' ')
+          .trim();
+        // Remove leading author e.g. "Author on Instagram: "
+        cleanTitle = cleanTitle.replace(/^[^:]+\s+on Instagram:\s*["“]?/i, '').replace(/["”]?\s*$/, '').trim();
+        setTitle(cleanTitle || details.title);
+
+        // Detect potential brand name from hashtags or title keywords
+        const hashtagMatches = (details.title.match(/#([a-zA-Z0-9]+)/g) || []).map((h: string) => h.replace('#', ''));
+        const detectedBrand = hashtagMatches.find((h: string) => !['viral', 'reels', 'fyp', 'trending', 'explore', 'ad', 'sponsor', 'collab', 'ambassador'].includes(h.toLowerCase()));
+        if (detectedBrand && !brandName) {
+          setBrandName(detectedBrand.charAt(0).toUpperCase() + detectedBrand.slice(1));
+        }
       }
       if (details.platform) {
         setPlatform(details.platform);
@@ -127,7 +155,9 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       }
       if (details.authorName && details.authorName !== 'Creator' && details.authorName !== 'Instagram Creator') {
         if (!brandName) {
-          setBrandName(details.authorName);
+          // If no hashtag brand was detected, use author or clean handle
+          const cleanAuthor = details.authorName.replace(/^@/, '');
+          setBrandName(cleanAuthor);
         }
         setContactPerson(details.authorName);
       }
@@ -662,7 +692,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                 disabled={commercialType === 'barter'}
                 value={commercialType === 'barter' ? 0 : (dealAmount === 0 ? '' : dealAmount)}
                 onChange={(e) => {
-                  const val = e.target.value;
+                  const val = e.target.value.replace(/^0+(?=\d)/, '');
                   setDealAmount(val === '' ? 0 : Number(val));
                 }}
                 onFocus={(e) => e.target.select()}
@@ -720,7 +750,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                       placeholder="0"
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/^0+(?=\d)/, '');
                         setTdsPercentage(val === '' ? 0 : Number(val));
                       }}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"
@@ -742,7 +772,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                       placeholder="0"
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/^0+(?=\d)/, '');
                         setAgencyCutPercentage(val === '' ? 0 : Number(val));
                       }}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"

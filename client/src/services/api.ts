@@ -61,7 +61,10 @@ async function safeJsonRequest<T>(
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 401) {
+          setAuthToken(null);
           if (typeof window !== 'undefined') {
+            localStorage.removeItem('collabflow_token');
+            localStorage.removeItem('collabflow_mock_user');
             window.dispatchEvent(new CustomEvent('collabflow_session_expired', { detail: data.error }));
           }
         }
