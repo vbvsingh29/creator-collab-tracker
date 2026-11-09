@@ -197,11 +197,17 @@ export async function initializeTursoSchema(adapter: TursoAdapter): Promise<void
       payment_due_date TEXT,
       payment_received_date TEXT,
       has_ads_whitelisting INTEGER DEFAULT 0,
-      whitelisting_duration_months INTEGER DEFAULT 0,
-      whitelisting_monthly_fee REAL DEFAULT 0,
-      has_exclusivity INTEGER DEFAULT 0,
-      exclusivity_duration_months INTEGER DEFAULT 0,
-      exclusivity_category TEXT DEFAULT '',
+      whitelisting_duration_days INTEGER DEFAULT 0,
+      whitelisting_expiry_date TEXT,
+      has_category_exclusivity INTEGER DEFAULT 0,
+      exclusivity_days INTEGER DEFAULT 0,
+      promo_code TEXT DEFAULT '',
+      tracking_link TEXT DEFAULT '',
+      pipeline_stage TEXT DEFAULT 'pitch_inquiry',
+      scheduled_post_date TEXT,
+      actual_posted_date TEXT,
+      agency_cut_percentage REAL DEFAULT 0,
+      tds_percentage REAL DEFAULT 0,
       deliverables_checklist TEXT DEFAULT '[]',
       live_post_url TEXT DEFAULT '',
       views_count INTEGER DEFAULT 0,
@@ -245,4 +251,67 @@ export async function initializeTursoSchema(adapter: TursoAdapter): Promise<void
   console.log('🌐 [Turso Cloud] Initializing schema and tables...');
   await adapter.batch(schemaStatements.map(sql => ({ sql })));
   console.log('✅ [Turso Cloud] All tables successfully created/verified on remote database!');
+  await runTursoMigrations(adapter);
+}
+
+/**
+ * Run safe column additions for existing tables.
+ * Uses ALTER TABLE ... ADD COLUMN in individual try-catches so missing columns are added
+ * without failing if already present.
+ */
+export async function runTursoMigrations(adapter: TursoAdapter): Promise<void> {
+  const collabsColumns = [
+    { name: 'whitelisting_duration_days', type: 'INTEGER DEFAULT 0' },
+    { name: 'whitelisting_expiry_date', type: 'TEXT' },
+    { name: 'has_category_exclusivity', type: 'INTEGER DEFAULT 0' },
+    { name: 'exclusivity_days', type: 'INTEGER DEFAULT 0' },
+    { name: 'promo_code', type: 'TEXT DEFAULT ""' },
+    { name: 'tracking_link', type: 'TEXT DEFAULT ""' },
+    { name: 'pipeline_stage', type: 'TEXT DEFAULT "pitch_inquiry"' },
+    { name: 'scheduled_post_date', type: 'TEXT' },
+    { name: 'actual_posted_date', type: 'TEXT' },
+    { name: 'format_label', type: 'TEXT DEFAULT ""' },
+    { name: 'account_id', type: 'TEXT DEFAULT ""' },
+    { name: 'account_label', type: 'TEXT DEFAULT ""' },
+    { name: 'agency_cut_percentage', type: 'REAL DEFAULT 0' },
+    { name: 'tds_percentage', type: 'REAL DEFAULT 0' },
+  ];
+
+  for (const col of collabsColumns) {
+    try {
+      await adapter.execute(`ALTER TABLE collabs ADD COLUMN ${col.name} ${col.type}`);
+      console.log(`✅ [Migration] Added column collabs.${col.name}`);
+    } catch (err: any) {
+      if (!err.message?.includes('duplicate column')) {
+        console.warn(`[Migration info] collabs.${col.name}: ${err.message}`);
+      }
+    }
+  }
+
+  const usersColumns = [
+    { name: 'phone', type: 'TEXT DEFAULT ""' },
+    { name: 'phone_verified', type: 'INTEGER DEFAULT 0' },
+    { name: 'email_verified', type: 'INTEGER DEFAULT 0' },
+    { name: 'rates_json', type: 'TEXT DEFAULT "{}"' },
+    { name: 'social_links_json', type: 'TEXT DEFAULT "{}"' },
+    { name: 'social_accounts_json', type: 'TEXT DEFAULT "[]"' },
+    { name: 'team_members_json', type: 'TEXT DEFAULT "[]"' },
+    { name: 'bio', type: 'TEXT DEFAULT ""' },
+    { name: 'category', type: 'TEXT DEFAULT ""' },
+    { name: 'handle', type: 'TEXT DEFAULT ""' },
+    { name: 'platform', type: 'TEXT DEFAULT "both"' },
+    { name: 'avatar_url', type: 'TEXT DEFAULT ""' },
+    { name: 'role', type: 'TEXT DEFAULT "creator"' },
+  ];
+
+  for (const col of usersColumns) {
+    try {
+      await adapter.execute(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
+      console.log(`✅ [Migration] Added column users.${col.name}`);
+    } catch (err: any) {
+      if (!err.message?.includes('duplicate column')) {
+        console.warn(`[Migration info] users.${col.name}: ${err.message}`);
+      }
+    }
+  }
 }

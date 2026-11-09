@@ -1,4 +1,4 @@
-import { TursoAdapter } from './tursoAdapter';
+import { TursoAdapter, initializeTursoSchema } from './tursoAdapter';
 
 let adapterInstance: TursoAdapter | null = null;
 
@@ -57,6 +57,12 @@ export const db = {
   }
 };
 
-export function initDB() {
+export async function initDB() {
   console.log('📡 [Database Layer] Local SQLite completely decommissioned. Strict hosted database mode active.');
+  try {
+    const adapter = getAdapter();
+    await initializeTursoSchema(adapter);
+  } catch (err: any) {
+    console.error('⚠️ [Database Schema Verification]:', err.message);
+  }
 }

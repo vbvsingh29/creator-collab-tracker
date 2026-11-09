@@ -15,7 +15,9 @@ function mapCollabRow(row: any): Collab {
     ...row,
     has_ads_whitelisting: Boolean(row.has_ads_whitelisting),
     has_category_exclusivity: Boolean(row.has_category_exclusivity),
-    deliverables_checklist: row.deliverables_checklist ? JSON.parse(row.deliverables_checklist) : []
+    deliverables_checklist: row.deliverables_checklist ? JSON.parse(row.deliverables_checklist) : [],
+    agency_cut_percentage: row.agency_cut_percentage !== undefined ? Number(row.agency_cut_percentage) : 0,
+    tds_percentage: row.tds_percentage !== undefined ? Number(row.tds_percentage) : 0
   };
 }
 
@@ -113,7 +115,7 @@ collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
         has_ads_whitelisting, whitelisting_duration_days, whitelisting_expiry_date,
         has_category_exclusivity, exclusivity_days, promo_code, tracking_link,
         pipeline_stage, scheduled_post_date, actual_posted_date, live_post_url,
-        views_count, likes_count, deliverables_checklist, notes, account_id, account_label, created_at, updated_at
+        views_count, likes_count, deliverables_checklist, notes, account_id, account_label, agency_cut_percentage, tds_percentage, created_at, updated_at
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
@@ -122,7 +124,7 @@ collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
         ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `);
 
@@ -166,6 +168,8 @@ collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
       body.notes || '',
       body.account_id || '',
       body.account_label || '',
+      body.agency_cut_percentage || 0,
+      body.tds_percentage || 0,
       now,
       now
     );
@@ -230,6 +234,8 @@ const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
       notes: body.notes !== undefined ? body.notes : existing.notes,
       account_id: body.account_id !== undefined ? body.account_id : (existing.account_id || ''),
       account_label: body.account_label !== undefined ? body.account_label : (existing.account_label || ''),
+      agency_cut_percentage: body.agency_cut_percentage !== undefined ? Number(body.agency_cut_percentage) : (existing.agency_cut_percentage || 0),
+      tds_percentage: body.tds_percentage !== undefined ? Number(body.tds_percentage) : (existing.tds_percentage || 0),
     };
 
     const updateStmt = db.prepare(`
@@ -271,6 +277,8 @@ const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
         notes = ?,
         account_id = ?,
         account_label = ?,
+        agency_cut_percentage = ?,
+        tds_percentage = ?,
         updated_at = ?
       WHERE id = ? AND user_id = ?
     `);
@@ -313,6 +321,8 @@ const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
       merged.notes || '',
       merged.account_id || '',
       merged.account_label || '',
+      merged.agency_cut_percentage,
+      merged.tds_percentage,
       now,
       id,
       userId

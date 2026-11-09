@@ -109,6 +109,8 @@ export interface Collab {
   live_post_url?: string;
   views_count?: number;
   likes_count?: number;
+  agency_cut_percentage?: number;
+  tds_percentage?: number;
   deliverables_checklist: DeliverableItem[];
   notes?: string;
   created_at: string;

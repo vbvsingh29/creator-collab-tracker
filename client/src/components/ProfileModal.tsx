@@ -711,8 +711,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <span className="text-zinc-400">₹</span>
                   <input
                     type="number"
-                    value={reelRate}
-                    onChange={(e) => setReelRate(Number(e.target.value))}
+                    value={reelRate === 0 ? '' : reelRate}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setReelRate(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>
@@ -724,8 +726,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <span className="text-zinc-400">₹</span>
                   <input
                     type="number"
-                    value={videoRate}
-                    onChange={(e) => setVideoRate(Number(e.target.value))}
+                    value={videoRate === 0 ? '' : videoRate}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setVideoRate(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>
@@ -737,8 +741,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <span className="text-zinc-400">₹</span>
                   <input
                     type="number"
-                    value={storyRate}
-                    onChange={(e) => setStoryRate(Number(e.target.value))}
+                    value={storyRate === 0 ? '' : storyRate}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setStoryRate(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>
@@ -750,8 +756,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <span className="text-zinc-400">₹</span>
                   <input
                     type="number"
-                    value={whitelistingRate}
-                    onChange={(e) => setWhitelistingRate(Number(e.target.value))}
+                    value={whitelistingRate === 0 ? '' : whitelistingRate}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setWhitelistingRate(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full bg-transparent text-zinc-900 dark:text-white font-mono focus:outline-none"
                   />
                 </div>

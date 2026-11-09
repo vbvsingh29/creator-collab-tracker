@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Instagram, Youtube, Layers, Zap, ShieldAlert, Check, Calendar, DollarSign, Sparkles, Link as LinkIcon, SlidersHorizontal } from 'lucide-react';
+import { X, Plus, Instagram, Youtube, Layers, Zap, ShieldAlert, Check, Calendar, DollarSign, Sparkles, Link as LinkIcon, SlidersHorizontal, Percent } from 'lucide-react';
 import { Collab, Platform, DeliverableFormat, CommercialType, Currency, PaymentTerms } from '../types';
 import { previewMediaUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -38,7 +38,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   );
   const [commercialType, setCommercialType] = useState<CommercialType>('paid');
   const [dealCurrency, setDealCurrency] = useState<Currency>(currency);
-  const [dealAmount, setDealAmount] = useState<number>(initialData?.amount || 50000);
+  const [dealAmount, setDealAmount] = useState<number>(initialData?.amount ?? 50000);
   const [barterValue, setBarterValue] = useState<number>(0);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>('net_30');
   const [hasWhitelisting, setHasWhitelisting] = useState<boolean>(initialData?.hasWhitelisting ?? false);
@@ -49,6 +49,10 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   const [trackingLink, setTrackingLink] = useState('');
   const [scheduledDate, setScheduledDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [viewsCount, setViewsCount] = useState<number>(0);
+  const [likesCount, setLikesCount] = useState<number>(0);
+  const [tdsPercentage, setTdsPercentage] = useState<number>(0);
+  const [agencyCutPercentage, setAgencyCutPercentage] = useState<number>(0);
 
   const { user } = useAuth();
   const socialAccounts = user?.social_accounts || [];
@@ -82,7 +86,9 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
     try {
       const details = await previewMediaUrl(autoFillUrl.trim());
       if (details.title && details.title !== 'YouTube Content' && details.title !== 'Instagram Reel') {
-        setTitle(details.title);
+        // Strip any residual HTML entities or formatting artifacts
+        const cleanTitle = details.title.replace(/&quot;/g, '"').replace(/&#x2019;/g, '’').replace(/&#x20b9;/g, '₹').replace(/&amp;/g, '&');
+        setTitle(cleanTitle);
       }
       if (details.platform) {
         setPlatform(details.platform);
@@ -101,8 +107,17 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
         // Format ISO date (e.g. 2024-05-12T10:00:00Z -> 2024-05-12) for the calendar input
         const cleanDate = details.publishedAt.split('T')[0];
         setScheduledDate(cleanDate);
+      } else {
+        // Default to today's date if not extracted from link so calendar input is never empty
+        setScheduledDate(new Date().toISOString().split('T')[0]);
       }
-      if (details.authorName && details.authorName !== 'Creator') {
+      if (details.viewsCount !== undefined && details.viewsCount > 0) {
+        setViewsCount(details.viewsCount);
+      }
+      if (details.likesCount !== undefined && details.likesCount > 0) {
+        setLikesCount(details.likesCount);
+      }
+      if (details.authorName && details.authorName !== 'Creator' && details.authorName !== 'Instagram Creator') {
         if (!brandName) {
           setBrandName(details.authorName);
         }
@@ -110,7 +125,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       }
       setAutoFillFeedback({
         type: 'success',
-        text: `✓ Auto-detected ${details.platform.toUpperCase()} content: Title, platform${details.publishedAt ? ', and publish date (' + details.publishedAt.split('T')[0] + ')' : ''} auto-filled! (You can freely edit any field below).`
+        text: `✓ Auto-detected ${details.platform.toUpperCase()} content: Title, platform, and publish date auto-filled! (You can freely edit any field below).`
       });
     } catch (err: any) {
       setAutoFillFeedback({
@@ -167,6 +182,10 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       scheduled_post_date: scheduledDate || undefined,
       notes: notes.trim(),
       live_post_url: autoFillUrl.trim() || undefined,
+      views_count: Number(viewsCount) || 0,
+      likes_count: Number(likesCount) || 0,
+      tds_percentage: Number(tdsPercentage) || 0,
+      agency_cut_percentage: Number(agencyCutPercentage) || 0,
       pipeline_stage: autoFillUrl.trim() ? 'posted_live' : 'pitch_inquiry',
       deliverables_checklist: standardChecklist,
       account_id: selectedAccount?.id,
@@ -523,9 +542,14 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
               <input
                 type="number"
                 disabled={commercialType === 'barter'}
-                value={commercialType === 'barter' ? 0 : dealAmount}
-                onChange={(e) => setDealAmount(Number(e.target.value))}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 disabled:opacity-30"
+                value={commercialType === 'barter' ? 0 : (dealAmount === 0 ? '' : dealAmount)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDealAmount(val === '' ? 0 : Number(val));
+                }}
+                onFocus={(e) => e.target.select()}
+                placeholder="0"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 disabled:opacity-30 font-mono"
               />
             </div>
 
@@ -551,6 +575,110 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
             )}
           </div>
 
+          {/* User-Controlled Deductions (TDS & Agency Commission) - Default 0% (No forced deductions) */}
+          {commercialType !== 'barter' && (
+            <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Percent size={12} className="text-emerald-400" />
+                  Take-Home Breakdown (Optional Discretion)
+                </span>
+                <span className="text-emerald-400 font-bold font-mono">
+                  Net: {dealCurrency === 'USD' ? '$' : '₹'}{Math.max(0, (dealAmount || 0) * (1 - (tdsPercentage + agencyCutPercentage) / 100)).toLocaleString()}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold">TDS / Tax (%)</label>
+                    <span className="text-[10px] text-zinc-500">Default: 0%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={tdsPercentage === 0 ? '' : tdsPercentage}
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTdsPercentage(val === '' ? 0 : Number(val));
+                      }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"
+                    />
+                    <span className="text-zinc-500 text-xs">%</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold">Agency Cut (%)</label>
+                    <span className="text-[10px] text-zinc-500">Default: 0%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={agencyCutPercentage === 0 ? '' : agencyCutPercentage}
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAgencyCutPercentage(val === '' ? 0 : Number(val));
+                      }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"
+                    />
+                    <span className="text-zinc-500 text-xs">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Live Post Metrics (Views & Likes) */}
+          {(autoFillUrl.trim() || formMode === 'advanced') && (
+            <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-2">
+              <span className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px] block">
+                Post Metrics (Editable / Auto-synced)
+              </span>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                    Views Count
+                  </label>
+                  <input
+                    type="number"
+                    value={viewsCount === 0 ? '' : viewsCount}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setViewsCount(val === '' ? 0 : Number(val));
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                    Likes Count
+                  </label>
+                  <input
+                    type="number"
+                    value={likesCount === 0 ? '' : likesCount}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setLikesCount(val === '' ? 0 : Number(val));
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Barter Product Value (if applicable) */}
           {(commercialType === 'barter' || commercialType === 'hybrid') && (
             <div className="p-3 bg-violet-950/20 border border-violet-500/30 rounded-xl">
@@ -559,10 +687,14 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
               </label>
               <input
                 type="number"
-                placeholder="e.g. 25000"
-                value={barterValue}
-                onChange={(e) => setBarterValue(Number(e.target.value))}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                placeholder="0"
+                value={barterValue === 0 ? '' : barterValue}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBarterValue(val === '' ? 0 : Number(val));
+                }}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500 font-mono"
               />
             </div>
           )}

@@ -67,6 +67,12 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
   const [showEmbedPlayer, setShowEmbedPlayer] = useState(false);
   const [syncingMetrics, setSyncingMetrics] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [editingDeductions, setEditingDeductions] = useState(false);
+  const [customTds, setCustomTds] = useState<number>(collab?.tds_percentage ?? 0);
+  const [customAgency, setCustomAgency] = useState<number>(collab?.agency_cut_percentage ?? 0);
+  const [editingMetrics, setEditingMetrics] = useState(false);
+  const [customViews, setCustomViews] = useState<number>(collab?.views_count ?? 0);
+  const [customLikes, setCustomLikes] = useState<number>(collab?.likes_count ?? 0);
 
   if (!collab) return null;
 
@@ -91,8 +97,10 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
 
   // Financial breakdown
   const amount = collab.deal_amount;
-  const tdsEstimate = amount * 0.10;
-  const agencyCommission = amount * 0.15;
+  const tdsPct = collab.tds_percentage ?? 0;
+  const agencyPct = collab.agency_cut_percentage ?? 0;
+  const tdsEstimate = amount * (tdsPct / 100);
+  const agencyCommission = amount * (agencyPct / 100);
   const netTakeHome = Math.max(0, amount - tdsEstimate - agencyCommission);
 
   useEffect(() => {
@@ -334,17 +342,80 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
               </div>
             </div>
 
-            {/* True Take Home Split (TDS & Agency Fee) - Visible in Advanced or Expanded */}
+            {/* True Take Home Split (TDS & Agency Fee) - 100% Creator Controlled */}
             {(drawerMode === 'advanced' || showDeepDetails) && collab.commercial_type !== 'barter' && collab.deal_amount > 0 && (
               <div className="mt-3 pt-2 bg-zinc-950/60 rounded-lg p-3 border border-zinc-800/80">
                 <div className="text-[11px] font-semibold text-emerald-400 flex items-center justify-between mb-2">
                   <span className="flex items-center gap-1">
                     <Percent size={12} /> True Creator Take-Home Breakdown
                   </span>
-                  <span className="text-xs font-bold text-emerald-400">
-                    Net: {formatCurrency(netTakeHome, collab.currency)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-emerald-400 font-mono">
+                      Net: {formatCurrency(netTakeHome, collab.currency)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingDeductions(!editingDeductions)}
+                      className="text-[10px] text-zinc-400 hover:text-zinc-200 underline font-normal"
+                    >
+                      {editingDeductions ? 'Cancel' : 'Adjust %'}
+                    </button>
+                  </div>
                 </div>
+
+                {editingDeductions && (
+                  <div className="p-2.5 mb-2.5 bg-zinc-900 rounded-lg border border-zinc-800 space-y-2 text-xs animate-in fade-in">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-zinc-400 font-semibold">TDS / Tax (%)</label>
+                          <span className="text-[10px] text-zinc-500">Default: 0%</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={customTds === 0 ? '' : customTds}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setCustomTds(e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-zinc-400 font-semibold">Agency Cut (%)</label>
+                          <span className="text-[10px] text-zinc-500">Default: 0%</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={customAgency === 0 ? '' : customAgency}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setCustomAgency(e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUpdateCollab(collab.id, {
+                            tds_percentage: customTds,
+                            agency_cut_percentage: customAgency
+                          });
+                          setEditingDeductions(false);
+                        }}
+                        className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold"
+                      >
+                        Save Deductions
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-2 text-[11px] text-zinc-400">
                   <div>
@@ -352,12 +423,16 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                     <span className="font-medium text-zinc-200">{formatCurrency(amount, collab.currency)}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block text-[10px]">TDS / Tax (10%)</span>
-                    <span className="font-medium text-red-400">-{formatCurrency(tdsEstimate, collab.currency)}</span>
+                    <span className="text-zinc-500 block text-[10px]">TDS / Tax ({tdsPct}%)</span>
+                    <span className={`font-medium ${tdsEstimate > 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+                      {tdsEstimate > 0 ? `-${formatCurrency(tdsEstimate, collab.currency)}` : '₹0 (None)'}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block text-[10px]">Agency Cut (15%)</span>
-                    <span className="font-medium text-amber-400">-{formatCurrency(agencyCommission, collab.currency)}</span>
+                    <span className="text-zinc-500 block text-[10px]">Agency Cut ({agencyPct}%)</span>
+                    <span className={`font-medium ${agencyCommission > 0 ? 'text-amber-400' : 'text-zinc-400'}`}>
+                      {agencyCommission > 0 ? `-${formatCurrency(agencyCommission, collab.currency)}` : '₹0 (None)'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -445,6 +520,13 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingMetrics(!editingMetrics)}
+                      className="px-2.5 py-1.5 rounded-md text-xs font-medium border border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                    >
+                      {editingMetrics ? 'Cancel Edit' : 'Edit Counts'}
+                    </button>
                     {(ytVideoId || igShortcode) && (
                       <button
                         onClick={() => setShowEmbedPlayer(!showEmbedPlayer)}
@@ -487,6 +569,51 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {editingMetrics && (
+                  <div className="p-3 bg-zinc-900 rounded-lg border border-zinc-800 space-y-2 text-xs">
+                    <span className="font-semibold text-zinc-200 block text-[11px]">Edit Real Post Views & Likes</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-zinc-400 block mb-0.5">Views Count</label>
+                        <input
+                          type="number"
+                          value={customViews === 0 ? '' : customViews}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setCustomViews(e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-zinc-400 block mb-0.5">Likes Count</label>
+                        <input
+                          type="number"
+                          value={customLikes === 0 ? '' : customLikes}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setCustomLikes(e.target.value === '' ? 0 : Number(e.target.value))}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-zinc-100 font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUpdateCollab(collab.id, {
+                            views_count: Number(customViews) || 0,
+                            likes_count: Number(customLikes) || 0
+                          });
+                          setEditingMetrics(false);
+                        }}
+                        className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold"
+                      >
+                        Save Counts
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Inline Validation & Integration Status Feedback Banner */}
                 {syncFeedback && (

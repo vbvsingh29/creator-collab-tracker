@@ -18,6 +18,49 @@ export interface MediaDetails {
   metricsNote?: string;
 }
 
+/**
+ * Robust HTML entity decoder: decodes named, decimal, and hex entities
+ * like &quot;, &#x2019;, &#x20b9;, &#064;, &amp; into normal characters.
+ */
+export function decodeHtmlEntities(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&#039;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2019;/g, "’")
+    .replace(/&#8217;/g, "’")
+    .replace(/&#x2018;/g, "‘")
+    .replace(/&#8216;/g, "‘")
+    .replace(/&#x201c;/g, '“')
+    .replace(/&#8220;/g, '“')
+    .replace(/&#x201d;/g, '”')
+    .replace(/&#8221;/g, '”')
+    .replace(/&#x20b9;/g, '₹')
+    .replace(/&#8377;/g, '₹')
+    .replace(/&#064;/g, '@')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, dec) => {
+      try {
+        return String.fromCharCode(parseInt(dec, 10));
+      } catch {
+        return _;
+      }
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      try {
+        return String.fromCharCode(parseInt(hex, 16));
+      } catch {
+        return _;
+      }
+    });
+}
+
 // Helper to make HTTPS GET requests with status code validation and redirect following
 function getHttps(url: string, headers: Record<string, string> = {}, timeoutMs = 7000): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -174,8 +217,8 @@ export async function getYouTubeMediaDetails(url: string): Promise<MediaDetails>
   return {
     platform: 'youtube',
     contentId: videoId,
-    title:      title || 'YouTube Video',
-    authorName: authorName || 'YouTube Creator',
+    title:      decodeHtmlEntities(title || 'YouTube Video'),
+    authorName: decodeHtmlEntities(authorName || 'YouTube Creator'),
     authorUrl,
     thumbnailUrl,
     embedUrl,
@@ -208,6 +251,7 @@ export async function getInstagramMediaDetails(url: string): Promise<MediaDetail
   let likesCount = 0;
   let commentsCount = 0;
   let hasAdDisclosure = false;
+  let publishedAt = '';
   let metricsSource: MediaDetails['metricsSource'] = 'unavailable';
   let metricsNote: string | undefined;
 
@@ -219,14 +263,47 @@ export async function getInstagramMediaDetails(url: string): Promise<MediaDetail
     });
 
     const titleMatch = html.match(/property="og:title"\s+content="([^"]+)"/i);
-    if (titleMatch) title = titleMatch[1];
+    if (titleMatch) {
+      const decodedRaw = decodeHtmlEntities(titleMatch[1]);
+      // Extract author if formatted as "Author Name on Instagram: ..."
+      const authorMatch = decodedRaw.match(/^([^:]+)\s+on Instagram/i);
+      if (authorMatch && authorMatch[1].trim()) {
+        authorName = authorMatch[1].trim();
+      }
+
+      // If title is "Author on Instagram: \"Caption\"", extract just the clean caption
+      const quoteMatch = decodedRaw.match(/on Instagram:\s*["“](.*?)["”]?\s*$/s);
+      if (quoteMatch && quoteMatch[1].trim()) {
+        title = quoteMatch[1].trim();
+      } else {
+        title = decodedRaw;
+      }
+    }
 
     const imageMatch = html.match(/property="og:image"\s+content="([^"]+)"/i);
     if (imageMatch) thumbnailUrl = imageMatch[1];
 
     const descMatch = html.match(/property="og:description"\s+content="([^"]+)"/i);
     if (descMatch) {
-      const content = descMatch[1];
+      const content = decodeHtmlEntities(descMatch[1]);
+
+      // Extract date from description e.g. "... - @alpha.omega209 on November 6, 2026"
+      const dateMatch = content.match(/\bon\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i) ||
+                        content.match(/\bon\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);
+      if (dateMatch) {
+        try {
+          const parsed = new Date(dateMatch[1]);
+          if (!isNaN(parsed.getTime())) {
+            publishedAt = parsed.toISOString();
+          }
+        } catch {}
+      }
+
+      // Check author handle like "@alpha.omega209"
+      const handleMatch = content.match(/@([a-zA-Z0-9._]+)/);
+      if (handleMatch && (!authorName || authorName === 'Instagram Creator')) {
+        authorName = `@${handleMatch[1]}`;
+      }
 
       const likesMatch = content.match(/([\d.,]+)([KkMm]?)\s+likes/i);
       if (likesMatch) {
@@ -247,6 +324,15 @@ export async function getInstagramMediaDetails(url: string): Promise<MediaDetail
       }
 
       hasAdDisclosure = content.toLowerCase().includes('#ad') || content.toLowerCase().includes('paid partnership');
+    }
+
+    if (!publishedAt) {
+      const pubMatch = html.match(/"uploadDate":"([^"]+)"/i) ||
+                       html.match(/property="article:published_time"\s+content="([^"]+)"/i) ||
+                       html.match(/property="og:updated_time"\s+content="([^"]+)"/i);
+      if (pubMatch) {
+        publishedAt = pubMatch[1];
+      }
     }
 
     if (likesCount > 0 || title !== 'Instagram Reel') {
@@ -273,6 +359,7 @@ export async function getInstagramMediaDetails(url: string): Promise<MediaDetail
     likesCount,
     commentsCount,
     hasAdDisclosure,
+    publishedAt,
     metricsSource,
     metricsNote
   };
