@@ -14,7 +14,8 @@ import {
   Heart,
   Bot
 } from 'lucide-react';
-import { fetchIntegrationsStatus, apiTestMediaUrl } from '../services/api';
+import { fetchIntegrationsStatus, apiTestMediaUrl, apiVerifyInstagramToken, apiSaveInstagramToken, apiDisconnectInstagram } from '../services/api';
+import confetti from 'canvas-confetti';
 
 interface IntegrationsModalProps {
   onClose: () => void;
@@ -30,6 +31,13 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({ onClose })
   const [testResult, setTestResult] = useState<any>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
+  // Meta Graph API Token Setup State
+  const [showIgConfig, setShowIgConfig] = useState(false);
+  const [igTokenInput, setIgTokenInput] = useState('');
+  const [igAccountIdInput, setIgAccountIdInput] = useState('');
+  const [igTesting, setIgTesting] = useState(false);
+  const [igFeedback, setIgFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   useEffect(() => {
     fetchIntegrationsStatus()
       .then(setIntegrations)
@@ -44,6 +52,53 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({ onClose })
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  const handleConnectInstagram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!igTokenInput.trim()) return;
+
+    setIgTesting(true);
+    setIgFeedback(null);
+
+    try {
+      // 1. Verify token with Meta API
+      const verifyRes = await apiVerifyInstagramToken(igTokenInput.trim(), igAccountIdInput.trim() || undefined);
+      // 2. Save token
+      await apiSaveInstagramToken(igTokenInput.trim(), verifyRes.accountId || igAccountIdInput.trim() || undefined);
+      setIgFeedback({
+        type: 'success',
+        message: `✓ Verified & Connected to ${verifyRes.name || 'Instagram Business Account'}! Lifetime views, plays, and reach are now active.`
+      });
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      setIgTokenInput('');
+      const updated = await fetchIntegrationsStatus();
+      setIntegrations(updated);
+    } catch (err: any) {
+      setIgFeedback({
+        type: 'error',
+        message: err.message || 'Meta Graph API token verification failed. Please verify token permissions.'
+      });
+    } finally {
+      setIgTesting(false);
+    }
+  };
+
+  const handleDisconnectInstagram = async () => {
+    try {
+      await apiDisconnectInstagram();
+      setIgFeedback({
+        type: 'success',
+        message: 'Instagram Meta Graph API disconnected.'
+      });
+      const updated = await fetchIntegrationsStatus();
+      setIntegrations(updated);
+    } catch (err: any) {
+      setIgFeedback({
+        type: 'error',
+        message: err.message || 'Failed to disconnect.'
+      });
+    }
+  };
 
   const handleRunTest = async (urlToTest?: string) => {
     const target = (urlToTest || testUrl).trim();
@@ -246,36 +301,131 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({ onClose })
                   </div>
                   <div>
                     <h4 className="font-bold text-xs text-zinc-900 dark:text-white">Instagram Integration</h4>
-                    <span className="text-[10px] text-zinc-500">Open Graph & Meta Reel Embed Protocol</span>
+                    <span className="text-[10px] text-zinc-500">Meta Graph API & Real Lifetime Insights</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                    {integrations?.instagram?.statusLabel || 'Public Open Graph Active'}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    integrations?.instagram?.hasKey 
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-300 border-amber-500/20'
+                  }`}>
+                    {integrations?.instagram?.hasKey ? 'Meta Graph API Connected' : 'Open Graph Crawler Mode'}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowIgConfig(!showIgConfig)}
+                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline ml-1"
+                  >
+                    {integrations?.instagram?.hasKey ? 'Manage Token' : 'Connect Meta API'}
+                  </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px] text-zinc-700 dark:text-zinc-300">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                  <span>Native Meta Reel Embed Player</span>
+                  <span>Real Lifetime Views & Plays {integrations?.instagram?.hasKey && <strong className="text-emerald-400 text-[10px]">(Active)</strong>}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                  <span>Public Likes & Engagement</span>
+                  <span>Real Lifetime Reach & Impressions</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                  <span>Native Meta Reel Embed Player</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
                   <span>#ad Disclosure Verification</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                  <span>Engagement Rate Calculator</span>
-                </div>
               </div>
+
+              {/* Collapsible Meta Graph API Token Connection Box */}
+              {showIgConfig && (
+                <div className="mt-3 p-3.5 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-bold text-xs text-zinc-900 dark:text-white flex items-center gap-1.5">
+                      <Sparkles size={13} className="text-pink-500" />
+                      Configure Meta Graph API Access Key
+                    </h5>
+                    {integrations?.instagram?.hasKey && (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectInstagram}
+                        className="text-[10px] text-red-500 hover:text-red-400 underline font-semibold"
+                      >
+                        Disconnect Token
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    Connecting your Meta Graph API Access Token activates <strong>real lifetime plays, views, reach, and engagement data</strong> for all your Instagram Reels without public scraping limitations.
+                  </p>
+
+                  {igFeedback && (
+                    <div className={`p-2.5 rounded-lg text-xs font-medium border ${
+                      igFeedback.type === 'success'
+                        ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
+                        : 'bg-red-950/30 border-red-500/40 text-red-300'
+                    }`}>
+                      {igFeedback.message}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleConnectInstagram} className="space-y-2.5">
+                    <div>
+                      <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                        Meta Graph API Access Token *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={igTokenInput}
+                        onChange={(e) => setIgTokenInput(e.target.value)}
+                        placeholder="EAA..."
+                        className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                      <span className="text-[10px] text-zinc-500 block mt-0.5">
+                        Generate a User or Page Access Token from <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">Meta Graph API Explorer</a> with <code className="text-[10px] text-pink-400">instagram_basic</code> & <code className="text-[10px] text-pink-400">instagram_manage_insights</code> permissions.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                        Instagram Account ID (Optional — auto-detected if empty)
+                      </label>
+                      <input
+                        type="text"
+                        value={igAccountIdInput}
+                        onChange={(e) => setIgAccountIdInput(e.target.value)}
+                        placeholder="e.g. 17841405309211993"
+                        className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowIgConfig(false)}
+                        className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={igTesting || !igTokenInput.trim()}
+                        className="px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold disabled:opacity-40 transition-colors shadow-xs"
+                      >
+                        {igTesting ? 'Verifying with Meta...' : 'Verify & Connect Meta API'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
 
             {/* 3. AI Pitch & Reel Intelligence Studio Card */}

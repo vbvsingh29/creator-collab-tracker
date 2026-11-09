@@ -456,11 +456,14 @@ collabsRouter.post('/preview-url', async (req: AuthRequest, res: Response) => {
       }
     } else if (cleanUrl.includes('instagram.com')) {
       try {
-        const details = await getInstagramMediaDetails(trimmedUrl);
+        const user = req.userId ? await db.prepare('SELECT instagram_access_token, instagram_account_id FROM users WHERE id = ?').get(req.userId) as any : null;
+        const details = await getInstagramMediaDetails(trimmedUrl, user?.instagram_access_token, user?.instagram_account_id);
         return res.json({ 
           success: true, 
           data: details,
-          message: `Successfully detected Instagram Reel.`
+          message: details.metricsSource === 'official_api' 
+            ? `Successfully detected Instagram Reel with real lifetime insights!` 
+            : `Successfully detected Instagram Reel.`
         });
       } catch (err: any) {
         return res.status(400).json({
@@ -509,8 +512,9 @@ collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) 
       details = await getYouTubeMediaDetails(collab.live_post_url);
     } else if (url.includes('instagram.com')) {
       integrationName = 'Instagram';
-      modeUsed = process.env.INSTAGRAM_ACCESS_TOKEN ? 'Meta Graph API' : 'Public Open Graph Crawler';
-      details = await getInstagramMediaDetails(collab.live_post_url);
+      const user = req.userId ? await db.prepare('SELECT instagram_access_token, instagram_account_id FROM users WHERE id = ?').get(req.userId) as any : null;
+      details = await getInstagramMediaDetails(collab.live_post_url, user?.instagram_access_token, user?.instagram_account_id);
+      modeUsed = details?.metricsSource === 'official_api' ? 'Meta Graph API (Real Lifetime Insights)' : 'Public Open Graph Inspection';
     } else {
       return res.status(400).json({
         success: false,

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
-import { getYouTubeMediaDetails, getInstagramMediaDetails } from '../services/mediaIntegrations';
+import { getYouTubeMediaDetails, getInstagramMediaDetails, getHttps } from '../services/mediaIntegrations';
+import { db } from '../db/database';
 import { generateAIPitchAndSummary, AIPitchRequest } from '../services/aiPitchAssistant';
 
 export const integrationsRouter = Router();
@@ -9,9 +10,11 @@ export const integrationsRouter = Router();
 integrationsRouter.use(requireAuth);
 
 // GET /api/integrations/status
-integrationsRouter.get('/status', (_req: AuthRequest, res: Response) => {
+integrationsRouter.get('/status', async (req: AuthRequest, res: Response) => {
+  const user = req.userId ? await db.prepare('SELECT instagram_access_token, instagram_account_id FROM users WHERE id = ?').get(req.userId) as any : null;
+  const userIgToken = user?.instagram_access_token && user.instagram_access_token.trim();
   const hasYouTubeKey = Boolean(process.env.YOUTUBE_API_KEY && process.env.YOUTUBE_API_KEY.trim());
-  const hasInstagramToken = Boolean(process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_ACCESS_TOKEN.trim());
+  const hasInstagramToken = Boolean(userIgToken || (process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_ACCESS_TOKEN.trim()));
   const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim());
   const hasOpenAIKey = Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());
 
@@ -43,7 +46,8 @@ integrationsRouter.get('/status', (_req: AuthRequest, res: Response) => {
         name: 'Instagram Integration',
         enabled: true,
         status: hasInstagramToken ? 'graph_api' : 'crawler_active',
-        statusLabel: hasInstagramToken ? 'Meta Graph API Connected' : 'Public Open Graph & Reel Embed',
+        statusLabel: hasInstagramToken ? 'Meta Graph API Connected (Real Lifetime Insights Active)' : 'Public Open Graph Mode',
+        connectedAccountId: user?.instagram_account_id || undefined,
         hasKey: hasInstagramToken,
         quota: hasInstagramToken ? '~200 requests/hour per user' : 'Standard public web limits',
         features: [
@@ -118,7 +122,8 @@ integrationsRouter.post('/test-media', async (req: AuthRequest, res: Response) =
         message: `Successfully verified YouTube content: "${details.title}"`
       });
     } else if (cleanUrl.includes('instagram.com')) {
-      const details = await getInstagramMediaDetails(trimmedUrl);
+      const user = req.userId ? await db.prepare('SELECT instagram_access_token, instagram_account_id FROM users WHERE id = ?').get(req.userId) as any : null;
+      const details = await getInstagramMediaDetails(trimmedUrl, user?.instagram_access_token, user?.instagram_account_id);
       return res.json({
         success: true,
         platform: 'instagram',
@@ -148,6 +153,97 @@ integrationsRouter.post('/ai-pitch', async (req: AuthRequest, res: Response) => 
     res.json({
       success: true,
       data: result
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/integrations/instagram/verify-token
+integrationsRouter.post('/instagram/verify-token', async (req: AuthRequest, res: Response) => {
+  try {
+    const { accessToken, accountId } = req.body;
+    if (!accessToken || !accessToken.trim()) {
+      return res.status(400).json({ success: false, error: 'Meta Access Token is required.' });
+    }
+
+    const token = accessToken.trim();
+    let metaAccountName = 'Instagram Creator Account';
+    let metaUsername = '';
+    let detectedAccountId = accountId ? accountId.trim() : '';
+
+    try {
+      const meRes = await getHttps(`https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${token}`);
+      const meJson = JSON.parse(meRes);
+      if (meJson.error) {
+        return res.status(400).json({
+          success: false,
+          error: `Meta Graph API rejected token: ${meJson.error.message || 'Invalid OAuth token'}`
+        });
+      }
+      metaAccountName = meJson.name || metaAccountName;
+
+      const accountsRes = await getHttps(`https://graph.facebook.com/v21.0/me/accounts?fields=name,instagram_business_account{id,username,name}&access_token=${token}`);
+      const accountsJson = JSON.parse(accountsRes);
+      if (accountsJson.data && Array.isArray(accountsJson.data)) {
+        for (const page of accountsJson.data) {
+          if (page.instagram_business_account) {
+            detectedAccountId = detectedAccountId || page.instagram_business_account.id;
+            metaUsername = page.instagram_business_account.username || metaUsername;
+            metaAccountName = page.instagram_business_account.name || metaAccountName;
+            break;
+          }
+        }
+      }
+    } catch (err: any) {
+      return res.status(400).json({
+        success: false,
+        error: `Could not verify Meta token: ${err.message}`
+      });
+    }
+
+    res.json({
+      success: true,
+      valid: true,
+      name: metaAccountName,
+      username: metaUsername ? `@${metaUsername}` : undefined,
+      accountId: detectedAccountId,
+      message: `✓ Meta Graph API verified! Connected to ${metaAccountName}. Real lifetime insights are active.`
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/integrations/instagram/save-token
+integrationsRouter.post('/instagram/save-token', async (req: AuthRequest, res: Response) => {
+  try {
+    const { accessToken, accountId } = req.body;
+    if (!accessToken || !accessToken.trim()) {
+      return res.status(400).json({ success: false, error: 'Access token is required.' });
+    }
+
+    const token = accessToken.trim();
+    const accId = accountId ? accountId.trim() : '';
+
+    await db.prepare('UPDATE users SET instagram_access_token = ?, instagram_account_id = ? WHERE id = ?').run(token, accId, req.userId);
+
+    res.json({
+      success: true,
+      message: 'Meta Graph API token saved successfully! Lifetime views & insights are now active for all your Instagram collaborations.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /api/integrations/instagram/disconnect
+integrationsRouter.delete('/instagram/disconnect', async (req: AuthRequest, res: Response) => {
+  try {
+    await db.prepare('UPDATE users SET instagram_access_token = "", instagram_account_id = "" WHERE id = ?').run(req.userId);
+    res.json({
+      success: true,
+      message: 'Instagram Meta Graph API disconnected. Operating in Open Graph mode.'
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });

@@ -302,6 +302,9 @@ export async function runTursoMigrations(adapter: TursoAdapter): Promise<void> {
     { name: 'platform', type: 'TEXT DEFAULT "both"' },
     { name: 'avatar_url', type: 'TEXT DEFAULT ""' },
     { name: 'role', type: 'TEXT DEFAULT "creator"' },
+    { name: 'instagram_access_token', type: 'TEXT DEFAULT ""' },
+    { name: 'instagram_account_id', type: 'TEXT DEFAULT ""' },
+    { name: 'youtube_api_key', type: 'TEXT DEFAULT ""' },
   ];
 
   for (const col of usersColumns) {

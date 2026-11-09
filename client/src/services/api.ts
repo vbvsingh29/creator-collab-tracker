@@ -674,6 +674,38 @@ export async function apiTestMediaUrl(url: string): Promise<any> {
   );
 }
 
+export async function apiVerifyInstagramToken(accessToken: string, accountId?: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/integrations/instagram/verify-token`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ accessToken, accountId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Meta token verification failed');
+  return data;
+}
+
+export async function apiSaveInstagramToken(accessToken: string, accountId?: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/integrations/instagram/save-token`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ accessToken, accountId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to save Meta token');
+  return data;
+}
+
+export async function apiDisconnectInstagram(): Promise<any> {
+  const res = await fetch(`${API_BASE}/integrations/instagram/disconnect`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to disconnect Instagram');
+  return data;
+}
+
 export async function apiGenerateAIPitch(payload: any): Promise<any> {
   return safeJsonRequest(
     `${API_BASE}/integrations/ai-pitch`,

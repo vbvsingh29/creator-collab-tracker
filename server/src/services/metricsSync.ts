@@ -79,52 +79,20 @@ export async function syncYouTubeMetrics(url: string): Promise<{ views: number; 
  * Fetch Instagram Reel statistics
  * Supports Instagram Graph API with INSTAGRAM_ACCESS_TOKEN or Open Graph crawler inspection
  */
-export async function syncInstagramMetrics(url: string): Promise<{ views: number; likes: number }> {
-  const shortcode = extractInstagramCode(url);
-  if (!shortcode) {
-    throw new Error('Invalid Instagram Reel URL format');
-  }
-
-  const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
-
-  if (accessToken) {
-    try {
-      const apiUrl = `https://graph.facebook.com/v19.0/${shortcode}?fields=like_count,comments_count&access_token=${accessToken}`;
-      const response = await fetchHttps(apiUrl);
-      const json = JSON.parse(response);
-      return {
-        views: 0, // In Graph API, views are obtained via /insights endpoint
-        likes: parseInt(json.like_count || '0', 10),
-      };
-    } catch (err: any) {
-      console.warn('Instagram Graph API error:', err.message);
-    }
-  }
-
-  // Fallback: Fetch page with crawler User-Agent to read Open Graph description
+export async function syncInstagramMetrics(
+  url: string,
+  userToken?: string,
+  userAccountId?: string
+): Promise<{ views: number; likes: number }> {
+  const { getInstagramMediaDetails } = require('./mediaIntegrations');
   try {
-    const html = await fetchHttps(`https://www.instagram.com/reel/${shortcode}/`, {
-      'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
-    });
-
-    // Example og:description: "24K likes, 412 comments - Creator on Instagram: ..."
-    const descMatch = html.match(/property="og:description"\s+content="([^"]+)"/i);
-    if (descMatch) {
-      const content = descMatch[1];
-      const likesMatch = content.match(/([\d.,]+)([KkMm]?)\s+likes/i);
-      let likes = 0;
-      if (likesMatch) {
-        let val = parseFloat(likesMatch[1]);
-        const unit = likesMatch[2].toUpperCase();
-        if (unit === 'K') val *= 1000;
-        if (unit === 'M') val *= 1000000;
-        likes = Math.round(val);
-      }
-      return { views: 0, likes };
-    }
+    const details = await getInstagramMediaDetails(url, userToken, userAccountId);
+    return {
+      views: details.viewsCount || 0,
+      likes: details.likesCount || 0
+    };
   } catch (err: any) {
-    console.warn('Instagram Open Graph extraction error:', err.message);
+    console.warn('Instagram metrics sync error:', err.message);
+    return { views: 0, likes: 0 };
   }
-
-  return { views: 0, likes: 0 };
 }

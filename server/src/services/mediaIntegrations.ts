@@ -62,7 +62,7 @@ export function decodeHtmlEntities(text: string): string {
 }
 
 // Helper to make HTTPS GET requests with status code validation and redirect following
-function getHttps(url: string, headers: Record<string, string> = {}, timeoutMs = 7000): Promise<string> {
+export function getHttps(url: string, headers: Record<string, string> = {}, timeoutMs = 7000): Promise<string> {
   return new Promise((resolve, reject) => {
     https.get(url, { headers, timeout: timeoutMs }, (res) => {
       // Follow 301/302 redirects
@@ -233,14 +233,196 @@ export async function getYouTubeMediaDetails(url: string): Promise<MediaDetails>
 }
 
 /**
- * Instagram Integration:
- * - Step A: Open Graph crawler (facebookexternalhit UA) → title, thumbnail, likes, comments
- * - If blocked by Meta's datacenter firewall: returns 0 counts — NO fake data
+ * Query Meta Graph API for real lifetime media insights:
+ * Supports:
+ * - Direct Media ID lookup (if media_id is known or resolved from account media list)
+ * - Automatic resolution from shortcode using Instagram Business/Creator account media list
+ * - Lifetime Insights: GET /{media_id}/insights?metric=views,reach,plays,total_interactions,saved,shares&period=lifetime
+ * - Official oEmbed verification: GET /instagram_oembed?url={url}&access_token={token}
  */
-export async function getInstagramMediaDetails(url: string): Promise<MediaDetails> {
+export async function getInstagramGraphApiDetails(
+  url: string,
+  shortcode: string,
+  accessToken: string,
+  accountId?: string
+): Promise<MediaDetails | null> {
+  try {
+    const apiVersion = 'v21.0';
+    let targetMediaId: string | null = null;
+    let targetMediaData: any = null;
+
+    // Step 1: Discover or verify the Instagram Business / Creator Account ID if not provided
+    let effectiveAccountId = accountId;
+    if (!effectiveAccountId) {
+      try {
+        const meRes = await getHttps(`https://graph.facebook.com/${apiVersion}/me/accounts?fields=instagram_business_account{id,username,name}&access_token=${accessToken}`);
+        const meJson = JSON.parse(meRes);
+        if (meJson.data && Array.isArray(meJson.data)) {
+          for (const page of meJson.data) {
+            if (page.instagram_business_account?.id) {
+              effectiveAccountId = page.instagram_business_account.id;
+              break;
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn('[Meta Graph API] Could not auto-detect account from /me/accounts:', err.message);
+      }
+    }
+
+    if (!effectiveAccountId) {
+      try {
+        const meUserRes = await getHttps(`https://graph.facebook.com/${apiVersion}/me?fields=id,username&access_token=${accessToken}`);
+        const meUserJson = JSON.parse(meUserRes);
+        if (meUserJson.id) {
+          effectiveAccountId = meUserJson.id;
+        }
+      } catch {}
+    }
+
+    // Step 2: Search for media matching shortcode in account's recent media
+    if (effectiveAccountId) {
+      try {
+        const mediaListRes = await getHttps(
+          `https://graph.facebook.com/${apiVersion}/${effectiveAccountId}/media?fields=id,shortcode,permalink,caption,media_type,media_product_type,like_count,comments_count,timestamp,thumbnail_url,media_url&limit=50&access_token=${accessToken}`
+        );
+        const mediaListJson = JSON.parse(mediaListRes);
+        if (mediaListJson.data && Array.isArray(mediaListJson.data)) {
+          for (const m of mediaListJson.data) {
+            if (m.shortcode === shortcode || (m.permalink && m.permalink.includes(shortcode))) {
+              targetMediaId = m.id;
+              targetMediaData = m;
+              break;
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn(`[Meta Graph API] Media search error on account ${effectiveAccountId}:`, err.message);
+      }
+    }
+
+    // Step 3: If target media found, query REAL LIFETIME INSIGHTS
+    let lifetimeViews = 0;
+    let lifetimeReach = 0;
+    let lifetimeLikes = targetMediaData?.like_count ? parseInt(targetMediaData.like_count, 10) : 0;
+    let lifetimeComments = targetMediaData?.comments_count ? parseInt(targetMediaData.comments_count, 10) : 0;
+    let caption = targetMediaData?.caption || '';
+    let author = targetMediaData?.username || 'Instagram Creator';
+    let thumb = targetMediaData?.thumbnail_url || targetMediaData?.media_url || '';
+    let publishedAt = targetMediaData?.timestamp || '';
+
+    if (targetMediaId) {
+      try {
+        // Query lifetime insights for Reels / Videos
+        const insightsRes = await getHttps(
+          `https://graph.facebook.com/${apiVersion}/${targetMediaId}/insights?metric=views,reach,plays,total_interactions,saved,shares&period=lifetime&access_token=${accessToken}`
+        );
+        const insightsJson = JSON.parse(insightsRes);
+        if (insightsJson.data && Array.isArray(insightsJson.data)) {
+          for (const metric of insightsJson.data) {
+            const val = metric.values?.[0]?.value ?? 0;
+            if (metric.name === 'views' && val > 0) lifetimeViews = val;
+            if (metric.name === 'plays' && val > 0 && lifetimeViews === 0) lifetimeViews = val;
+            if (metric.name === 'reach' && val > 0) lifetimeReach = val;
+          }
+        }
+      } catch (err: any) {
+        console.warn(`[Meta Graph API] Insights error for media ${targetMediaId}:`, err.message);
+        // Fallback for regular image/carousel posts: metric=impressions,reach,saved,total_interactions
+        try {
+          const fallbackInsightsRes = await getHttps(
+            `https://graph.facebook.com/${apiVersion}/${targetMediaId}/insights?metric=impressions,reach,saved,total_interactions&period=lifetime&access_token=${accessToken}`
+          );
+          const fallbackJson = JSON.parse(fallbackInsightsRes);
+          if (fallbackJson.data && Array.isArray(fallbackJson.data)) {
+            for (const metric of fallbackJson.data) {
+              const val = metric.values?.[0]?.value ?? 0;
+              if (metric.name === 'impressions' && val > 0) lifetimeViews = val;
+              if (metric.name === 'reach' && val > 0) lifetimeReach = val;
+            }
+          }
+        } catch {}
+      }
+
+      return {
+        platform: 'instagram',
+        contentId: shortcode,
+        title: caption ? decodeHtmlEntities(caption) : 'Instagram Reel',
+        authorName: author,
+        thumbnailUrl: thumb,
+        embedUrl: `https://www.instagram.com/reel/${shortcode}/embed`,
+        viewsCount: lifetimeViews,
+        likesCount: lifetimeLikes,
+        commentsCount: lifetimeComments,
+        hasAdDisclosure: caption.toLowerCase().includes('#ad') || caption.toLowerCase().includes('paid partnership'),
+        publishedAt,
+        metricsSource: 'official_api',
+        metricsNote: `Verified real lifetime data via Meta Graph API (${lifetimeViews.toLocaleString()} views, ${lifetimeReach.toLocaleString()} reach)`
+      };
+    }
+
+    // Step 4: If media not in account (e.g. brand link), query Meta's official oembed with token
+    try {
+      const oembedRes = await getHttps(
+        `https://graph.facebook.com/${apiVersion}/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${accessToken}`
+      );
+      const oembedJson = JSON.parse(oembedRes);
+      if (oembedJson.author_name) {
+        return {
+          platform: 'instagram',
+          contentId: shortcode,
+          title: oembedJson.title ? decodeHtmlEntities(oembedJson.title) : 'Instagram Reel',
+          authorName: oembedJson.author_name,
+          thumbnailUrl: oembedJson.thumbnail_url || '',
+          embedUrl: `https://www.instagram.com/reel/${shortcode}/embed`,
+          viewsCount: 0,
+          likesCount: 0,
+          commentsCount: 0,
+          hasAdDisclosure: (oembedJson.title || '').toLowerCase().includes('#ad'),
+          metricsSource: 'official_api',
+          metricsNote: 'Verified via Meta Official oEmbed API. (Lifetime views require media ownership or Meta Graph API insights permission).'
+        };
+      }
+    } catch (err: any) {
+      console.warn('[Meta Graph API] oEmbed endpoint error:', err.message);
+    }
+
+    return null;
+  } catch (err: any) {
+    console.warn('[Meta Graph API] Error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Instagram Integration:
+ * - Priority 1: Meta Graph API (Official Lifetime Views, Reach & Plays) if access token available
+ * - Priority 2: Open Graph crawler (facebookexternalhit UA) → title, thumbnail, likes, comments
+ */
+export async function getInstagramMediaDetails(
+  url: string,
+  userToken?: string,
+  userAccountId?: string
+): Promise<MediaDetails> {
   const shortcode = parseInstagramShortcode(url);
   if (!shortcode) {
     throw new Error('Invalid Instagram link. Please paste a valid Instagram Reel or post link (e.g. instagram.com/reel/...).');
+  }
+
+  // Priority 1: Check Meta Graph API for official real lifetime data
+  const metaToken = (userToken && userToken.trim()) || (process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_ACCESS_TOKEN.trim());
+  const metaAccountId = (userAccountId && userAccountId.trim()) || (process.env.INSTAGRAM_ACCOUNT_ID && process.env.INSTAGRAM_ACCOUNT_ID.trim());
+
+  if (metaToken) {
+    try {
+      const graphData = await getInstagramGraphApiDetails(url, shortcode, metaToken, metaAccountId);
+      if (graphData && (graphData.viewsCount > 0 || graphData.likesCount > 0)) {
+        console.log(`✅ [Meta Graph API] Synced lifetime data for ${shortcode}: ${graphData.viewsCount} views, ${graphData.likesCount} likes`);
+        return graphData;
+      }
+    } catch (err: any) {
+      console.warn(`[Meta Graph API] Fallback to Open Graph scraper: ${err.message}`);
+    }
   }
 
   const embedUrl = `https://www.instagram.com/reel/${shortcode}/embed`;
@@ -356,11 +538,11 @@ export async function getInstagramMediaDetails(url: string): Promise<MediaDetail
       metricsSource = 'public_scrape';
       console.log(`✅ [Instagram OG] ${shortcode}: ${likesCount.toLocaleString()} likes`);
     } else {
-      metricsNote = 'Instagram returned a page but no metrics found — Meta may be blocking datacenter IPs. Metrics will show 0 until a user-facing proxy or Meta Graph API token is configured.';
+      metricsNote = 'Instagram returned a page but no metrics found — Meta may be blocking datacenter IPs. Connect your Meta Graph API token in Integrations for automatic real lifetime insights, or enter views manually.';
       console.warn(`⚠️ [Instagram OG] No metrics for ${shortcode} — possible IP block`);
     }
   } catch (err: any) {
-    metricsNote = 'Could not reach Instagram. Meta blocks most datacenter IPs. The embed player still works for display.';
+    metricsNote = 'Could not reach Instagram. Meta blocks most datacenter IPs. Connect Meta Graph API in Integrations for automatic lifetime sync.';
     console.warn(`⚠️ [Instagram OG] Fetch error for ${shortcode}: ${err.message}`);
   }
 
