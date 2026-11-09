@@ -358,6 +358,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, canClose 
                   </select>
                 </div>
               </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+                  Mobile Phone Number (Optional)
+                </label>
+                <div className="relative">
+                  <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:border-slate-800"
+                  />
+                </div>
+              </div>
             </>
           )}
 

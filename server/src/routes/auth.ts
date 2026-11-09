@@ -165,7 +165,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail) as any;
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
         not_registered: true,
         error: 'No account found with this email. Please register your creator profile first.'
@@ -506,7 +506,7 @@ authRouter.post('/send-sms-otp', async (req: Request, res: Response) => {
     if (purpose === 'login') {
       const existingUser = await findUserByPhone(cleanPhone);
       if (!existingUser) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
           not_registered: true,
           error: 'No account found with this mobile number. Please register your creator profile first.'
@@ -540,7 +540,7 @@ authRouter.post('/verify-sms-otp', async (req: Request, res: Response) => {
     const user = await findUserByPhone(cleanPhone);
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
         not_registered: true,
         error: 'No account found with this mobile number. Please register your creator profile first.'

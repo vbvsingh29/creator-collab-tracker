@@ -56,77 +56,61 @@ async function safeJsonRequest<T>(
     const res = await fetch(url, options);
     const contentType = res.headers.get('content-type') || '';
 
-    // Detect if Vercel returned index.html or non-JSON response
-    if (contentType.includes('text/html') || res.status === 404 || res.status >= 500) {
-      console.warn(`[SafeAPI] ${options.method || 'GET'} ${url} returned ${res.status} (${contentType}). Using offline/demo fallback.`);
-      return await fallbackFn();
-    }
-
-    if (!contentType.includes('application/json')) {
-      return await fallbackFn();
-    }
-
-    const data = await res.json();
-    if (!res.ok) {
-      if (res.status === 401) {
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('collabflow_session_expired', { detail: data.error }));
+    // If the server returned JSON, it is an authoritative API response — process it directly
+    if (contentType.includes('application/json')) {
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('collabflow_session_expired', { detail: data.error }));
+          }
         }
+        const error: any = new Error(data.error || `HTTP error ${res.status}`);
+        error.status = res.status;
+        error.not_registered = Boolean(data.not_registered);
+        throw error;
       }
-      throw new Error(data.error || `HTTP error ${res.status}`);
+      return data;
     }
-    return data;
-  } catch (err: any) {
-    // If it's a network error (e.g., fetch failed, offline, connection refused), fallback!
-    if (
-      err.name === 'TypeError' ||
-      err.message?.includes('fetch') ||
-      err.message?.includes('JSON') ||
-      err.message?.includes('NetworkError') ||
-      err.message?.includes('Failed to fetch')
-    ) {
-      console.warn(`[SafeAPI] Network unreachable for ${url}. Executing fallback:`, err.message);
+
+    // Only if host server returned HTML (e.g. Vercel SPA 404 index.html fallback when no backend is deployed), use offline fallback
+    if (contentType.includes('text/html')) {
+      console.warn(`[SafeAPI] ${options.method || 'GET'} ${url} returned HTML (${res.status}). Using offline fallback.`);
       return await fallbackFn();
     }
-    throw err;
+
+    return await fallbackFn();
+  } catch (err: any) {
+    // If it's an authoritative API response from the server, throw it directly (never swallow real API errors!)
+    if (err.status || err.not_registered || (err.message && !err.message.includes('fetch') && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError'))) {
+      throw err;
+    }
+
+    // Only on genuine network failures (offline, connection refused), execute fallback
+    console.warn(`[SafeAPI] Network unreachable for ${url}. Executing fallback:`, err.message);
+    return await fallbackFn();
   }
 }
 
 // -------------------------------------------------------------
-// Auth API Calls
+// Auth API Calls (100% Real API Authentication - Zero Mock Faking)
 // -------------------------------------------------------------
 
 export async function apiLogin(email: string, password: string): Promise<{ token: string; user: User }> {
-  return safeJsonRequest(
-    `${API_BASE}/auth/login`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    },
-    async () => {
-      const cleanEmail = (email || '').toLowerCase().trim();
-      const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Creator';
-      const user: User = getLocalUser() || {
-        id: `user-${Date.now()}`,
-        name: namePart.replace(/\b\w/g, (l) => l.toUpperCase()),
-        email: cleanEmail || 'creator@workspace.com',
-        handle: `@${cleanEmail.split('@')[0] || 'creator'}`,
-        platform: 'both',
-        role: cleanEmail.includes('admin') ? 'admin' : 'creator',
-        avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(namePart)}`,
-        created_at: new Date().toISOString()
-      };
-      if (cleanEmail.includes('admin')) {
-        user.role = 'admin';
-      }
-      user.email = cleanEmail;
-      saveLocalUser(user);
-      const token = cleanEmail.includes('admin') ? 'collabflow-token-admin' : `collabflow-token-${user.id}`;
-      setAuthToken(token);
-      return { token, user };
-    }
-  );
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error: any = new Error(data.error || 'Login failed');
+    error.status = res.status;
+    error.not_registered = Boolean(data.not_registered);
+    throw error;
+  }
+  setAuthToken(data.token);
+  return data;
 }
 
 export async function apiRegister(userData: {
@@ -137,40 +121,19 @@ export async function apiRegister(userData: {
   platform: string;
   phone?: string;
 }): Promise<{ token: string; user: User }> {
-  return safeJsonRequest(
-    `${API_BASE}/auth/register`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
-    },
-    async () => {
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        name: userData.name || 'New Creator',
-        email: userData.email || 'creator@workspace.com',
-        handle: userData.handle.startsWith('@') ? userData.handle : `@${userData.handle}`,
-        platform: (userData.platform as any) || 'youtube',
-        avatar_url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150`,
-        bio: 'Professional content creator on YouTube and Instagram.',
-        rates: {
-          reel_rate: 35000,
-          video_rate: 75000,
-          story_rate: 12000,
-          whitelisting_monthly_rate: 15000
-        },
-        social_links: {
-          instagram: `https://instagram.com/${userData.handle.replace('@', '')}`,
-          youtube: `https://youtube.com/@${userData.handle.replace('@', '')}`
-        },
-        created_at: new Date().toISOString()
-      };
-      saveLocalUser(newUser);
-      const token = 'collabflow-demo-token-' + newUser.id;
-      setAuthToken(token);
-      return { token, user: newUser };
-    }
-  );
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error: any = new Error(data.error || 'Registration failed');
+    error.status = res.status;
+    throw error;
+  }
+  setAuthToken(data.token);
+  return data;
 }
 
 export async function apiGetMe(): Promise<User> {
@@ -261,23 +224,19 @@ export async function apiSendSmsOtp(
   preview_mode?: boolean;
   normalized_phone?: string;
 }> {
-  return safeJsonRequest(
-    `${API_BASE}/auth/send-sms-otp`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, purpose }),
-    },
-    async () => {
-      return {
-        success: true,
-        message: '6-digit SMS verification code generated (Sandbox preview: code 123456).',
-        preview_code: '123456',
-        preview_mode: true,
-        normalized_phone: phone
-      };
-    }
-  );
+  const res = await fetch(`${API_BASE}/auth/send-sms-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, purpose }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error: any = new Error(data.error || 'Failed to send SMS code');
+    error.status = res.status;
+    error.not_registered = Boolean(data.not_registered);
+    throw error;
+  }
+  return data;
 }
 
 export async function apiVerifySmsOtp(
@@ -285,38 +244,20 @@ export async function apiVerifySmsOtp(
   otp: string,
   name?: string
 ): Promise<{ success: boolean; token: string; user: User; message: string }> {
-  return safeJsonRequest(
-    `${API_BASE}/auth/verify-sms-otp`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, otp, name }),
-    },
-    async () => {
-      const existingUser = getLocalUser() || {
-        id: `user-${Date.now()}`,
-        name: name || 'Mobile Creator',
-        email: `${phone.replace(/[^0-9]/g, '')}@mobile.collabflow.app`,
-        handle: `@creator_${phone.slice(-4)}`,
-        platform: 'both' as const,
-        created_at: new Date().toISOString()
-      };
-      const updatedUser: User = {
-        ...existingUser,
-        phone,
-        name: name || existingUser.name || 'Mobile Creator',
-      };
-      saveLocalUser(updatedUser);
-      const token = 'collabflow-sms-token-' + phone.replace(/[^0-9]/g, '');
-      setAuthToken(token);
-      return {
-        success: true,
-        token,
-        user: updatedUser,
-        message: 'Phone verified successfully! You are logged in.'
-      };
-    }
-  );
+  const res = await fetch(`${API_BASE}/auth/verify-sms-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, otp, name }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error: any = new Error(data.error || 'Verification failed');
+    error.status = res.status;
+    error.not_registered = Boolean(data.not_registered);
+    throw error;
+  }
+  setAuthToken(data.token);
+  return data;
 }
 
 export async function apiUpdateProfile(profileData: Partial<User>): Promise<{ success: boolean; user: User; message: string }> {
