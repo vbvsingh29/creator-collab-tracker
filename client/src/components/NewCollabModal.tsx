@@ -362,7 +362,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                       placeholder="Enter reel/video views..."
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/^0+(?=\d)/, '');
                         setViewsCount(val === '' ? 0 : Number(val));
                       }}
                       className="w-full bg-zinc-900 border border-zinc-700 hover:border-teal-500 focus:border-teal-500 rounded px-2.5 py-1.5 text-zinc-100 font-mono text-xs focus:outline-none transition-colors"
@@ -378,7 +378,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                       placeholder="Enter likes..."
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/^0+(?=\d)/, '');
                         setLikesCount(val === '' ? 0 : Number(val));
                       }}
                       className="w-full bg-zinc-900 border border-zinc-700 hover:border-pink-500 focus:border-pink-500 rounded px-2.5 py-1.5 text-zinc-100 font-mono text-xs focus:outline-none transition-colors"
@@ -801,7 +801,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                     placeholder="0"
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => {
-                      const val = e.target.value;
+                      const val = e.target.value.replace(/^0+(?=\d)/, '');
                       setViewsCount(val === '' ? 0 : Number(val));
                     }}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"
@@ -817,7 +817,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                     placeholder="0"
                     onFocus={(e) => e.target.select()}
                     onChange={(e) => {
-                      const val = e.target.value;
+                      const val = e.target.value.replace(/^0+(?=\d)/, '');
                       setLikesCount(val === '' ? 0 : Number(val));
                     }}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500 text-xs"
