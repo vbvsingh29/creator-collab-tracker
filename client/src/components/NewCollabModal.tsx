@@ -856,18 +856,6 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
 
                     <div>
                       <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
-                        Publish Date
-                      </label>
-                      <input
-                        type="date"
-                        value={scheduledDate}
-                        onChange={(e) => setScheduledDate(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-indigo-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
                         Promo Code
                       </label>
                       <input
@@ -876,6 +864,19 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                        Tracking Link
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="https://brand.com/..."
+                        value={trackingLink}
+                        onChange={(e) => setTrackingLink(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-200 font-mono text-xs focus:outline-none focus:border-indigo-500"
                       />
                     </div>
                   </div>
@@ -966,9 +967,9 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
             </div>
           )}
 
-          {/* Promo code, tracking link, date - Advanced Only */}
+          {/* Promo code, tracking link - Advanced Only */}
           {formMode === 'advanced' && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
                   Coupon / Promo Code
@@ -991,17 +992,6 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                   value={trackingLink}
                   onChange={(e) => setTrackingLink(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 placeholder-zinc-500 font-mono text-[11px] focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
-                  Target Publish Date
-                </label>
-                <input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>

@@ -464,13 +464,25 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
                 <ExternalLink size={13} className="text-emerald-400" />
-                Live Post Verification
+                Live Post & Release Date
               </h3>
-              {collab.actual_posted_date && (
-                <span className="text-[11px] text-zinc-400">
-                  Published: <span className="text-zinc-200 font-semibold">{collab.actual_posted_date}</span>
-                </span>
-              )}
+              <div className="flex items-center gap-1.5">
+                <Calendar size={12} className="text-teal-400" />
+                <label className="text-[10px] text-zinc-400">Live Date:</label>
+                <input
+                  type="date"
+                  value={collab.actual_posted_date || collab.scheduled_post_date || ''}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    onUpdateCollab(collab.id, {
+                      actual_posted_date: newDate,
+                      scheduled_post_date: newDate
+                    });
+                  }}
+                  style={{ colorScheme: 'dark' }}
+                  className="bg-zinc-950 border border-zinc-800 hover:border-teal-500 rounded px-2 py-0.5 text-xs text-zinc-200 font-mono focus:outline-none cursor-pointer"
+                />
+              </div>
             </div>
 
             {/* Live URL Display or Input */}
@@ -548,10 +560,18 @@ export const CollabDrawer: React.FC<CollabDrawerProps> = ({
                         try {
                           const updated = await syncCollabMetrics(collab.id);
                           onUpdateCollab(collab.id, updated);
-                          setSyncFeedback({
-                            type: 'success',
-                            message: `✓ Live sync successful: ${updated.views_count?.toLocaleString() || 0} views & ${updated.likes_count?.toLocaleString() || 0} likes.`
-                          });
+                          if ((updated.views_count || 0) === 0 && collab.platform === 'instagram') {
+                            setSyncFeedback({
+                              type: 'success',
+                              message: `Instagram link verified. Meta restricts public view counts without Graph API. You can manually enter views below.`
+                            });
+                            setEditingMetrics(true);
+                          } else {
+                            setSyncFeedback({
+                              type: 'success',
+                              message: `✓ Live sync successful: ${updated.views_count?.toLocaleString() || 0} views & ${updated.likes_count?.toLocaleString() || 0} likes.`
+                            });
+                          }
                         } catch (err: any) {
                           setSyncFeedback({
                             type: 'error',
