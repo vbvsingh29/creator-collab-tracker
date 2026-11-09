@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calculator, Plus, Check, Percent, Zap, ShieldAlert, Clock, Sparkles } from 'lucide-react';
-import { Currency } from '../types';
+import { Currency, User } from '../types';
 import { formatCurrency } from '../utils/formatters';
 
 interface RateCardModalProps {
+  user?: User | null;
   currency: Currency;
   onClose: () => void;
-  onApplyRate: (rate: { title: string; format: string; amount: number; hasWhitelisting: boolean; hasExclusivity: boolean }) => void;
+  onApplyRate: (rate: {
+    title: string;
+    format: string;
+    amount: number;
+    hasWhitelisting: boolean;
+    hasExclusivity: boolean;
+    tds_percentage?: number;
+    agency_cut_percentage?: number;
+  }) => void;
 }
 
 interface DeliverableOption {
@@ -27,17 +36,36 @@ const BASE_OPTIONS: DeliverableOption[] = [
   { id: 'ig_mention', name: 'Soft Name Mention / Caption Tag', platform: 'instagram', baseINR: 15000, baseUSD: 250 },
 ];
 
-export const RateCardModal: React.FC<RateCardModalProps> = ({ currency, onClose, onApplyRate }) => {
+export const RateCardModal: React.FC<RateCardModalProps> = ({ user, currency, onClose, onApplyRate }) => {
   const [selectedFormatId, setSelectedFormatId] = useState<string>('yt_integrated_midroll');
   const [addWhitelisting, setAddWhitelisting] = useState(true);
   const [addExclusivity, setAddExclusivity] = useState(false);
   const [addRushTurnaround, setAddRushTurnaround] = useState(false);
   const [addPinnedComment, setAddPinnedComment] = useState(true);
   const [addBonusStory, setAddBonusStory] = useState(false);
+  const [tdsPct, setTdsPct] = useState<number>(user?.tds_percentage ?? 0);
+  const [agencyPct, setAgencyPct] = useState<number>(user?.agency_cut_percentage ?? 0);
 
   const selectedOption = BASE_OPTIONS.find((b) => b.id === selectedFormatId) || BASE_OPTIONS[0];
 
-  const basePrice = currency === 'INR' ? selectedOption.baseINR : selectedOption.baseUSD;
+  // Prioritize creator baseline rates from profile if saved
+  const profileRates = user?.rates;
+  let dynamicPrice = currency === 'INR' ? selectedOption.baseINR : selectedOption.baseUSD;
+  if (profileRates) {
+    if (selectedOption.id === 'ig_integrated_reel' && profileRates.reel_rate) {
+      dynamicPrice = profileRates.reel_rate;
+    } else if (selectedOption.id === 'ig_dedicated_reel' && profileRates.reel_rate) {
+      dynamicPrice = Math.round(profileRates.reel_rate * 1.5);
+    } else if (selectedOption.id === 'yt_dedicated_video' && profileRates.video_rate) {
+      dynamicPrice = profileRates.video_rate;
+    } else if (selectedOption.id === 'yt_integrated_midroll' && profileRates.video_rate) {
+      dynamicPrice = Math.round(profileRates.video_rate * 0.7);
+    } else if (selectedOption.id === 'ig_story' && profileRates.story_rate) {
+      dynamicPrice = profileRates.story_rate;
+    }
+  }
+
+  const basePrice = dynamicPrice;
 
   // Add-on percentage multipliers
   let totalMultiplier = 1.0;
@@ -51,10 +79,10 @@ export const RateCardModal: React.FC<RateCardModalProps> = ({ currency, onClose,
 
   const totalFairDeal = Math.round(basePrice * totalMultiplier + pinnedFee + storyFee);
 
-  // Take-home math
-  const tds = Math.round(totalFairDeal * 0.10);
-  const agency = Math.round(totalFairDeal * 0.15);
-  const netBankCash = totalFairDeal - tds - agency;
+  // Take-home math: user-controlled deductions defaulting to 0%
+  const tds = Math.round(totalFairDeal * (tdsPct / 100));
+  const agency = Math.round(totalFairDeal * (agencyPct / 100));
+  const netBankCash = Math.max(0, totalFairDeal - tds - agency);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -71,6 +99,8 @@ export const RateCardModal: React.FC<RateCardModalProps> = ({ currency, onClose,
       amount: totalFairDeal,
       hasWhitelisting: addWhitelisting,
       hasExclusivity: addExclusivity,
+      tds_percentage: tdsPct,
+      agency_cut_percentage: agencyPct,
     });
     onClose();
   };
@@ -210,16 +240,38 @@ export const RateCardModal: React.FC<RateCardModalProps> = ({ currency, onClose,
 
           <div className="grid grid-cols-3 gap-2 mt-2 pt-2 text-[11px] text-zinc-400">
             <div>
-              <span className="text-zinc-500 block text-[10px]">TDS / Tax (10%)</span>
-              <span className="text-red-400 font-semibold">-{formatCurrency(tds, currency)}</span>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-zinc-500 text-[10px]">TDS ({tdsPct}%)</span>
+                <button
+                  type="button"
+                  onClick={() => setTdsPct(tdsPct === 0 ? 10 : 0)}
+                  className="text-[9px] text-zinc-400 hover:text-zinc-200 underline"
+                >
+                  {tdsPct === 0 ? '+10% TDS' : '0%'}
+                </button>
+              </div>
+              <span className={tds > 0 ? "text-red-400 font-semibold" : "text-zinc-400 font-semibold"}>
+                {tds > 0 ? `-${formatCurrency(tds, currency)}` : '₹0 (None)'}
+              </span>
             </div>
             <div>
-              <span className="text-zinc-500 block text-[10px]">Agency Cut (15%)</span>
-              <span className="text-amber-400 font-semibold">-{formatCurrency(agency, currency)}</span>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-zinc-500 text-[10px]">Agency ({agencyPct}%)</span>
+                <button
+                  type="button"
+                  onClick={() => setAgencyPct(agencyPct === 0 ? 15 : 0)}
+                  className="text-[9px] text-zinc-400 hover:text-zinc-200 underline"
+                >
+                  {agencyPct === 0 ? '+15% Agency' : '0%'}
+                </button>
+              </div>
+              <span className={agency > 0 ? "text-amber-400 font-semibold" : "text-zinc-400 font-semibold"}>
+                {agency > 0 ? `-${formatCurrency(agency, currency)}` : '₹0 (None)'}
+              </span>
             </div>
             <div>
               <span className="text-zinc-500 block text-[10px]">Net Creator Cash</span>
-              <span className="text-emerald-300 font-bold">{formatCurrency(netBankCash, currency)}</span>
+              <span className="text-emerald-300 font-bold font-mono">{formatCurrency(netBankCash, currency)}</span>
             </div>
           </div>
         </div>

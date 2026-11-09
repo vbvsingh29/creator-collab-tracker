@@ -25,6 +25,8 @@ export interface User {
   };
   email_verified?: boolean;
   phone_verified?: boolean;
+  tds_percentage?: number;
+  agency_cut_percentage?: number;
   social_accounts?: SocialAccount[];
   team_members?: TeamMember[];
   created_at?: string;

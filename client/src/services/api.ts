@@ -603,28 +603,32 @@ export async function fetchIntegrationsStatus(): Promise<any> {
     async () => {
       return {
         youtube: {
-          connected: true,
-          status: 'active',
-          channel_title: 'Aarav Tech Studio',
-          channel_id: 'UC_aarav_tech_verified',
-          subscribers: 142000,
-          total_views: 18450000,
-          video_count: 124,
-          sync_mode: 'Live Hourly'
+          id: 'youtube',
+          name: 'YouTube Integration',
+          enabled: true,
+          statusLabel: 'Zero-Key Public oEmbed & Scraper',
+          features: [
+            { name: 'Live Views Counter', active: true },
+            { name: 'Live Likes Counter', active: true },
+            { name: 'Official oEmbed Video Titles', active: true }
+          ]
         },
         instagram: {
-          connected: true,
-          status: 'active',
-          handle: '@aarav_tech',
-          followers: 89400,
-          engagement_rate: '4.8%',
-          media_count: 312,
-          sync_mode: 'Graph API'
+          id: 'instagram',
+          name: 'Instagram Integration',
+          enabled: true,
+          statusLabel: 'Public Open Graph & Reel Embed',
+          features: [
+            { name: 'Native Meta Reel Embed Player', active: true },
+            { name: 'Likes & Comments Inspection', active: true },
+            { name: 'Public Thumbnail Extractor', active: true }
+          ]
         },
-        ai_pitch: {
-          connected: true,
-          model: 'Claude 3.5 Sonnet / Gemini 1.5 Flash Hybrid',
-          rate_limit: 'Unlimited (Demo Engine Enabled)'
+        aiPitchEngine: {
+          id: 'ai_pitch',
+          name: 'AI Pitch Engine',
+          enabled: true,
+          statusLabel: 'Google Gemini 1.5 Active'
         }
       };
     }

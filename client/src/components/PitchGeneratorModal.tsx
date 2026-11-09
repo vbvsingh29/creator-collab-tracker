@@ -525,10 +525,10 @@ export const PitchGeneratorModal: React.FC<PitchGeneratorModalProps> = ({
                     Top Outlier Reel
                   </span>
                   <div className="text-sm font-bold text-zinc-900 dark:text-white truncate">
-                    {analysis?.topPerformingReel?.views ? `${analysis.topPerformingReel.views.toLocaleString()} Views` : '142,000 Views'}
+                    {analysis?.topPerformingReel?.views ? `${analysis.topPerformingReel.views.toLocaleString()} Views` : 'No live deals yet'}
                   </div>
                   <p className="text-[10px] text-zinc-500 truncate mt-0.5">
-                    {analysis?.topPerformingReel?.brand || 'Nothing Tech'}
+                    {analysis?.topPerformingReel?.brand || 'Verified upon request'}
                   </p>
                 </div>
               </div>

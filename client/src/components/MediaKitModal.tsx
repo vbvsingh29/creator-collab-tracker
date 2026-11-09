@@ -17,23 +17,27 @@ import {
   Award
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { User, Currency } from '../types';
+import { User, Currency, Collab } from '../types';
 import { formatCurrency } from '../utils/formatters';
 
 interface MediaKitModalProps {
   user: User | null;
   currency: Currency;
+  collabs?: Collab[];
   isOpen: boolean;
   onClose: () => void;
   onOpenAuth?: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const MediaKitModal: React.FC<MediaKitModalProps> = ({
   user,
   currency,
+  collabs = [],
   isOpen,
   onClose,
-  onOpenAuth
+  onOpenAuth,
+  onOpenProfile
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -87,13 +91,27 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
   const isUSD = currency === 'USD';
   const sym = isUSD ? '$' : '₹';
 
-  // Base rates from profile or sensible defaults
+  // Base rates directly from user profile - strictly 0 if unconfigured
   const rates = {
-    reel: activeUser.rates?.reel_rate || (isUSD ? 600 : 45000),
-    video: activeUser.rates?.video_rate || (isUSD ? 1500 : 120000),
-    story: activeUser.rates?.story_rate || (isUSD ? 200 : 15000),
-    whitelisting_monthly: activeUser.rates?.whitelisting_monthly_rate || (isUSD ? 350 : 25000)
+    reel: activeUser.rates?.reel_rate ?? 0,
+    video: activeUser.rates?.video_rate ?? 0,
+    story: activeUser.rates?.story_rate ?? 0,
+    whitelisting_monthly: activeUser.rates?.whitelisting_monthly_rate ?? 0
   };
+
+  // Dynamic real performance metrics from verified collabs
+  const collabsWithViews = (collabs || []).filter(c => c.views_count && c.views_count > 0);
+  const avgViews = collabsWithViews.length > 0
+    ? Math.round(collabsWithViews.reduce((sum, c) => sum + (c.views_count || 0), 0) / collabsWithViews.length)
+    : null;
+
+  const collabsWithEngagement = (collabs || []).filter(c => c.views_count && c.views_count > 0 && c.likes_count && c.likes_count > 0);
+  const avgEngagement = collabsWithEngagement.length > 0
+    ? ((collabsWithEngagement.reduce((sum, c) => sum + ((c.likes_count || 0) / (c.views_count || 1)), 0) / collabsWithEngagement.length) * 100).toFixed(1)
+    : null;
+
+  const igAccount = activeUser.social_accounts?.find(a => a.platform === 'instagram');
+  const ytAccount = activeUser.social_accounts?.find(a => a.platform === 'youtube');
 
   const handlePrint = () => {
     window.print();
@@ -101,9 +119,9 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
 
   const handleCopyLink = () => {
     const shareText = `🌟 ${activeUser.name} (${activeUser.handle}) — Official Creator Media Kit & Rate Card 2026\n` +
-      `📊 Category: ${activeUser.category || 'Tech & Lifestyle'}\n` +
-      `🔥 Avg Reel Views: 85,000+ | Engagement: 5.2%\n` +
-      `💰 Baseline Rates: Reel (${sym}${rates.reel.toLocaleString()}) | YouTube Video (${sym}${rates.video.toLocaleString()})\n` +
+      `📊 Category: ${activeUser.category || 'Creator'}\n` +
+      (avgViews ? `🔥 Avg Reel Views: ${avgViews.toLocaleString()}+ | Engagement: ${avgEngagement || 'N/A'}%\n` : '') +
+      `💰 Baseline Rates: Reel (${rates.reel > 0 ? sym + rates.reel.toLocaleString() : 'On Request'}) | YouTube Video (${rates.video > 0 ? sym + rates.video.toLocaleString() : 'On Request'})\n` +
       `✉️ Direct Inquiries: ${activeUser.email}`;
     
     navigator.clipboard.writeText(shareText);
@@ -203,38 +221,54 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
             </div>
           </div>
 
-          {/* Audience & Reach Statistics Grid */}
+          {/* Audience & Reach Statistics Grid (Dynamic strictly from verified creator data) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-4 rounded-xl bg-gradient-to-br from-pink-500/5 to-purple-500/5 border border-pink-500/20 text-center">
               <div className="text-[11px] font-semibold text-pink-600 dark:text-pink-400 flex items-center justify-center gap-1 mb-1">
-                <Instagram size={12} /> IG Followers
+                <Instagram size={12} /> IG Channel
               </div>
-              <div className="text-lg font-black text-zinc-900 dark:text-white">142,000+</div>
-              <div className="text-[10px] text-zinc-500">Tier 1 Metros (74%)</div>
+              <div className="text-sm font-black text-zinc-900 dark:text-white truncate">
+                {igAccount ? igAccount.handle : (activeUser.social_links?.instagram ? 'Connected' : 'Not Linked')}
+              </div>
+              <div className="text-[10px] text-zinc-500">
+                {igAccount ? 'Verified Account' : (activeUser.social_links?.instagram ? 'Linked in Profile' : 'Configure in Profile')}
+              </div>
             </div>
 
             <div className="p-4 rounded-xl bg-gradient-to-br from-red-500/5 to-amber-500/5 border border-red-500/20 text-center">
               <div className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex items-center justify-center gap-1 mb-1">
-                <Youtube size={12} /> YT Subscribers
+                <Youtube size={12} /> YT Channel
               </div>
-              <div className="text-lg font-black text-zinc-900 dark:text-white">88,500+</div>
-              <div className="text-[10px] text-zinc-500">Active Viewers</div>
+              <div className="text-sm font-black text-zinc-900 dark:text-white truncate">
+                {ytAccount ? ytAccount.name : (activeUser.social_links?.youtube ? 'Connected' : 'Not Linked')}
+              </div>
+              <div className="text-[10px] text-zinc-500">
+                {ytAccount ? 'Verified Account' : (activeUser.social_links?.youtube ? 'Linked in Profile' : 'Configure in Profile')}
+              </div>
             </div>
 
             <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/20 text-center">
               <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1 mb-1">
-                <Eye size={12} /> Avg Reel Views
+                <Eye size={12} /> Avg Deal Views
               </div>
-              <div className="text-lg font-black text-zinc-900 dark:text-white">65,000+</div>
-              <div className="text-[10px] text-zinc-500">Consistent Reach</div>
+              <div className="text-lg font-black text-zinc-900 dark:text-white">
+                {avgViews !== null ? `${avgViews.toLocaleString()}+` : 'On Request'}
+              </div>
+              <div className="text-[10px] text-zinc-500">
+                {avgViews !== null ? `From ${collabsWithViews.length} verified deals` : 'Logged Deals Reach'}
+              </div>
             </div>
 
             <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/5 to-blue-500/5 border border-indigo-500/20 text-center">
               <div className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1 mb-1">
                 <TrendingUp size={12} /> Engagement Rate
               </div>
-              <div className="text-lg font-black text-zinc-900 dark:text-white">5.4%</div>
-              <div className="text-[10px] text-zinc-500">2.1x Category Benchmark</div>
+              <div className="text-lg font-black text-zinc-900 dark:text-white">
+                {avgEngagement !== null ? `${avgEngagement}%` : 'On Request'}
+              </div>
+              <div className="text-[10px] text-zinc-500">
+                {avgEngagement !== null ? 'Verified performance' : 'Calculated from deals'}
+              </div>
             </div>
           </div>
 
@@ -263,9 +297,9 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
                 </div>
                 <div className="text-right">
                   <div className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                    {formatCurrency(rates.reel, currency)}
+                    {rates.reel > 0 ? formatCurrency(rates.reel, currency) : 'Rate on Request'}
                   </div>
-                  <div className="text-[10px] text-zinc-400">per deliverable</div>
+                  <div className="text-[10px] text-zinc-400">{rates.reel > 0 ? 'per deliverable' : 'Custom Quote'}</div>
                 </div>
               </div>
 
@@ -282,9 +316,9 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
                 </div>
                 <div className="text-right">
                   <div className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                    {formatCurrency(rates.video, currency)}
+                    {rates.video > 0 ? formatCurrency(rates.video, currency) : 'Rate on Request'}
                   </div>
-                  <div className="text-[10px] text-zinc-400">per video</div>
+                  <div className="text-[10px] text-zinc-400">{rates.video > 0 ? 'per video' : 'Custom Quote'}</div>
                 </div>
               </div>
 
@@ -301,9 +335,9 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
                 </div>
                 <div className="text-right">
                   <div className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                    {formatCurrency(rates.story, currency)}
+                    {rates.story > 0 ? formatCurrency(rates.story, currency) : 'Rate on Request'}
                   </div>
-                  <div className="text-[10px] text-zinc-400">3 frames</div>
+                  <div className="text-[10px] text-zinc-400">{rates.story > 0 ? '3 frames' : 'Custom Quote'}</div>
                 </div>
               </div>
 
@@ -320,9 +354,9 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
                 </div>
                 <div className="text-right">
                   <div className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                    +{formatCurrency(rates.whitelisting_monthly, currency)}
+                    {rates.whitelisting_monthly > 0 ? '+' + formatCurrency(rates.whitelisting_monthly, currency) : 'Available on Request'}
                   </div>
-                  <div className="text-[10px] text-zinc-400">per 30 days</div>
+                  <div className="text-[10px] text-zinc-400">{rates.whitelisting_monthly > 0 ? 'per 30 days' : 'Custom Add-on'}</div>
                 </div>
               </div>
             </div>
@@ -334,9 +368,9 @@ export const MediaKitModal: React.FC<MediaKitModalProps> = ({
               <Award size={14} className="text-indigo-500" /> Standard Collaboration Terms
             </h5>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-zinc-600 dark:text-zinc-400">
-              <li>• <strong>Payment Terms:</strong> 50% advance on agreement, 50% NET-15 post live link.</li>
-              <li>• <strong>Revisions:</strong> Up to 2 rounds of edits on first-cut draft before publishing.</li>
-              <li>• <strong>Exclusivity:</strong> Standard rates include 15-day category exclusivity.</li>
+              <li>• <strong>Payment Terms:</strong> Flexible terms agreed per sponsorship proposal (NET-15 / NET-30).</li>
+              <li>• <strong>Revisions:</strong> Up to 2 rounds of standard edits on creative drafts.</li>
+              <li>• <strong>Exclusivity:</strong> Category exclusivity available upon mutual brand agreement.</li>
               <li>• <strong>Usage Rights:</strong> Organic posting rights included. Paid ads require whitelisting add-on.</li>
             </ul>
           </div>

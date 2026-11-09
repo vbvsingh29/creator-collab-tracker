@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Instagram, Youtube, Layers, Zap, ShieldAlert, Check, Calendar, DollarSign, Sparkles, Link as LinkIcon, SlidersHorizontal, Percent } from 'lucide-react';
 import { Collab, Platform, DeliverableFormat, CommercialType, Currency, PaymentTerms } from '../types';
 import { previewMediaUrl } from '../services/api';
@@ -15,6 +15,9 @@ interface NewCollabModalProps {
     amount?: number;
     hasWhitelisting?: boolean;
     hasExclusivity?: boolean;
+    scheduledDate?: string;
+    tds_percentage?: number;
+    agency_cut_percentage?: number;
   };
 }
 
@@ -25,6 +28,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   onCreateCollab,
   initialData
 }) => {
+  const { user } = useAuth();
   const [formMode, setFormMode] = useState<'simple' | 'advanced'>(defaultMode);
   const [showMoreDetails, setShowMoreDetails] = useState<boolean>(false);
   const [title, setTitle] = useState(initialData?.title || '');
@@ -38,7 +42,10 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   );
   const [commercialType, setCommercialType] = useState<CommercialType>('paid');
   const [dealCurrency, setDealCurrency] = useState<Currency>(currency);
-  const [dealAmount, setDealAmount] = useState<number>(initialData?.amount ?? 50000);
+  const defaultDealAmount = initialData?.amount !== undefined 
+    ? initialData.amount 
+    : (user?.rates?.reel_rate || 0);
+  const [dealAmount, setDealAmount] = useState<number>(defaultDealAmount);
   const [barterValue, setBarterValue] = useState<number>(0);
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerms>('net_30');
   const [hasWhitelisting, setHasWhitelisting] = useState<boolean>(initialData?.hasWhitelisting ?? false);
@@ -47,14 +54,15 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   const [exclusivityDays, setExclusivityDays] = useState<number>(30);
   const [promoCode, setPromoCode] = useState('');
   const [trackingLink, setTrackingLink] = useState('');
-  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledDate, setScheduledDate] = useState<string>(
+    initialData?.scheduledDate || new Date().toISOString().split('T')[0]
+  );
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [notes, setNotes] = useState('');
   const [viewsCount, setViewsCount] = useState<number>(0);
   const [likesCount, setLikesCount] = useState<number>(0);
-  const [tdsPercentage, setTdsPercentage] = useState<number>(0);
-  const [agencyCutPercentage, setAgencyCutPercentage] = useState<number>(0);
-
-  const { user } = useAuth();
+  const [tdsPercentage, setTdsPercentage] = useState<number>(initialData?.tds_percentage ?? user?.tds_percentage ?? 0);
+  const [agencyCutPercentage, setAgencyCutPercentage] = useState<number>(initialData?.agency_cut_percentage ?? user?.agency_cut_percentage ?? 0);
   const socialAccounts = user?.social_accounts || [];
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
 
@@ -298,6 +306,57 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                 </button>
               </div>
             )}
+
+            {/* Live Detected Metrics (Views & Likes) - Prominent and directly editable */}
+            {autoFillUrl.trim() && (
+              <div className="p-2.5 bg-zinc-950/90 border border-zinc-800 rounded-lg space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
+                    <Sparkles size={12} className="text-teal-400" />
+                    Live Reach Metrics ({platform === 'youtube' ? 'YouTube' : 'Instagram'})
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    {platform === 'instagram' 
+                      ? 'Meta restricts public views — verify or enter manually below' 
+                      : 'Auto-synced from YouTube live data'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-0.5">
+                      Views Count {viewsCount > 0 && <span className="text-teal-400">({viewsCount.toLocaleString()})</span>}
+                    </label>
+                    <input
+                      type="number"
+                      value={viewsCount === 0 ? '' : viewsCount}
+                      placeholder="Enter reel/video views..."
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setViewsCount(val === '' ? 0 : Number(val));
+                      }}
+                      className="w-full bg-zinc-900 border border-zinc-700 hover:border-teal-500 focus:border-teal-500 rounded px-2.5 py-1.5 text-zinc-100 font-mono text-xs focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-0.5">
+                      Likes Count {likesCount > 0 && <span className="text-pink-400">({likesCount.toLocaleString()})</span>}
+                    </label>
+                    <input
+                      type="number"
+                      value={likesCount === 0 ? '' : likesCount}
+                      placeholder="Enter likes..."
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setLikesCount(val === '' ? 0 : Number(val));
+                      }}
+                      className="w-full bg-zinc-900 border border-zinc-700 hover:border-pink-500 focus:border-pink-500 rounded px-2.5 py-1.5 text-zinc-100 font-mono text-xs focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Target Connected Channel / Page Selector */}
@@ -358,30 +417,89 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
             </div>
           </div>
 
-          {/* Publish Date Calendar View (Always visible & editable for both Simple & Advanced) */}
-          <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-1">
+          {/* Publish Date Calendar View (Fully interactive visual date picker with dark theme support & presets) */}
+          <div className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-xl space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Calendar size={13} className="text-teal-400" />
-                <span>Publish / Live Date</span>
+                <span>Publish / Live Date *</span>
               </label>
               {scheduledDate && (
                 <span className="text-[10px] text-teal-400 font-mono font-medium">
-                  {scheduledDate} (Click calendar to change)
+                  Selected: {scheduledDate}
                 </span>
               )}
             </div>
-            <div className="relative">
+            <div 
+              onClick={() => dateInputRef.current?.showPicker?.()}
+              className="relative flex items-center bg-zinc-950 border border-zinc-800 hover:border-teal-500 rounded-lg overflow-hidden transition-colors cursor-pointer group"
+            >
               <input
+                ref={dateInputRef}
                 type="date"
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-teal-500 cursor-pointer font-mono"
+                onClick={(e) => (e.target as any).showPicker?.()}
+                style={{ colorScheme: 'dark' }}
+                className="w-full bg-transparent px-3 py-2 text-xs text-zinc-100 focus:outline-none cursor-pointer font-mono"
               />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dateInputRef.current?.showPicker?.();
+                }}
+                className="absolute right-2 px-2.5 py-1 rounded-md bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <Calendar size={12} />
+                <span>Open Calendar</span>
+              </button>
             </div>
-            <p className="text-[10px] text-zinc-500">
-              Select or change your planned/live release date on the interactive calendar.
-            </p>
+
+            {/* Quick Date Presets */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[10px] text-zinc-500 mr-1">Quick Select:</span>
+              <button
+                type="button"
+                onClick={() => setScheduledDate(new Date().toISOString().split('T')[0])}
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition-colors"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 1);
+                  setScheduledDate(d.toISOString().split('T')[0]);
+                }}
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition-colors"
+              >
+                Tomorrow
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 7);
+                  setScheduledDate(d.toISOString().split('T')[0]);
+                }}
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition-colors"
+              >
+                In 1 Week
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 30);
+                  setScheduledDate(d.toISOString().split('T')[0]);
+                }}
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-medium transition-colors"
+              >
+                In 1 Month
+              </button>
+            </div>
           </div>
 
           {/* Category & Contact - Advanced Only */}

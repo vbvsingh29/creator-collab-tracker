@@ -314,6 +314,16 @@ export async function getInstagramMediaDetails(url: string): Promise<MediaDetail
         likesCount = Math.round(val);
       }
 
+      const viewsMatch = content.match(/([\d.,]+)([KkMm]?)\s+(?:views|plays|video views)/i) ||
+                         html.match(/([\d.,]+)([KkMm]?)\s+(?:views|plays)\b/i);
+      if (viewsMatch) {
+        let val = parseFloat(viewsMatch[1].replace(/,/g, ''));
+        const unit = (viewsMatch[2] || '').toUpperCase();
+        if (unit === 'K') val *= 1000;
+        if (unit === 'M') val *= 1000000;
+        viewsCount = Math.round(val);
+      }
+
       const commentsMatch = content.match(/([\d.,]+)([KkMm]?)\s+comments/i);
       if (commentsMatch) {
         let val = parseFloat(commentsMatch[1].replace(/,/g, ''));
@@ -324,6 +334,13 @@ export async function getInstagramMediaDetails(url: string): Promise<MediaDetail
       }
 
       hasAdDisclosure = content.toLowerCase().includes('#ad') || content.toLowerCase().includes('paid partnership');
+    }
+
+    if (viewsCount === 0) {
+      const jsonViewMatch = html.match(/"(?:video_view_count|video_play_count|play_count|view_count)":\s*(\d+)/i);
+      if (jsonViewMatch) {
+        viewsCount = parseInt(jsonViewMatch[1], 10);
+      }
     }
 
     if (!publishedAt) {

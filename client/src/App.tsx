@@ -749,6 +749,7 @@ export function App() {
       {/* Dynamic Rate Card Calculator Modal */}
       {isRateCardOpen && (
         <RateCardModal
+          user={user}
           currency={currency}
           onClose={() => setIsRateCardOpen(false)}
           onApplyRate={handleApplyRateQuote}
@@ -907,6 +908,7 @@ export function App() {
       <MediaKitModal
         user={user}
         currency={currency}
+        collabs={collabs}
         isOpen={isMediaKitOpen}
         onClose={() => setIsMediaKitOpen(false)}
         onOpenAuth={() => {

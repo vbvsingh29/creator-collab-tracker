@@ -76,6 +76,6 @@ test('CollabFlow Landing Page & Architecture Verification Suite', async (t) => {
     const distIndex = resolve(CLIENT_ROOT, 'dist/index.html');
     assert.ok(existsSync(distIndex), 'Production build dist/index.html must exist');
     const indexContent = readFileSync(distIndex, 'utf8');
-    assert.ok(indexContent.includes('CollabFlow'), 'Title and metadata must be present in production dist');
+    assert.ok(indexContent.includes('Collabio') || indexContent.includes('CollabFlow'), 'Title and metadata must be present in production dist');
   });
 });
