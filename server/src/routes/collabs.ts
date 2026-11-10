@@ -3,6 +3,7 @@ import { db } from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { Collab } from '../types';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { syncYouTubeMetrics, syncInstagramMetrics } from '../services/metricsSync';
 
 export const collabsRouter = Router();
 
@@ -344,6 +345,61 @@ const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
 
 collabsRouter.put('/:id', handleUpdateCollab);
 collabsRouter.patch('/:id', handleUpdateCollab);
+
+// POST /api/collabs/:id/sync-metrics (Sync real-time views and likes from Instagram / YouTube)
+collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const ctx = await getWorkspaceContext(userId);
+    const { id } = req.params;
+
+    const collab = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, ctx.ownerId) as any;
+    if (!collab) {
+      return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
+    }
+
+    if (!collab.live_post_url || !collab.live_post_url.trim()) {
+      return res.status(400).json({ success: false, error: 'No live post URL is attached to this collaboration.' });
+    }
+
+    const postUrl = collab.live_post_url.trim();
+    const cleanUrl = postUrl.toLowerCase();
+    let views = collab.views_count || 0;
+    let likes = collab.likes_count || 0;
+
+    const user = await db.prepare('SELECT instagram_access_token, instagram_account_id, youtube_api_key FROM users WHERE id = ?').get(userId) as any;
+
+    if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
+      const ytMetrics = await syncYouTubeMetrics(postUrl);
+      if (ytMetrics.views > 0 || ytMetrics.likes > 0) {
+        views = ytMetrics.views;
+        likes = ytMetrics.likes;
+      }
+    } else if (cleanUrl.includes('instagram.com')) {
+      const igMetrics = await syncInstagramMetrics(postUrl, user?.instagram_access_token, user?.instagram_account_id);
+      if (igMetrics.views > 0 || igMetrics.likes > 0) {
+        views = igMetrics.views;
+        likes = igMetrics.likes;
+      }
+    }
+
+    const now = new Date().toISOString();
+    await db.prepare(`
+      UPDATE collabs SET
+        views_count = ?,
+        likes_count = ?,
+        last_metrics_sync = ?,
+        updated_at = ?
+      WHERE id = ? AND user_id = ?
+    `).run(views, likes, now, now, id, ctx.ownerId);
+
+    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, ctx.ownerId);
+    return res.json({ success: true, data: mapCollabRow(updated, ctx.canViewFinancials) });
+  } catch (error: any) {
+    console.error('❌ [SyncMetrics] Error:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Failed to sync metrics' });
+  }
+});
 
 // DELETE /api/collabs/:id (Tenant isolated)
 collabsRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
