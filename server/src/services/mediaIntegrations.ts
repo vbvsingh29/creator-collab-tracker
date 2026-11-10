@@ -463,8 +463,7 @@ export async function getInstagramMediaDetails(
         authorName = `@${handleMatch[1]}`;
       }
 
-      const likesMatch = content.match(/([\d.,]+)([KkMm]?)\s+likes/i) ||
-                         html.match(/([\d.,]+)([KkMm]?)\s+likes/i);
+      const likesMatch = content.match(/([\d.,]+)([KkMm]?)\s+likes/i);
       if (likesMatch) {
         let val = parseFloat(likesMatch[1].replace(/,/g, ''));
         const unit = (likesMatch[2] || '').toUpperCase();
@@ -473,8 +472,7 @@ export async function getInstagramMediaDetails(
         likesCount = Math.round(val);
       }
 
-      const viewsMatch = content.match(/([\d.,]+)([KkMm]?)\s+(?:views|plays|video views)/i) ||
-                         html.match(/([\d.,]+)([KkMm]?)\s+(?:views|plays)\b/i);
+      const viewsMatch = content.match(/([\d.,]+)([KkMm]?)\s+(?:views|plays|video views)/i);
       if (viewsMatch) {
         let val = parseFloat(viewsMatch[1].replace(/,/g, ''));
         const unit = (viewsMatch[2] || '').toUpperCase();
@@ -483,8 +481,7 @@ export async function getInstagramMediaDetails(
         viewsCount = Math.round(val);
       }
 
-      const commentsMatch = content.match(/([\d.,]+)([KkMm]?)\s+comments/i) ||
-                            html.match(/([\d.,]+)([KkMm]?)\s+comments/i);
+      const commentsMatch = content.match(/([\d.,]+)([KkMm]?)\s+comments/i);
       if (commentsMatch) {
         let val = parseFloat(commentsMatch[1].replace(/,/g, ''));
         const unit = (commentsMatch[2] || '').toUpperCase();
@@ -494,6 +491,53 @@ export async function getInstagramMediaDetails(
       }
 
       hasAdDisclosure = content.toLowerCase().includes('#ad') || content.toLowerCase().includes('paid partnership');
+    }
+
+    // ── High precision: Extract exact like_count and comment_count from embedded Polaris media JSON ──
+    const pairMatch = html.match(/"like_count":\s*(\d+)[^}]*?"comment_count":\s*(\d+)/i) ||
+                      html.match(/"comment_count":\s*(\d+)[^}]*?"like_count":\s*(\d+)/i);
+    if (pairMatch) {
+      if (pairMatch[0].startsWith('"like_count"')) {
+        const parsedLikes = parseInt(pairMatch[1], 10);
+        const parsedComments = parseInt(pairMatch[2], 10);
+        if (parsedLikes > 0) likesCount = parsedLikes;
+        if (parsedComments > 0) commentsCount = parsedComments;
+      } else {
+        const parsedComments = parseInt(pairMatch[1], 10);
+        const parsedLikes = parseInt(pairMatch[2], 10);
+        if (parsedLikes > 0) likesCount = parsedLikes;
+        if (parsedComments > 0) commentsCount = parsedComments;
+      }
+    }
+
+    // If still 0, check highest like_count in HTML (reel like count dominates comment like counts)
+    if (likesCount === 0) {
+      const allLikes = [...html.matchAll(/"like_count":\s*(\d+)/gi)]
+        .map(m => parseInt(m[1], 10))
+        .filter(n => !isNaN(n) && n > 0)
+        .sort((a, b) => b - a);
+      if (allLikes.length > 0) {
+        likesCount = allLikes[0];
+      }
+    }
+
+    if (commentsCount === 0) {
+      const commentMatch = html.match(/"comment_count":\s*(\d+)/i);
+      if (commentMatch) {
+        commentsCount = parseInt(commentMatch[1], 10);
+      }
+    }
+
+    // Role button text fallback (e.g. 30.6K in like button)
+    if (likesCount === 0) {
+      const btnMatch = html.match(/role="button"[^>]*>([\d.,]+[KkMm]?)</i);
+      if (btnMatch) {
+        let val = parseFloat(btnMatch[1].replace(/,/g, ''));
+        const unit = btnMatch[1].slice(-1).toUpperCase();
+        if (unit === 'K') val *= 1000;
+        if (unit === 'M') val *= 1000000;
+        likesCount = Math.round(val);
+      }
     }
 
     if (viewsCount === 0) {
