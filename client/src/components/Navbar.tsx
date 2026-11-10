@@ -206,57 +206,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* RIGHT: Primary Action, Secondary Tools Drawer, and Profile */}
       <div className="flex items-center gap-2 sm:gap-2.5">
-        {/* Currency Switcher */}
-        <div className="flex items-center bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-0.5 rounded-lg text-xs font-semibold">
-          <button
-            onClick={() => setCurrency('INR')}
-            className={`px-2 py-1 rounded transition-colors ${
-              currency === 'INR' 
-                ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs' 
-                : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400'
-            }`}
-          >
-            ₹
-          </button>
-          <button
-            onClick={() => setCurrency('USD')}
-            className={`px-2 py-1 rounded transition-colors ${
-              currency === 'USD' 
-                ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs' 
-                : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400'
-            }`}
-          >
-            $
-          </button>
-        </div>
-
-        {/* ADMIN TELEMETRY PILL (Only visible for Admin accounts) */}
-        {isAdmin && onOpenAdmin && (
-          <button
-            onClick={onOpenAdmin}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-500/40 bg-teal-500/10 hover:bg-teal-500/20 text-xs font-bold text-teal-800 dark:text-teal-300 transition-all shadow-xs"
-            title="Open Admin Telemetry (DAU, WAU, Onboarded Users)"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <Activity size={13} className="text-teal-600 dark:text-teal-400" />
-            <span className="hidden sm:inline">Observatory</span>
-            <span className="sm:hidden">Admin</span>
-          </button>
-        )}
-
-        {/* ADMIN CMS STUDIO PILL (Only visible for Admin accounts) */}
-        {isAdmin && onOpenCms && (
-          <button
-            onClick={onOpenCms}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sand-400/40 bg-sand-400/10 hover:bg-sand-400/20 text-xs font-bold text-sand-300 dark:text-sand-200 transition-all shadow-xs"
-            title="Open Content Management Studio (Edit Banners, Pricing & Copy)"
-          >
-            <Sparkles size={13} className="text-sand-400" />
-            <span className="hidden sm:inline">CMS Studio</span>
-            <span className="sm:hidden">CMS</span>
-          </button>
-        )}
-
         {/* In-App Notification Center */}
         {user && <NotificationCenter onRefreshData={onOpenTeam} />}
 
@@ -289,7 +238,34 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {toolsDropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-60 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-zinc-200">
+            <div className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100 text-slate-800 dark:text-zinc-200">
+              {/* Quick Currency Selector inside Tools */}
+              <div className="px-3.5 py-2 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400">Display Currency</span>
+                <div className="flex items-center bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-0.5 rounded-lg text-xs font-semibold">
+                  <button
+                    onClick={() => setCurrency('INR')}
+                    className={`px-2 py-0.5 rounded transition-colors ${
+                      currency === 'INR' 
+                        ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs' 
+                        : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400'
+                    }`}
+                  >
+                    ₹ INR
+                  </button>
+                  <button
+                    onClick={() => setCurrency('USD')}
+                    className={`px-2 py-0.5 rounded transition-colors ${
+                      currency === 'USD' 
+                        ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-xs' 
+                        : 'text-slate-500 hover:text-slate-900 dark:text-zinc-400'
+                    }`}
+                  >
+                    $ USD
+                  </button>
+                </div>
+              </div>
+
               <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-zinc-800">
                 Creator Utilities
               </div>
