@@ -816,3 +816,138 @@ export async function fetchAdminIntegrationsHealth(): Promise<any> {
     async () => ({ success: false, integrations: {} })
   );
 }
+
+
+// -------------------------------------------------------------
+// Creator Accounts API
+// -------------------------------------------------------------
+export async function fetchCreatorAccounts(): Promise<{ accounts: any[] }> {
+  return safeJsonRequest(
+    `${API_BASE}/accounts`,
+    { headers: getHeaders() },
+    async () => ({ accounts: [] })
+  );
+}
+
+export async function createCreatorAccount(data: {
+  platform: 'instagram' | 'youtube';
+  handle: string;
+  name?: string;
+  avatar_url?: string;
+}): Promise<{ account: any }> {
+  return safeJsonRequest(
+    `${API_BASE}/accounts`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    },
+    async () => ({ account: { id: 'acc_' + Date.now(), ...data } })
+  );
+}
+
+export async function deleteCreatorAccount(id: string): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/accounts/${id}`,
+    {
+      method: 'DELETE',
+      headers: getHeaders(),
+    },
+    async () => ({ success: true })
+  );
+}
+
+// -------------------------------------------------------------
+// Team & Manager Management API
+// -------------------------------------------------------------
+export async function fetchTeamData(): Promise<{ members: any[]; pendingInvites: any[] }> {
+  return safeJsonRequest(
+    `${API_BASE}/team`,
+    { headers: getHeaders() },
+    async () => ({ members: [], pendingInvites: [] })
+  );
+}
+
+export async function inviteTeamMember(data: {
+  email: string;
+  role?: string;
+  canViewFinancials?: boolean;
+  assignedAccounts?: string[];
+}): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/team/invite`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    },
+    async () => ({ status: 'simulated', message: 'Invite dispatched' })
+  );
+}
+
+export async function acceptTeamInvite(token: string): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/team/accept-invite`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ token }),
+    },
+    async () => ({ success: true })
+  );
+}
+
+export async function removeTeamMember(memberId: string): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/team/members/${memberId}`,
+    {
+      method: 'DELETE',
+      headers: getHeaders(),
+    },
+    async () => ({ success: true })
+  );
+}
+
+export async function revokeTeamInvite(inviteId: string): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/team/invites/${inviteId}`,
+    {
+      method: 'DELETE',
+      headers: getHeaders(),
+    },
+    async () => ({ success: true })
+  );
+}
+
+// -------------------------------------------------------------
+// In-App Notifications API
+// -------------------------------------------------------------
+export async function fetchNotifications(): Promise<{ notifications: any[]; unreadCount: number }> {
+  return safeJsonRequest(
+    `${API_BASE}/notifications`,
+    { headers: getHeaders() },
+    async () => ({ notifications: [], unreadCount: 0 })
+  );
+}
+
+export async function markNotificationRead(id: string): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/notifications/${id}/read`,
+    {
+      method: 'PATCH',
+      headers: getHeaders(),
+    },
+    async () => ({ success: true })
+  );
+}
+
+export async function markAllNotificationsRead(): Promise<any> {
+  return safeJsonRequest(
+    `${API_BASE}/notifications/read-all`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+    },
+    async () => ({ success: true })
+  );
+}

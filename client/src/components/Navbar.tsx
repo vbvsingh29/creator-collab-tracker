@@ -28,15 +28,19 @@ import {
   Share2,
   Wrench,
   Calendar,
-  ShieldCheck
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 import { Currency, User } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { AccountSwitcher } from './AccountSwitcher';
+import { NotificationCenter } from './NotificationCenter';
 
 interface NavbarProps {
   user: User | null;
   onOpenAuth: () => void;
   onLogout: () => void;
+  onOpenTeam?: () => void;
   appMode: 'simple' | 'advanced';
   setAppMode: (mode: 'simple' | 'advanced') => void;
   currentView: 'kanban' | 'table' | 'cards' | 'calendar';
@@ -75,6 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPitch,
   onOpenAdmin,
   onOpenLandingPreview,
+  onOpenTeam,
   appMode,
   setAppMode,
   currentView,
@@ -134,6 +139,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Multi-Account Channel Switcher */}
+        {user && (
+          <div className="hidden lg:block ml-2">
+            <AccountSwitcher />
+          </div>
+        )}
 
         {/* CENTER-LEFT: Pipeline Core Tabs */}
         <div className="ml-4 hidden md:flex items-center bg-slate-100 dark:bg-zinc-900 p-0.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-xs font-semibold">
@@ -230,6 +242,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
+        {/* In-App Notification Center */}
+        {user && <NotificationCenter onRefreshData={onOpenTeam} />}
+
         {/* PRIMARY CTA: + New Deal */}
         <button
           onClick={onOpenNewCollab}
@@ -314,6 +329,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
                 <span className="text-[10px] text-slate-400 font-mono">Contacts</span>
               </button>
+
+              {/* Team & Manager Access */}
+              {onOpenTeam && (
+                <button
+                  onClick={() => {
+                    setToolsDropdownOpen(false);
+                    onOpenTeam();
+                  }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-zinc-900 transition-colors flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Users size={13} className="text-sand-400" />
+                    <span className="font-medium">Team & Manager Access</span>
+                  </div>
+                  <span className="text-[10px] text-sand-400 font-mono">Roles</span>
+                </button>
+              )}
 
               {/* AI Pitch Studio */}
               {onOpenPitch && (

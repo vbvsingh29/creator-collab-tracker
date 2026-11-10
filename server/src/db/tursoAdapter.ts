@@ -90,8 +90,17 @@ export class TursoAdapter {
     const cols: string[] = (execResult.cols || []).map((c: any) => c.name);
     const rows: T[] = (execResult.rows || []).map((row: any[]) => {
       const obj: any = {};
-      row.forEach((cell, idx) => {
-        obj[cols[idx]] = cell.value !== undefined ? cell.value : null;
+      cols.forEach((colName, idx) => {
+        const valObj = row[idx];
+        if (!valObj || valObj.type === 'null') {
+          obj[colName] = null;
+        } else if (valObj.type === 'integer') {
+          obj[colName] = parseInt(valObj.value, 10);
+        } else if (valObj.type === 'float') {
+          obj[colName] = parseFloat(valObj.value);
+        } else {
+          obj[colName] = valObj.value;
+        }
       });
       return obj as T;
     });
@@ -105,14 +114,16 @@ export class TursoAdapter {
   }
 
   /**
-   * Execute multiple SQL statements in a single atomic batch
+   * Execute multiple statements sequentially in a single HTTP request batch
    */
-  async batch(statements: Array<{ sql: string; params?: any[] }>): Promise<any[]> {
-    const requests = statements.map(st => ({
+  async batch(statements: { sql: string; params?: any[] }[]): Promise<any[]> {
+    if (!statements.length) return [];
+
+    const requests = statements.map(s => ({
       type: 'execute',
       stmt: {
-        sql: st.sql.trim(),
-        args: this.formatArgs(st.params || [])
+        sql: s.sql.trim(),
+        args: this.formatArgs(s.params || [])
       }
     }));
     requests.push({ type: 'close' } as any);
@@ -220,6 +231,39 @@ export async function initializeTursoSchema(adapter: TursoAdapter): Promise<void
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );`,
+    `CREATE TABLE IF NOT EXISTS creator_accounts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      handle TEXT NOT NULL,
+      name TEXT DEFAULT '',
+      avatar_url TEXT DEFAULT '',
+      created_at TEXT NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS team_invites (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      creator_name TEXT DEFAULT '',
+      email TEXT NOT NULL,
+      role TEXT DEFAULT 'manager',
+      can_view_financials INTEGER DEFAULT 0,
+      assigned_accounts_json TEXT DEFAULT '[]',
+      token TEXT UNIQUE NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      action_url TEXT DEFAULT '',
+      action_payload_json TEXT DEFAULT '{}',
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    );`,
     `CREATE TABLE IF NOT EXISTS password_resets (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL,
@@ -296,6 +340,7 @@ export async function runTursoMigrations(adapter: TursoAdapter): Promise<void> {
     { name: 'social_links_json', type: 'TEXT DEFAULT "{}"' },
     { name: 'social_accounts_json', type: 'TEXT DEFAULT "[]"' },
     { name: 'team_members_json', type: 'TEXT DEFAULT "[]"' },
+    { name: 'managed_workspaces_json', type: 'TEXT DEFAULT "[]"' },
     { name: 'bio', type: 'TEXT DEFAULT ""' },
     { name: 'category', type: 'TEXT DEFAULT ""' },
     { name: 'handle', type: 'TEXT DEFAULT ""' },

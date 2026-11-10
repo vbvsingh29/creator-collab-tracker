@@ -3,51 +3,52 @@ import { ShieldCheck } from 'lucide-react';
 
 interface LandingFooterProps {
   onOpenAuth: () => void;
-  onDemoLogin: (email: string) => void;
+  onDemoLogin?: (email: string) => void;
 }
 
 export const LandingFooter: React.FC<LandingFooterProps> = ({
   onOpenAuth,
-  onDemoLogin,
 }) => {
   return (
-    <footer className="bg-white dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-850 text-slate-500 dark:text-zinc-400 text-xs py-10 transition-colors duration-200">
+    <footer className="bg-charcoal-950 border-t border-charcoal-800/80 text-sand-300/60 text-xs py-12 transition-colors duration-200 relative z-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 border-b border-slate-100 dark:border-zinc-850">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-5 pb-8 border-b border-charcoal-850">
           {/* Brand */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-zinc-950 font-bold text-xs transition-colors">
-              CF
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-charcoal-900 border border-sand-400/30 flex items-center justify-center text-sand-300 font-bold text-xs shadow-md">
+              CO
             </div>
-            <span className="font-bold text-sm text-slate-900 dark:text-white">
-              Collabio
-            </span>
-            <span className="text-slate-400 dark:text-zinc-500 text-[11px]">
-              — Sponsorship Management for Creators
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-sand-100">
+                Collabio
+              </span>
+              <span className="text-sand-400/40 text-[11px]">
+                — The Luxury Sponsorship Workspace for Creators
+              </span>
+            </div>
           </div>
 
           {/* Action Links */}
-          <div className="flex items-center gap-4 text-xs font-medium text-slate-600 dark:text-zinc-400">
+          <div className="flex items-center gap-6 text-xs font-medium text-sand-300/70">
             <button
               onClick={onOpenAuth}
-              className="hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="hover:text-sand-100 transition-colors"
             >
               Register Account
             </button>
             <button
               onClick={onOpenAuth}
-              className="hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="hover:text-sand-100 transition-colors"
             >
               Sign In
             </button>
           </div>
         </div>
 
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-zinc-500">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-sand-400/50">
           <span>&copy; {new Date().getFullYear()} Collabio. All rights reserved.</span>
           <span className="flex items-center gap-1.5">
-            <ShieldCheck size={12} className="text-emerald-600 dark:text-emerald-400" />
+            <ShieldCheck size={13} className="text-sand-400" />
             <span>Encrypted data & private creator workspace</span>
           </span>
         </div>

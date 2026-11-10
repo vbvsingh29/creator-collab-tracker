@@ -17,16 +17,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onDemoLogin,
 }) => {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col antialiased transition-colors duration-200 selection:bg-slate-200 dark:selection:bg-zinc-800 selection:text-slate-900 dark:selection:text-zinc-100">
-      {/* 1. Refined Minimal Navbar */}
+    <div className="min-h-screen bg-charcoal-950 text-sand-100 flex flex-col antialiased transition-colors duration-200 selection:bg-sand-400/20 selection:text-sand-100 relative overflow-hidden">
+      {/* Tactile Sand-Charcoal Noise Texture Overlay */}
+      <div className="pointer-events-none fixed inset-0 z-50 luxury-noise opacity-40 mix-blend-overlay" />
+
+      {/* Ambient Sand Glow Backdrop */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] sand-glow-hero rounded-full blur-3xl opacity-75" />
+      <div className="pointer-events-none absolute top-[900px] -left-48 w-[600px] h-[600px] bg-sand-400/5 rounded-full blur-[140px]" />
+      <div className="pointer-events-none absolute top-[1800px] -right-48 w-[700px] h-[700px] bg-sand-500/5 rounded-full blur-[160px]" />
+
+      {/* 1. Refined Minimal Luxury Navbar */}
       <LandingNavbar
         onOpenAuth={onOpenAuth}
         onDemoLogin={onDemoLogin}
       />
 
-      {/* 2. Main Content Streamlined for Calm, Non-Slop Experience */}
-      <main className="flex-1">
-        {/* Hero: Plain copy, 2 action buttons, and real Collabio UI preview */}
+      {/* 2. Main Content Streamlined for Dark Luxury Experience */}
+      <main className="flex-1 relative z-10">
+        {/* Hero: Editorial typography, sand-gold badge accents, and real live Collabio pipeline preview */}
         <HeroSection
           onOpenAuth={onOpenAuth}
           onDemoLogin={onDemoLogin}
@@ -50,15 +58,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           onDemoLogin={onDemoLogin}
         />
 
-        {/* Plain FAQ */}
+        {/* Essential FAQ */}
         <LandingFaq />
       </main>
 
-      {/* Quiet Minimal Footer */}
-      <LandingFooter
-        onOpenAuth={onOpenAuth}
-        onDemoLogin={onDemoLogin}
-      />
+      {/* 3. Luxury Sand-Charcoal Footer */}
+      <LandingFooter onOpenAuth={onOpenAuth} />
     </div>
   );
 };

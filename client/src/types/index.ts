@@ -1,12 +1,44 @@
 export type Platform = 'instagram' | 'youtube' | 'both';
 
+export interface CreatorAccount {
+  id: string;
+  user_id: string;
+  platform: 'instagram' | 'youtube';
+  handle: string;
+  name: string;
+  avatar_url?: string;
+  created_at: string;
+}
+
+export interface TeamInvite {
+  id: string;
+  email: string;
+  role: string;
+  canViewFinancials: boolean;
+  assignedAccounts: string[];
+  token: string;
+  status: 'pending' | 'accepted' | 'revoked';
+  createdAt: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  actionUrl?: string;
+  actionPayload?: any;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   handle: string;
   platform: Platform;
-  role?: 'creator' | 'admin' | 'owner';
+  role?: 'creator' | 'admin' | 'owner' | 'manager';
   avatar_url?: string;
   bio?: string;
   phone?: string;
@@ -44,13 +76,17 @@ export interface SocialAccount {
 
 export interface TeamMember {
   id: string;
+  user_id?: string;
   name: string;
   email: string;
   role: string;
-  status: 'Active' | 'Invited';
-  can_view_finances: boolean;
-  can_edit_deals: boolean;
+  status?: 'Active' | 'Invited';
+  can_view_financials?: boolean;
+  can_view_finances?: boolean;
+  can_edit_deals?: boolean;
+  assigned_accounts?: string[];
   allowed_account_ids?: string[];
+  joined_at?: string;
 }
 
 export type DeliverableFormat =
@@ -152,6 +188,7 @@ export interface Collab {
   notes?: string;
   account_id?: string;
   account_label?: string;
+  is_financial_masked?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -201,7 +238,6 @@ export interface StatsSummary {
     hybrid: number;
   };
 }
-
 
 export interface AnonymizedCreatorCohort {
   cohort_id: string;
@@ -256,7 +292,6 @@ export interface AdminTelemetryMetrics {
   cohorts: AnonymizedCreatorCohort[];
 }
 
-
 export interface AdminUserRecord {
   id: string;
   name: string;
@@ -286,7 +321,7 @@ export interface CommunicationLog {
   user_id?: string;
   recipient: string;
   channel: 'sms' | 'email';
-  purpose: 'phone_verification' | 'email_verification' | 'password_reset';
+  purpose: 'phone_verification' | 'email_verification' | 'password_reset' | 'team_invite';
   status: 'delivered' | 'sent' | 'failed' | 'simulated';
   provider: 'twilio' | 'fast2sms' | 'resend' | 'smtp' | 'console';
   details?: string;

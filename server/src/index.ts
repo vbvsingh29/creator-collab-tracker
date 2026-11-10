@@ -8,6 +8,9 @@ import { brandsRouter } from './routes/brands';
 import { statsRouter } from './routes/stats';
 import { integrationsRouter } from './routes/integrations';
 import { adminRouter } from './routes/admin';
+import { accountsRouter } from './routes/accounts';
+import { teamRouter } from './routes/team';
+import { notificationsRouter } from './routes/notifications';
 
 dotenv.config();
 
@@ -69,16 +72,19 @@ app.use('/api/brands', brandsRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/accounts', accountsRouter);
+app.use('/api/team', teamRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Health check with live build & database telemetry
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     app: 'Collabio API',
-    deployed_commit: '50a0a0c',
+    deployed_commit: 'luxury-teams-v1',
     database_engine: process.env.TURSO_DATABASE_URL ? 'turso_cloud' : 'unconfigured_local_decommissioned',
     local_sqlite: 'completely_eliminated',
-    version: '1.2.0',
+    version: '1.3.0',
     auth_enabled: true,
     security: 'scrypt-hmac-sha256',
     timestamp: new Date().toISOString()
@@ -108,4 +114,3 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`🚀 CollabFlow Server running on http://localhost:${PORT}`);
   });
 }
-

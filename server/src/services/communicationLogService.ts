@@ -5,7 +5,7 @@ export interface CommunicationLogEntry {
   userId?: string;
   recipient: string;
   channel: 'sms' | 'email';
-  purpose: 'phone_verification' | 'email_verification' | 'password_reset';
+  purpose: 'phone_verification' | 'email_verification' | 'password_reset' | 'team_invite';
   status: 'delivered' | 'sent' | 'failed' | 'simulated';
   provider: 'twilio' | 'fast2sms' | 'resend' | 'smtp' | 'console';
   details?: string;
@@ -38,7 +38,6 @@ export function logCommunication(entry: CommunicationLogEntry): void {
       console.warn('⚠️ [CommLog] Unable to persist communication event:', err.message);
     });
   } catch (err: any) {
-    // Fail silently in telemetry without interrupting primary user auth flows
-    console.warn('⚠️ [CommLog] Unable to persist communication event:', err.message);
+    console.warn('⚠️ [CommLog] Communication logging failed:', err.message);
   }
 }

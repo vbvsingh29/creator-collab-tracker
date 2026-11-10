@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from './context/AuthContext';
+import { useAccounts } from './context/AccountContext';
 import { 
   fetchCollabs, 
   fetchBrands, 
@@ -40,6 +41,7 @@ import { PitchGeneratorModal } from './components/PitchGeneratorModal';
 import { ProPricingModal } from './components/ProPricingModal';
 import { MediaKitModal } from './components/MediaKitModal';
 import { AdminPortalModal } from './components/AdminPortalModal';
+import { TeamManagementModal } from './components/TeamManagementModal';
 import { exportCollabsToCSV } from './utils/csvExport';
 import { useTheme } from './context/ThemeContext';
 
@@ -56,6 +58,7 @@ const STAGES: PipelineStage[] = [
 
 export function App() {
   const { user, token, loading: authLoading, logout, demoLogin, setSession } = useAuth() as any;
+  const { selectedAccountId } = useAccounts();
 
   const [collabs, setCollabs] = useState<Collab[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -119,6 +122,7 @@ export function App() {
   const [isPricingOpen, setIsPricingOpen] = useState<boolean>(false);
   const [isMediaKitOpen, setIsMediaKitOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isTeamOpen, setIsTeamOpen] = useState<boolean>(false);
   const { setTheme, resolvedTheme } = useTheme();
 
   const handleOpenPitch = (collab?: Collab | null) => {
@@ -178,6 +182,9 @@ export function App() {
 
   // Filtered collaborations
   const filteredCollabs = collabs.filter((c) => {
+    if (selectedAccountId !== 'all' && c.account_id && c.account_id !== selectedAccountId) {
+      return false;
+    }
     if (selectedPlatform !== 'all' && c.platform !== selectedPlatform && c.platform !== 'both') {
       return false;
     }
@@ -591,6 +598,7 @@ export function App() {
         onOpenPitch={() => handleOpenPitch(filteredCollabs[0] || collabs[0])}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenLandingPreview={() => setShowLandingPreview(true)}
+        onOpenTeam={() => setIsTeamOpen(true)}
 
       />
 
@@ -930,6 +938,12 @@ export function App() {
       <AdminPortalModal
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+      />
+
+      {/* Team & Manager Access Control Modal */}
+      <TeamManagementModal
+        isOpen={isTeamOpen}
+        onClose={() => setIsTeamOpen(false)}
       />
 
       {/* Biometric & 4-Digit Security PIN App Lock */}

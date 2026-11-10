@@ -3,6 +3,7 @@ import { X, Plus, Instagram, Youtube, Layers, Zap, ShieldAlert, Check, Calendar,
 import { Collab, Platform, DeliverableFormat, CommercialType, Currency, PaymentTerms } from '../types';
 import { previewMediaUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useAccounts } from '../context/AccountContext';
 
 interface NewCollabModalProps {
   currency: Currency;
@@ -63,7 +64,8 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
   const [likesCount, setLikesCount] = useState<number>(0);
   const [tdsPercentage, setTdsPercentage] = useState<number>(initialData?.tds_percentage ?? user?.tds_percentage ?? 0);
   const [agencyCutPercentage, setAgencyCutPercentage] = useState<number>(initialData?.agency_cut_percentage ?? user?.agency_cut_percentage ?? 0);
-  const socialAccounts = user?.social_accounts || [];
+  const { accounts } = useAccounts();
+  const availableAccounts = accounts.length > 0 ? accounts : (user?.social_accounts || []);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
 
   // Quick Auto-Fill URL state
@@ -196,7 +198,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
       { id: '3', task: 'Add promo code & trackable link in description / link in bio', completed: false },
     ];
 
-    const selectedAccount = socialAccounts.find(a => a.id === selectedAccountId);
+    const selectedAccount = availableAccounts.find(a => a.id === selectedAccountId);
 
     onCreateCollab({
       title: title.trim(),
@@ -390,7 +392,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
           </div>
 
           {/* Target Connected Channel / Page Selector */}
-          {socialAccounts.length > 0 && (
+          {availableAccounts.length > 0 && (
             <div>
               <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
                 Assign to Channel or Page
@@ -399,7 +401,7 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                 value={selectedAccountId}
                 onChange={(e) => {
                   setSelectedAccountId(e.target.value);
-                  const acc = socialAccounts.find(a => a.id === e.target.value);
+                  const acc = availableAccounts.find(a => a.id === e.target.value);
                   if (acc) {
                     if (acc.platform === 'youtube') setPlatform('youtube');
                     else if (acc.platform === 'instagram') setPlatform('instagram');
@@ -408,9 +410,9 @@ export const NewCollabModal: React.FC<NewCollabModalProps> = ({
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:border-indigo-500 text-xs"
               >
                 <option value="">General / Primary Workspace</option>
-                {socialAccounts.map((acc) => (
+                {availableAccounts.map((acc: any) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.handle}) — {acc.platform.toUpperCase()}
+                    {acc.name ? `${acc.name} (${acc.handle})` : acc.handle} — {acc.platform.toUpperCase()}
                   </option>
                 ))}
               </select>

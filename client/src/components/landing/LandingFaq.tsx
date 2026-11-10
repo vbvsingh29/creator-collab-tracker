@@ -6,12 +6,12 @@ export const LandingFaq: React.FC = () => {
 
   const faqs = [
     {
-      q: 'Can I test the full app without creating an account or entering a card?',
-      a: 'Yes. Clicking "Try 1-Click Demo" instantly opens a pre-loaded creator workspace with real sample deals, rates, and invoices. No email, password, or credit card required.'
+      q: 'How does Multi-Account management work for creators?',
+      a: 'If you run multiple YouTube channels or Instagram accounts (e.g., Tech and Lifestyle), CollabFlow lets you connect them all under one workspace. You can switch accounts with 1 click or view your combined sponsorship pipeline.'
     },
     {
-      q: 'Are my brand rates and earnings private?',
-      a: 'Yes, 100%. Your financial numbers are isolated to your account. Deal values and wire amounts are never shared with anyone.'
+      q: 'Can my managers have access without seeing my financial rates?',
+      a: 'Yes. When inviting a manager, you can toggle "Financial Privacy". Managers can manage deliverables, scripts, and schedules, but all deal rates, earnings, and invoices remain completely hidden and encrypted.'
     },
     {
       q: 'How does the Exclusivity Scanner work?',
@@ -24,38 +24,38 @@ export const LandingFaq: React.FC = () => {
   ];
 
   return (
-    <section id="faq" className="py-16 sm:py-20 border-b border-slate-200/80 dark:border-zinc-850 bg-slate-50/50 dark:bg-zinc-950/70 transition-colors duration-200">
+    <section id="faq" className="py-20 sm:py-24 border-b border-charcoal-800/80 bg-charcoal-950/60 transition-colors duration-200">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-xl mx-auto mb-10">
-          <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+        <div className="text-center max-w-xl mx-auto mb-12">
+          <span className="text-xs font-semibold text-sand-400 uppercase tracking-widest font-mono">
             FAQ
           </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2 tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-bold text-sand-50 mt-3 tracking-tight">
             Frequently Asked Questions
           </h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {faqs.map((faq, idx) => {
             const isOpen = openIndex === idx;
             return (
               <div
                 key={idx}
-                className="rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 overflow-hidden transition-colors shadow-xs"
+                className="rounded-2xl border border-charcoal-800 bg-charcoal-900/80 backdrop-blur-xl overflow-hidden transition-all shadow-md hover:border-sand-400/20"
               >
                 <button
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
-                  className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-900 dark:text-white hover:text-slate-700 dark:hover:text-zinc-200 transition-colors"
+                  className="w-full px-6 py-4.5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-sand-100 hover:text-sand-200 transition-colors"
                 >
                   <span>{faq.q}</span>
                   <ChevronDown
                     size={16}
-                    className={`text-slate-400 dark:text-zinc-500 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-slate-900 dark:text-white' : ''}`}
+                    className={`text-sand-400/60 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-sand-300' : ''}`}
                   />
                 </button>
                 {isOpen && (
-                  <div className="px-5 pb-4 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed border-t border-slate-100 dark:border-zinc-800 pt-3">
+                  <div className="px-6 pb-5 text-xs sm:text-sm text-sand-300/70 leading-relaxed border-t border-charcoal-800 pt-3.5">
                     {faq.a}
                   </div>
                 )}

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 
 interface InteractiveRateCalculatorProps {
@@ -63,30 +64,30 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
   }, [avgViews, niche, format, hasWhitelisting, hasExclusivity, hasRush]);
 
   return (
-    <section id="calculator" className="py-16 sm:py-20 border-b border-slate-200/80 dark:border-zinc-850 bg-white dark:bg-zinc-950 transition-colors duration-200">
+    <section id="calculator" className="py-20 sm:py-24 border-b border-charcoal-800/80 bg-charcoal-950/60 transition-colors duration-200">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-xl mx-auto mb-10">
-          <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+        <div className="text-center max-w-xl mx-auto mb-12">
+          <span className="text-xs font-semibold text-sand-400 uppercase tracking-widest font-mono">
             Commercial Benchmark
           </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2 tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-bold text-sand-50 mt-3 tracking-tight">
             Sponsorship Rate Estimator
           </h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">
-            Estimate market rates based on your verified audience views, rights usage, and exclusivity.
+          <p className="mt-3 text-sm sm:text-base text-sand-300/70">
+            Estimate market rates based on your verified audience views, usage rights, and category exclusivity.
           </p>
         </div>
 
-        {/* Calculator Card */}
-        <div className="p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 shadow-xs transition-colors">
+        {/* Luxury Calculator Card */}
+        <div className="p-6 sm:p-9 rounded-2xl border border-charcoal-800 bg-charcoal-900/90 backdrop-blur-xl shadow-2xl transition-colors">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             {/* Controls */}
-            <div className="space-y-5">
+            <div className="space-y-6">
               {/* Average Views Slider */}
               <div>
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-sand-200 mb-2.5">
                   <span>Average Views per Video</span>
-                  <span className="font-mono text-sm text-slate-900 dark:text-white">{avgViews.toLocaleString()} views</span>
+                  <span className="font-mono text-sm text-sand-300 font-bold">{avgViews.toLocaleString()} views</span>
                 </div>
                 <input
                   type="range"
@@ -95,23 +96,23 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
                   step={5000}
                   value={avgViews}
                   onChange={(e) => setAvgViews(Number(e.target.value))}
-                  className="w-full accent-slate-900 dark:accent-white h-2 bg-slate-200 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                  className="w-full accent-sand-300 h-2 bg-charcoal-800 rounded-lg cursor-pointer"
                 />
               </div>
 
               {/* Niche Selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-2">Channel Niche</label>
+                <label className="block text-xs font-semibold text-sand-300 mb-2.5">Channel Niche</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                   {(Object.keys(CPM_RATES) as Niche[]).map((n) => (
                     <button
                       key={n}
                       type="button"
                       onClick={() => setNiche(n)}
-                      className={`py-1.5 px-2 rounded-lg border text-left transition-colors font-medium ${
+                      className={`py-2 px-2.5 rounded-xl border text-left transition-all font-medium ${
                         niche === n
-                          ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-950 border-slate-900 dark:border-white shadow-xs'
-                          : 'bg-white dark:bg-zinc-850 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-750 hover:border-slate-300 dark:hover:border-zinc-650'
+                          ? 'bg-sand-200 text-charcoal-950 border-sand-200 shadow-md font-semibold'
+                          : 'bg-charcoal-850 text-sand-300 border-charcoal-800 hover:border-sand-400/30'
                       }`}
                     >
                       {CPM_RATES[n].label}
@@ -122,15 +123,15 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
 
               {/* Format */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-2">Deliverable Format</label>
+                <label className="block text-xs font-semibold text-sand-300 mb-2.5">Deliverable Format</label>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <button
                     type="button"
                     onClick={() => setFormat('integration')}
-                    className={`py-1.5 px-2 rounded-lg border text-center transition-colors font-medium ${
+                    className={`py-2 px-2 rounded-xl border text-center transition-all font-medium ${
                       format === 'integration'
-                        ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-950 border-slate-900 dark:border-white shadow-xs'
-                        : 'bg-white dark:bg-zinc-850 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-750 hover:border-slate-300 dark:hover:border-zinc-650'
+                        ? 'bg-sand-200 text-charcoal-950 border-sand-200 shadow-md font-semibold'
+                        : 'bg-charcoal-850 text-sand-300 border-charcoal-800 hover:border-sand-400/30'
                     }`}
                   >
                     60s Integration
@@ -138,10 +139,10 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
                   <button
                     type="button"
                     onClick={() => setFormat('dedicated')}
-                    className={`py-1.5 px-2 rounded-lg border text-center transition-colors font-medium ${
+                    className={`py-2 px-2 rounded-xl border text-center transition-all font-medium ${
                       format === 'dedicated'
-                        ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-950 border-slate-900 dark:border-white shadow-xs'
-                        : 'bg-white dark:bg-zinc-850 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-750 hover:border-slate-300 dark:hover:border-zinc-650'
+                        ? 'bg-sand-200 text-charcoal-950 border-sand-200 shadow-md font-semibold'
+                        : 'bg-charcoal-850 text-sand-300 border-charcoal-800 hover:border-sand-400/30'
                     }`}
                   >
                     Dedicated Video
@@ -149,10 +150,10 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
                   <button
                     type="button"
                     onClick={() => setFormat('reel')}
-                    className={`py-1.5 px-2 rounded-lg border text-center transition-colors font-medium ${
+                    className={`py-2 px-2 rounded-xl border text-center transition-all font-medium ${
                       format === 'reel'
-                        ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-950 border-slate-900 dark:border-white shadow-xs'
-                        : 'bg-white dark:bg-zinc-850 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-750 hover:border-slate-300 dark:hover:border-zinc-650'
+                        ? 'bg-sand-200 text-charcoal-950 border-sand-200 shadow-md font-semibold'
+                        : 'bg-charcoal-850 text-sand-300 border-charcoal-800 hover:border-sand-400/30'
                     }`}
                   >
                     Instagram Reel
@@ -162,56 +163,57 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
 
               {/* Add-ons */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-2">Contract Riders</label>
-                <div className="space-y-2 text-xs">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <label className="block text-xs font-semibold text-sand-300 mb-2.5">Contract Riders</label>
+                <div className="space-y-2.5 text-xs">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={hasWhitelisting}
                       onChange={(e) => setHasWhitelisting(e.target.checked)}
-                      className="rounded accent-slate-900 dark:accent-white"
+                      className="rounded accent-sand-300"
                     />
-                    <span className="text-slate-700 dark:text-zinc-300 font-medium">Paid Ad Rights / Whitelisting (+40%)</span>
+                    <span className="text-sand-200 font-medium">Paid Ad Rights / Whitelisting (+40%)</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={hasExclusivity}
                       onChange={(e) => setHasExclusivity(e.target.checked)}
-                      className="rounded accent-slate-900 dark:accent-white"
+                      className="rounded accent-sand-300"
                     />
-                    <span className="text-slate-700 dark:text-zinc-300 font-medium">30-Day Category Exclusivity (+30%)</span>
+                    <span className="text-sand-200 font-medium">30-Day Category Exclusivity (+30%)</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            {/* Calculated Quote Output */}
-            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 p-6 shadow-xs flex flex-col justify-between h-full transition-colors">
+            {/* Calculated Quote Output (Sand Rim) */}
+            <div className="bg-charcoal-950/90 rounded-2xl border border-charcoal-800 p-6 sm:p-7 shadow-xl flex flex-col justify-between h-full transition-colors relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-sand-400/5 rounded-full blur-2xl pointer-events-none" />
               <div>
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+                <span className="text-[11px] font-semibold text-sand-400 uppercase tracking-widest block mb-1 font-mono">
                   Estimated Rate Card Quote
                 </span>
-                <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
+                <div className="text-3xl sm:text-5xl font-bold text-sand-50 tracking-tight">
                   ${calculation.total.toLocaleString()}
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1">
+                <p className="text-[11px] text-sand-300/60 mt-1">
                   Suggested contract quote based on {CPM_RATES[niche].label} benchmark.
                 </p>
 
-                <div className="mt-5 space-y-2 text-xs border-t border-slate-100 dark:border-zinc-800 pt-4 text-slate-600 dark:text-zinc-400">
+                <div className="mt-6 space-y-2.5 text-xs border-t border-charcoal-800 pt-5 text-sand-300/80">
                   <div className="flex justify-between">
                     <span>Base Deliverable:</span>
-                    <span className="font-mono font-medium text-slate-900 dark:text-zinc-200">${calculation.baseRate.toLocaleString()}</span>
+                    <span className="font-mono font-medium text-sand-100">${calculation.baseRate.toLocaleString()}</span>
                   </div>
                   {hasWhitelisting && (
-                    <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                    <div className="flex justify-between text-sand-300">
                       <span>Ad Whitelisting Rider:</span>
                       <span className="font-mono font-medium">+${calculation.whitelistingFee.toLocaleString()}</span>
                     </div>
                   )}
                   {hasExclusivity && (
-                    <div className="flex justify-between text-amber-700 dark:text-amber-400">
+                    <div className="flex justify-between text-sand-400">
                       <span>Exclusivity Lock Rider:</span>
                       <span className="font-mono font-medium">+${calculation.exclusivityFee.toLocaleString()}</span>
                     </div>
@@ -221,10 +223,10 @@ export const InteractiveRateCalculator: React.FC<InteractiveRateCalculatorProps>
 
               <button
                 onClick={() => (onOpenAuth ? onOpenAuth() : onDemoLogin?.('aarav@tech.com'))}
-                className="mt-6 w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-zinc-950 font-semibold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5"
+                className="mt-8 w-full py-3 rounded-xl bg-sand-200 hover:bg-sand-100 text-charcoal-950 font-semibold text-xs shadow-md transition-all flex items-center justify-center gap-2 hover:shadow-[0_4px_16px_rgba(217,199,178,0.2)] active:scale-95"
               >
                 <span>Save Rate Card in Workspace</span>
-                <ArrowRight size={13} />
+                <ArrowRight size={14} />
               </button>
             </div>
           </div>

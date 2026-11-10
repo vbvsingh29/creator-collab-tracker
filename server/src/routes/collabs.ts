@@ -9,35 +9,95 @@ export const collabsRouter = Router();
 // Protect all collab routes with authentication
 collabsRouter.use(requireAuth);
 
-// Helper to deserialize database row into clean Collab object
-function mapCollabRow(row: any): Collab {
+interface WorkspaceContext {
+  ownerId: string;
+  isManager: boolean;
+  canViewFinancials: boolean;
+  allowedAccountIds: string[] | 'all';
+}
+
+async function getWorkspaceContext(userId: string): Promise<WorkspaceContext> {
+  const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as any;
+  let managedWorkspaces: any[] = [];
+  try {
+    managedWorkspaces = JSON.parse(user?.managed_workspaces_json || '[]');
+  } catch {
+    managedWorkspaces = [];
+  }
+
+  if (managedWorkspaces.length > 0 && user?.role === 'manager') {
+    const ws = managedWorkspaces[0];
+    return {
+      ownerId: ws.workspace_id,
+      isManager: true,
+      canViewFinancials: Boolean(ws.can_view_financials),
+      allowedAccountIds: ws.assigned_accounts || 'all'
+    };
+  }
+
   return {
+    ownerId: userId,
+    isManager: false,
+    canViewFinancials: true,
+    allowedAccountIds: 'all'
+  };
+}
+
+// Helper to deserialize database row into clean Collab object (with financial masking if restricted)
+function mapCollabRow(row: any, canViewFinancials: boolean = true): Collab {
+  const mapped: any = {
     ...row,
     has_ads_whitelisting: Boolean(row.has_ads_whitelisting),
     has_category_exclusivity: Boolean(row.has_category_exclusivity),
     deliverables_checklist: row.deliverables_checklist ? JSON.parse(row.deliverables_checklist) : [],
     agency_cut_percentage: row.agency_cut_percentage !== undefined ? Number(row.agency_cut_percentage) : 0,
-    tds_percentage: row.tds_percentage !== undefined ? Number(row.tds_percentage) : 0
+    tds_percentage: row.tds_percentage !== undefined ? Number(row.tds_percentage) : 0,
+    is_financial_masked: !canViewFinancials
   };
+
+  if (!canViewFinancials) {
+    mapped.deal_amount = 0;
+    mapped.amount_paid = 0;
+    mapped.barter_estimated_value = 0;
+    mapped.agency_cut_percentage = 0;
+    mapped.tds_percentage = 0;
+  }
+
+  return mapped;
 }
 
 // GET /api/collabs with user tenant isolation & filters
 collabsRouter.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.userId;
+    const userId = req.userId!;
+    const ctx = await getWorkspaceContext(userId);
+
     const {
       platform,
       commercial_type,
       payment_status,
       pipeline_stage,
       deliverable_format,
+      account_id,
       search,
       sort_by = 'updated_at',
       sort_order = 'DESC'
     } = req.query;
 
     let query = 'SELECT * FROM collabs WHERE user_id = ?';
-    const params: any[] = [userId];
+    const params: any[] = [ctx.ownerId];
+
+    // Filter by specific account if requested
+    if (account_id && account_id !== 'all') {
+      query += ' AND account_id = ?';
+      params.push(account_id);
+    } else if (ctx.allowedAccountIds !== 'all' && Array.isArray(ctx.allowedAccountIds)) {
+      if (ctx.allowedAccountIds.length === 0) {
+        return res.json({ success: true, count: 0, data: [] });
+      }
+      query += ` AND (account_id IN (${ctx.allowedAccountIds.map(() => '?').join(',')}) OR account_id = '' OR account_id IS NULL)`;
+      params.push(...ctx.allowedAccountIds);
+    }
 
     if (platform && platform !== 'all') {
       query += ' AND (platform = ? OR platform = "both")';
@@ -77,7 +137,7 @@ collabsRouter.get('/', async (req: AuthRequest, res: Response) => {
     query += ` ORDER BY ${safeSortBy} ${safeSortOrder}`;
 
     const rows = await db.prepare(query).all(...params);
-    const collabs = rows.map(mapCollabRow);
+    const collabs = rows.map(r => mapCollabRow(r, ctx.canViewFinancials));
 
     res.json({ success: true, count: collabs.length, data: collabs });
   } catch (error: any) {
@@ -88,22 +148,26 @@ collabsRouter.get('/', async (req: AuthRequest, res: Response) => {
 // GET /api/collabs/:id (Tenant isolated)
 collabsRouter.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const row = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+    const userId = req.userId!;
+    const ctx = await getWorkspaceContext(userId);
+
+    const row = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(req.params.id, ctx.ownerId);
     if (!row) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
-    res.json({ success: true, data: mapCollabRow(row) });
+    res.json({ success: true, data: mapCollabRow(row, ctx.canViewFinancials) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// POST /api/collabs (Always associates created record with req.userId)
+// POST /api/collabs (Associates record with workspace owner)
 collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const body = req.body;
     const id = uuidv4();
-    const userId = req.userId;
+    const userId = req.userId!;
+    const ctx = await getWorkspaceContext(userId);
     const now = new Date().toISOString();
 
     const insertStmt = db.prepare(`
@@ -128,9 +192,16 @@ collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
       )
     `);
 
+    // Mask financial input if manager lacks financial view permission
+    const safeDealAmount = ctx.canViewFinancials ? (body.deal_amount || 0) : 0;
+    const safeBarterValue = ctx.canViewFinancials ? (body.barter_estimated_value || 0) : 0;
+    const safeAmountPaid = ctx.canViewFinancials ? (body.amount_paid || 0) : 0;
+    const safeAgencyCut = ctx.canViewFinancials ? (body.agency_cut_percentage || 0) : 0;
+    const safeTds = ctx.canViewFinancials ? (body.tds_percentage || 0) : 0;
+
     await insertStmt.run(
       id,
-      userId,
+      ctx.ownerId,
       body.title || 'Untitled Collaboration',
       body.brand_id || null,
       body.brand_name || 'Brand Partner',
@@ -142,11 +213,11 @@ collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
       body.format_label || '',
       body.commercial_type || 'paid',
       body.currency || 'INR',
-      body.deal_amount || 0,
-      body.barter_estimated_value || 0,
+      safeDealAmount,
+      safeBarterValue,
       body.payment_terms || 'net_30',
       body.payment_status || (body.commercial_type === 'barter' ? 'barter_delivered' : 'unbilled'),
-      body.amount_paid || 0,
+      safeAmountPaid,
       body.invoice_number || '',
       body.invoice_date || null,
       body.payment_due_date || null,
@@ -168,14 +239,14 @@ collabsRouter.post('/', async (req: AuthRequest, res: Response) => {
       body.notes || '',
       body.account_id || '',
       body.account_label || '',
-      body.agency_cut_percentage || 0,
-      body.tds_percentage || 0,
+      safeAgencyCut,
+      safeTds,
       now,
       now
     );
 
-    const created = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
-    res.status(201).json({ success: true, data: mapCollabRow(created) });
+    const created = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, ctx.ownerId);
+    res.status(201).json({ success: true, data: mapCollabRow(created, ctx.canViewFinancials) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -186,10 +257,11 @@ const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const body = req.body;
-    const userId = req.userId;
+    const userId = req.userId!;
+    const ctx = await getWorkspaceContext(userId);
     const now = new Date().toISOString();
 
-    const existing = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId) as any;
+    const existing = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, ctx.ownerId) as any;
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }
@@ -206,130 +278,65 @@ const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
       format_label: body.format_label !== undefined ? body.format_label : existing.format_label,
       commercial_type: body.commercial_type !== undefined ? body.commercial_type : existing.commercial_type,
       currency: body.currency !== undefined ? body.currency : existing.currency,
-      deal_amount: body.deal_amount !== undefined ? Number(body.deal_amount) : existing.deal_amount,
-      barter_estimated_value: body.barter_estimated_value !== undefined ? Number(body.barter_estimated_value) : existing.barter_estimated_value,
+      deal_amount: ctx.canViewFinancials && body.deal_amount !== undefined ? body.deal_amount : existing.deal_amount,
+      barter_estimated_value: ctx.canViewFinancials && body.barter_estimated_value !== undefined ? body.barter_estimated_value : existing.barter_estimated_value,
       payment_terms: body.payment_terms !== undefined ? body.payment_terms : existing.payment_terms,
       payment_status: body.payment_status !== undefined ? body.payment_status : existing.payment_status,
-      amount_paid: body.amount_paid !== undefined ? Number(body.amount_paid) : existing.amount_paid,
+      amount_paid: ctx.canViewFinancials && body.amount_paid !== undefined ? body.amount_paid : existing.amount_paid,
       invoice_number: body.invoice_number !== undefined ? body.invoice_number : existing.invoice_number,
       invoice_date: body.invoice_date !== undefined ? body.invoice_date : existing.invoice_date,
       payment_due_date: body.payment_due_date !== undefined ? body.payment_due_date : existing.payment_due_date,
       payment_received_date: body.payment_received_date !== undefined ? body.payment_received_date : existing.payment_received_date,
       has_ads_whitelisting: body.has_ads_whitelisting !== undefined ? (body.has_ads_whitelisting ? 1 : 0) : existing.has_ads_whitelisting,
-      whitelisting_duration_days: body.whitelisting_duration_days !== undefined ? Number(body.whitelisting_duration_days) : existing.whitelisting_duration_days,
+      whitelisting_duration_days: body.whitelisting_duration_days !== undefined ? body.whitelisting_duration_days : existing.whitelisting_duration_days,
       whitelisting_expiry_date: body.whitelisting_expiry_date !== undefined ? body.whitelisting_expiry_date : existing.whitelisting_expiry_date,
       has_category_exclusivity: body.has_category_exclusivity !== undefined ? (body.has_category_exclusivity ? 1 : 0) : existing.has_category_exclusivity,
-      exclusivity_days: body.exclusivity_days !== undefined ? Number(body.exclusivity_days) : existing.exclusivity_days,
+      exclusivity_days: body.exclusivity_days !== undefined ? body.exclusivity_days : existing.exclusivity_days,
       promo_code: body.promo_code !== undefined ? body.promo_code : existing.promo_code,
       tracking_link: body.tracking_link !== undefined ? body.tracking_link : existing.tracking_link,
       pipeline_stage: body.pipeline_stage !== undefined ? body.pipeline_stage : existing.pipeline_stage,
       scheduled_post_date: body.scheduled_post_date !== undefined ? body.scheduled_post_date : existing.scheduled_post_date,
       actual_posted_date: body.actual_posted_date !== undefined ? body.actual_posted_date : existing.actual_posted_date,
       live_post_url: body.live_post_url !== undefined ? body.live_post_url : existing.live_post_url,
-      views_count: body.views_count !== undefined ? Number(body.views_count) : existing.views_count,
-      likes_count: body.likes_count !== undefined ? Number(body.likes_count) : existing.likes_count,
-      deliverables_checklist: body.deliverables_checklist !== undefined 
-        ? (typeof body.deliverables_checklist === 'string' ? body.deliverables_checklist : JSON.stringify(body.deliverables_checklist))
-        : existing.deliverables_checklist,
+      views_count: body.views_count !== undefined ? body.views_count : existing.views_count,
+      likes_count: body.likes_count !== undefined ? body.likes_count : existing.likes_count,
+      deliverables_checklist: body.deliverables_checklist !== undefined ? JSON.stringify(body.deliverables_checklist) : existing.deliverables_checklist,
       notes: body.notes !== undefined ? body.notes : existing.notes,
-      account_id: body.account_id !== undefined ? body.account_id : (existing.account_id || ''),
-      account_label: body.account_label !== undefined ? body.account_label : (existing.account_label || ''),
-      agency_cut_percentage: body.agency_cut_percentage !== undefined ? Number(body.agency_cut_percentage) : (existing.agency_cut_percentage || 0),
-      tds_percentage: body.tds_percentage !== undefined ? Number(body.tds_percentage) : (existing.tds_percentage || 0),
+      account_id: body.account_id !== undefined ? body.account_id : existing.account_id,
+      account_label: body.account_label !== undefined ? body.account_label : existing.account_label,
+      agency_cut_percentage: ctx.canViewFinancials && body.agency_cut_percentage !== undefined ? body.agency_cut_percentage : existing.agency_cut_percentage,
+      tds_percentage: ctx.canViewFinancials && body.tds_percentage !== undefined ? body.tds_percentage : existing.tds_percentage
     };
 
     const updateStmt = db.prepare(`
       UPDATE collabs SET
-        title = ?,
-        brand_id = ?,
-        brand_name = ?,
-        brand_category = ?,
-        contact_person = ?,
-        contact_email = ?,
-        platform = ?,
-        deliverable_format = ?,
-        format_label = ?,
-        commercial_type = ?,
-        currency = ?,
-        deal_amount = ?,
-        barter_estimated_value = ?,
-        payment_terms = ?,
-        payment_status = ?,
-        amount_paid = ?,
-        invoice_number = ?,
-        invoice_date = ?,
-        payment_due_date = ?,
-        payment_received_date = ?,
-        has_ads_whitelisting = ?,
-        whitelisting_duration_days = ?,
-        whitelisting_expiry_date = ?,
-        has_category_exclusivity = ?,
-        exclusivity_days = ?,
-        promo_code = ?,
-        tracking_link = ?,
-        pipeline_stage = ?,
-        scheduled_post_date = ?,
-        actual_posted_date = ?,
-        live_post_url = ?,
-        views_count = ?,
-        likes_count = ?,
-        deliverables_checklist = ?,
-        notes = ?,
-        account_id = ?,
-        account_label = ?,
-        agency_cut_percentage = ?,
-        tds_percentage = ?,
-        updated_at = ?
+        title = ?, brand_id = ?, brand_name = ?, brand_category = ?, contact_person = ?, contact_email = ?,
+        platform = ?, deliverable_format = ?, format_label = ?, commercial_type = ?, currency = ?,
+        deal_amount = ?, barter_estimated_value = ?, payment_terms = ?, payment_status = ?, amount_paid = ?,
+        invoice_number = ?, invoice_date = ?, payment_due_date = ?, payment_received_date = ?,
+        has_ads_whitelisting = ?, whitelisting_duration_days = ?, whitelisting_expiry_date = ?,
+        has_category_exclusivity = ?, exclusivity_days = ?, promo_code = ?, tracking_link = ?,
+        pipeline_stage = ?, scheduled_post_date = ?, actual_posted_date = ?, live_post_url = ?,
+        views_count = ?, likes_count = ?, deliverables_checklist = ?, notes = ?, account_id = ?, account_label = ?,
+        agency_cut_percentage = ?, tds_percentage = ?, updated_at = ?
       WHERE id = ? AND user_id = ?
     `);
 
     await updateStmt.run(
-      merged.title,
-      merged.brand_id || null,
-      merged.brand_name,
-      merged.brand_category,
-      merged.contact_person || '',
-      merged.contact_email || '',
-      merged.platform,
-      merged.deliverable_format,
-      merged.format_label || '',
-      merged.commercial_type,
-      merged.currency,
-      merged.deal_amount,
-      merged.barter_estimated_value,
-      merged.payment_terms,
-      merged.payment_status,
-      merged.amount_paid,
-      merged.invoice_number || '',
-      merged.invoice_date || null,
-      merged.payment_due_date || null,
-      merged.payment_received_date || null,
-      merged.has_ads_whitelisting,
-      merged.whitelisting_duration_days,
-      merged.whitelisting_expiry_date || null,
-      merged.has_category_exclusivity,
-      merged.exclusivity_days,
-      merged.promo_code || '',
-      merged.tracking_link || '',
-      merged.pipeline_stage,
-      merged.scheduled_post_date || null,
-      merged.actual_posted_date || null,
-      merged.live_post_url || '',
-      merged.views_count,
-      merged.likes_count,
-      merged.deliverables_checklist,
-      merged.notes || '',
-      merged.account_id || '',
-      merged.account_label || '',
-      merged.agency_cut_percentage,
-      merged.tds_percentage,
-      now,
-      id,
-      userId
+      merged.title, merged.brand_id, merged.brand_name, merged.brand_category, merged.contact_person, merged.contact_email,
+      merged.platform, merged.deliverable_format, merged.format_label, merged.commercial_type, merged.currency,
+      merged.deal_amount, merged.barter_estimated_value, merged.payment_terms, merged.payment_status, merged.amount_paid,
+      merged.invoice_number, merged.invoice_date, merged.payment_due_date, merged.payment_received_date,
+      merged.has_ads_whitelisting, merged.whitelisting_duration_days, merged.whitelisting_expiry_date,
+      merged.has_category_exclusivity, merged.exclusivity_days, merged.promo_code, merged.tracking_link,
+      merged.pipeline_stage, merged.scheduled_post_date, merged.actual_posted_date, merged.live_post_url,
+      merged.views_count, merged.likes_count, merged.deliverables_checklist, merged.notes, merged.account_id, merged.account_label,
+      merged.agency_cut_percentage, merged.tds_percentage, now,
+      id, ctx.ownerId
     );
 
-    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
-    res.json({ success: true, data: mapCollabRow(updated) });
+    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, ctx.ownerId);
+    res.json({ success: true, data: mapCollabRow(updated, ctx.canViewFinancials) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -338,228 +345,13 @@ const handleUpdateCollab = async (req: AuthRequest, res: Response) => {
 collabsRouter.put('/:id', handleUpdateCollab);
 collabsRouter.patch('/:id', handleUpdateCollab);
 
-// PATCH /api/collabs/:id/stage (Strictly tenant isolated)
-collabsRouter.patch('/:id/stage', async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { stage } = req.body;
-    const userId = req.userId;
-    const now = new Date().toISOString();
-
-    const result = await db.prepare('UPDATE collabs SET pipeline_stage = ?, updated_at = ? WHERE id = ? AND user_id = ?').run(stage, now, id, userId);
-    if (result.changes === 0) {
-      return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
-    }
-
-    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
-    res.json({ success: true, data: mapCollabRow(updated) });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// PATCH /api/collabs/:id/payment (Strictly tenant isolated)
-collabsRouter.patch('/:id/payment', async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { payment_status, amount_paid, payment_received_date, invoice_number } = req.body;
-    const userId = req.userId;
-    const now = new Date().toISOString();
-
-    const result = await db.prepare(`
-      UPDATE collabs SET
-        payment_status = COALESCE(?, payment_status),
-        amount_paid = COALESCE(?, amount_paid),
-        payment_received_date = COALESCE(?, payment_received_date),
-        invoice_number = COALESCE(?, invoice_number),
-        updated_at = ?
-      WHERE id = ? AND user_id = ?
-    `).run(payment_status, amount_paid, payment_received_date, invoice_number, now, id, userId);
-
-    if (result.changes === 0) {
-      return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
-    }
-
-    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
-    res.json({ success: true, data: mapCollabRow(updated) });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// PATCH /api/collabs/:id/live (Strictly tenant isolated)
-collabsRouter.patch('/:id/live', async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { live_post_url, actual_posted_date } = req.body;
-    const userId = req.userId;
-    const now = new Date().toISOString();
-    const postDate = actual_posted_date || now.split('T')[0];
-
-    const result = await db.prepare(`
-      UPDATE collabs SET
-        live_post_url = ?,
-        actual_posted_date = ?,
-        pipeline_stage = 'posted_live',
-        updated_at = ?
-      WHERE id = ? AND user_id = ?
-    `).run(live_post_url, postDate, now, id, userId);
-
-    if (result.changes === 0) {
-      return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
-    }
-
-    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
-    res.json({ success: true, data: mapCollabRow(updated) });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// POST /api/collabs/preview-url (Free auto-fetch YouTube or Instagram media details with validation)
-collabsRouter.post('/preview-url', async (req: AuthRequest, res: Response) => {
-  try {
-    const { url } = req.body;
-    if (!url || typeof url !== 'string' || !url.trim()) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Please provide a valid content link.' 
-      });
-    }
-
-    const trimmedUrl = url.trim();
-    const cleanUrl = trimmedUrl.toLowerCase();
-
-    // Validate protocol
-    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      return res.status(400).json({
-        success: false,
-        error: 'URL must begin with https:// or http://'
-      });
-    }
-
-    const { getYouTubeMediaDetails, getInstagramMediaDetails } = require('../services/mediaIntegrations');
-
-    if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
-      try {
-        const details = await getYouTubeMediaDetails(trimmedUrl);
-        return res.json({ 
-          success: true, 
-          data: details,
-          message: `Successfully detected YouTube content: "${details.title}"`
-        });
-      } catch (err: any) {
-        return res.status(400).json({
-          success: false,
-          error: `Could not parse YouTube link. Please make sure the link is in the format https://youtube.com/watch?v=... or https://youtu.be/...`
-        });
-      }
-    } else if (cleanUrl.includes('instagram.com')) {
-      try {
-        const user = req.userId ? await db.prepare('SELECT instagram_access_token, instagram_account_id FROM users WHERE id = ?').get(req.userId) as any : null;
-        const details = await getInstagramMediaDetails(trimmedUrl, user?.instagram_access_token, user?.instagram_account_id);
-        return res.json({ 
-          success: true, 
-          data: details,
-          message: details.metricsSource === 'official_api' 
-            ? `Successfully detected Instagram Reel with real lifetime insights!` 
-            : `Successfully detected Instagram Reel.`
-        });
-      } catch (err: any) {
-        return res.status(400).json({
-          success: false,
-          error: `Could not parse Instagram link. Please make sure the link is an Instagram Reel or post (e.g. https://instagram.com/reel/...)`
-        });
-      }
-    } else {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Unsupported platform link. Collabio currently supports YouTube videos/Shorts and Instagram Reels.' 
-      });
-    }
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// POST /api/collabs/:id/sync-metrics (Fetch live views & likes with detailed status message)
-collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const userId = req.userId;
-
-    const collab = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId) as any;
-    if (!collab) {
-      return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
-    }
-
-    if (!collab.live_post_url || !collab.live_post_url.trim()) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'No live post URL is saved for this collaboration. Please enter a valid URL first.' 
-      });
-    }
-
-    const { getYouTubeMediaDetails, getInstagramMediaDetails } = require('../services/mediaIntegrations');
-    const url = collab.live_post_url.toLowerCase();
-    let details: any = null;
-    let integrationName = '';
-    let modeUsed = '';
-
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      integrationName = 'YouTube';
-      modeUsed = process.env.YOUTUBE_API_KEY ? 'Official YouTube Data API v3' : 'Public Interaction Scraper';
-      details = await getYouTubeMediaDetails(collab.live_post_url);
-    } else if (url.includes('instagram.com')) {
-      integrationName = 'Instagram';
-      const user = req.userId ? await db.prepare('SELECT instagram_access_token, instagram_account_id FROM users WHERE id = ?').get(req.userId) as any : null;
-      details = await getInstagramMediaDetails(collab.live_post_url, user?.instagram_access_token, user?.instagram_account_id);
-      modeUsed = details?.metricsSource === 'official_api' ? 'Meta Graph API (Real Lifetime Insights)' : 'Public Open Graph Inspection';
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: 'The saved link does not match YouTube or Instagram.'
-      });
-    }
-
-    const views = (details && details.viewsCount > 0) ? details.viewsCount : collab.views_count;
-    const likes = (details && details.likesCount > 0) ? details.likesCount : collab.likes_count;
-
-    const now = new Date().toISOString();
-    await db.prepare(`
-      UPDATE collabs SET
-        views_count = ?,
-        likes_count = ?,
-        updated_at = ?
-      WHERE id = ? AND user_id = ?
-    `).run(views, likes, now, id, userId);
-
-    const updated = await db.prepare('SELECT * FROM collabs WHERE id = ? AND user_id = ?').get(id, userId);
-    
-    res.json({ 
-      success: true, 
-      data: mapCollabRow(updated), 
-      mediaDetails: details,
-      integration: {
-        platform: integrationName,
-        mode: modeUsed,
-        viewsSynced: views,
-        likesSynced: likes,
-        hasAdDisclosure: details?.hasAdDisclosure || false,
-        message: `✓ Successfully synced live metrics via ${integrationName} (${modeUsed})! Views: ${views.toLocaleString()}, Likes: ${likes.toLocaleString()}`
-      }
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// DELETE /api/collabs/:id (Strictly tenant isolated)
+// DELETE /api/collabs/:id (Tenant isolated)
 collabsRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const userId = req.userId;
-    const result = await db.prepare('DELETE FROM collabs WHERE id = ? AND user_id = ?').run(id, userId);
+    const userId = req.userId!;
+    const ctx = await getWorkspaceContext(userId);
+
+    const result = await db.prepare('DELETE FROM collabs WHERE id = ? AND user_id = ?').run(req.params.id, ctx.ownerId);
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Collaboration not found or unauthorized' });
     }

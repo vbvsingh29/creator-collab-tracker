@@ -4,12 +4,26 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100 antialiased transition-colors duration-150;
+    @apply bg-charcoal-950 text-sand-100 antialiased transition-colors duration-150;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-/* Custom modern subtle scrollbars */
+/* Tactile Grain Overlay */
+.luxury-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+/* Ambient Sand Glows */
+.sand-glow-hero {
+  background: radial-gradient(circle at 50% 20%, rgba(217, 199, 178, 0.12) 0%, rgba(197, 168, 128, 0.05) 35%, transparent 70%);
+}
+
+.sand-glow-card {
+  background: radial-gradient(circle at 50% 0%, rgba(232, 226, 213, 0.08) 0%, transparent 70%);
+}
+
+/* Custom luxury subtle scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -20,18 +34,18 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
+  background: rgba(217, 199, 178, 0.2);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.7);
+  background: rgba(217, 199, 178, 0.4);
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: #0a0a0c;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #1c1c22;
 }
