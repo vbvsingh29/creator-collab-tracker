@@ -371,16 +371,12 @@ collabsRouter.post('/:id/sync-metrics', async (req: AuthRequest, res: Response) 
 
     if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
       const ytMetrics = await syncYouTubeMetrics(postUrl);
-      if (ytMetrics.views > 0 || ytMetrics.likes > 0) {
-        views = ytMetrics.views;
-        likes = ytMetrics.likes;
-      }
+      if (ytMetrics.views > 0) views = ytMetrics.views;
+      if (ytMetrics.likes > 0) likes = ytMetrics.likes;
     } else if (cleanUrl.includes('instagram.com')) {
       const igMetrics = await syncInstagramMetrics(postUrl, user?.instagram_access_token, user?.instagram_account_id);
-      if (igMetrics.views > 0 || igMetrics.likes > 0) {
-        views = igMetrics.views;
-        likes = igMetrics.likes;
-      }
+      if (igMetrics.views > 0) views = igMetrics.views;
+      if (igMetrics.likes > 0) likes = igMetrics.likes;
     }
 
     const now = new Date().toISOString();
