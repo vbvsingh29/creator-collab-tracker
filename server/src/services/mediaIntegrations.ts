@@ -361,32 +361,6 @@ export async function getInstagramGraphApiDetails(
       };
     }
 
-    // Step 4: If media not in account (e.g. brand link), query Meta's official oembed with token
-    try {
-      const oembedRes = await getHttps(
-        `https://graph.facebook.com/${apiVersion}/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${accessToken}`
-      );
-      const oembedJson = JSON.parse(oembedRes);
-      if (oembedJson.author_name) {
-        return {
-          platform: 'instagram',
-          contentId: shortcode,
-          title: oembedJson.title ? decodeHtmlEntities(oembedJson.title) : 'Instagram Reel',
-          authorName: oembedJson.author_name,
-          thumbnailUrl: oembedJson.thumbnail_url || '',
-          embedUrl: `https://www.instagram.com/reel/${shortcode}/embed`,
-          viewsCount: 0,
-          likesCount: 0,
-          commentsCount: 0,
-          hasAdDisclosure: (oembedJson.title || '').toLowerCase().includes('#ad'),
-          metricsSource: 'official_api',
-          metricsNote: 'Verified via Meta Official oEmbed API. (Lifetime views require media ownership or Meta Graph API insights permission).'
-        };
-      }
-    } catch (err: any) {
-      console.warn('[Meta Graph API] oEmbed endpoint error:', err.message);
-    }
-
     return null;
   } catch (err: any) {
     console.warn('[Meta Graph API] Error:', err.message);
