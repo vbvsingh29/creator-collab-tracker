@@ -11,6 +11,7 @@ import { adminRouter } from './routes/admin';
 import { accountsRouter } from './routes/accounts';
 import { teamRouter } from './routes/team';
 import { notificationsRouter } from './routes/notifications';
+import { cmsRouter } from './routes/cms';
 
 dotenv.config();
 
@@ -75,6 +76,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/accounts', accountsRouter);
 app.use('/api/team', teamRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/cms', cmsRouter);
 
 // Health check with live build & database telemetry
 app.get('/api/health', (_req: Request, res: Response) => {

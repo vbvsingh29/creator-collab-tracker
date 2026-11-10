@@ -64,6 +64,7 @@ interface NavbarProps {
   onOpenPitch?: () => void;
   onOpenAdmin?: () => void;
   onOpenLandingPreview?: () => void;
+  onOpenCms?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -79,6 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPitch,
   onOpenAdmin,
   onOpenLandingPreview,
+  onOpenCms,
   onOpenTeam,
   appMode,
   setAppMode,
@@ -242,6 +244,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
+        {/* ADMIN CMS STUDIO PILL (Only visible for Admin accounts) */}
+        {isAdmin && onOpenCms && (
+          <button
+            onClick={onOpenCms}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sand-400/40 bg-sand-400/10 hover:bg-sand-400/20 text-xs font-bold text-sand-300 dark:text-sand-200 transition-all shadow-xs"
+            title="Open Content Management Studio (Edit Banners, Pricing & Copy)"
+          >
+            <Sparkles size={13} className="text-sand-400" />
+            <span className="hidden sm:inline">CMS Studio</span>
+            <span className="sm:hidden">CMS</span>
+          </button>
+        )}
+
         {/* In-App Notification Center */}
         {user && <NotificationCenter onRefreshData={onOpenTeam} />}
 
@@ -394,6 +409,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                   <span className="text-[10px] font-mono px-1 rounded bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300">
                     GDPR
+                  </span>
+                </button>
+              )}
+
+              {/* Admin CMS Studio */}
+              {onOpenCms && (
+                <button
+                  onClick={() => {
+                    setToolsDropdownOpen(false);
+                    onOpenCms();
+                  }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-sand-400/10 text-sand-300 transition-colors flex items-center justify-between font-medium"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Sparkles size={13} className="text-sand-400" />
+                    <span>Content Studio (CMS)</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-1 rounded bg-sand-400/20 text-sand-200">
+                    LIVE
                   </span>
                 </button>
               )}

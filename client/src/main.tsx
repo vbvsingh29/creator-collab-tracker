@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AccountProvider } from './context/AccountContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AppLockProvider } from './context/AppLockContext';
+import { CmsProvider } from './context/CmsContext';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <AuthProvider>
         <AccountProvider>
           <AppLockProvider>
-            <App />
+            <CmsProvider>
+              <App />
+            </CmsProvider>
           </AppLockProvider>
         </AccountProvider>
       </AuthProvider>

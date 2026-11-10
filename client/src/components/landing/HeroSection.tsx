@@ -8,6 +8,7 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
+import { useCms } from '../../context/CmsContext';
 
 interface HeroSectionProps {
   onOpenAuth: () => void;
@@ -15,6 +16,9 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onDemoLogin }) => {
+  const { content } = useCms();
+  const hero = content.hero;
+
   return (
     <section className="relative overflow-hidden pt-14 pb-20 sm:pt-20 sm:pb-28 border-b border-charcoal-800/80 bg-transparent transition-colors duration-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
@@ -22,22 +26,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onDemoLogi
         {/* Luxury Sand Accent Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-charcoal-900/90 border border-sand-400/20 text-xs font-medium text-sand-200 mb-8 backdrop-blur-md shadow-[0_0_20px_rgba(217,199,178,0.06)] hover:border-sand-400/40 transition-colors">
           <Sparkles size={12} className="text-sand-400 animate-pulse" />
-          <span className="text-sand-200">Sponsorship Operating System</span>
+          <span className="text-sand-200">{hero.badgeText || 'Sponsorship Operating System'}</span>
           <span className="text-charcoal-700">•</span>
           <span className="text-sand-100 font-semibold">YouTube & Instagram</span>
         </div>
 
         {/* Clear, Refined Luxury Headline */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-sand-50 max-w-4xl mx-auto leading-[1.08] font-sans">
-          Track creator deals.<br />
+          {hero.titleHighlight || 'Track creator deals.'}<br />
           <span className="bg-gradient-to-r from-sand-100 via-sand-300 to-sand-400 bg-clip-text text-transparent">
-            Deliver on time. Get paid.
+            {hero.titleMain || 'Deliver on time. Get paid.'}
           </span>
         </h1>
 
         {/* Subtitle */}
         <p className="mt-6 text-base sm:text-lg text-sand-300/80 max-w-2xl mx-auto leading-relaxed font-normal">
-          Collabio is the intelligent sponsorship workspace for YouTube & Instagram creators. Eliminate scattered spreadsheets with automated deliverable tracking, brand exclusivity shields, multi-account management, and 1-click invoicing.
+          {hero.subtitle || 'Collabio is the bespoke operating system for elite YouTube and Instagram creators to track deliverables, automate follow-ups, and get paid faster.'}
         </p>
 
         {/* Action Buttons */}
@@ -46,7 +50,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onDemoLogi
             onClick={onOpenAuth}
             className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-sand-200 hover:bg-sand-100 text-charcoal-950 font-semibold text-sm shadow-[0_4px_20px_rgba(217,199,178,0.2)] flex items-center justify-center gap-2 transition-all active:scale-95 hover:shadow-[0_6px_25px_rgba(217,199,178,0.3)]"
           >
-            <span>Get Started Free</span>
+            <span>{hero.primaryCtaText || 'Get Started Free'}</span>
             <ArrowRight size={15} />
           </button>
 
@@ -54,7 +58,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenAuth, onDemoLogi
             onClick={onOpenAuth}
             className="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-charcoal-800 hover:border-sand-400/40 bg-charcoal-900/90 hover:bg-charcoal-850 text-sand-200 hover:text-sand-100 font-medium text-sm transition-all shadow-md backdrop-blur-md"
           >
-            Sign In to Workspace
+            {hero.secondaryCtaText || 'Sign In to Workspace'}
           </button>
         </div>
 

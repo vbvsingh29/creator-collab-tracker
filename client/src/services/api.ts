@@ -951,3 +951,57 @@ export async function markAllNotificationsRead(): Promise<any> {
     async () => ({ success: true })
   );
 }
+
+// -------------------------------------------------------------
+// CMS / Site Content Studio API
+// -------------------------------------------------------------
+export async function fetchPublicCms(): Promise<{ success: boolean; data: any; publishedAt: string | null }> {
+  return safeJsonRequest(
+    `${API_BASE}/cms/public`,
+    { headers: { 'Content-Type': 'application/json' } },
+    async () => ({ success: true, data: null, publishedAt: null })
+  );
+}
+
+export async function fetchAdminCms(): Promise<{ success: boolean; data: any }> {
+  return safeJsonRequest(
+    `${API_BASE}/cms/admin`,
+    { headers: getHeaders() },
+    async () => { throw new Error('Admin CMS access required'); }
+  );
+}
+
+export async function saveDraftCms(draft: any): Promise<{ success: boolean; message: string; updatedAt: string }> {
+  return safeJsonRequest(
+    `${API_BASE}/cms/draft`,
+    {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ draft })
+    },
+    async () => { throw new Error('Save draft failed'); }
+  );
+}
+
+export async function publishCms(content?: any): Promise<{ success: boolean; message: string; publishedAt: string; data: any }> {
+  return safeJsonRequest(
+    `${API_BASE}/cms/publish`,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ content })
+    },
+    async () => { throw new Error('Publish content failed'); }
+  );
+}
+
+export async function resetDraftCms(): Promise<{ success: boolean; message: string; draft: any }> {
+  return safeJsonRequest(
+    `${API_BASE}/cms/reset-draft`,
+    {
+      method: 'POST',
+      headers: getHeaders()
+    },
+    async () => { throw new Error('Reset draft failed'); }
+  );
+}

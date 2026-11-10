@@ -8,17 +8,21 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useCms } from '../../context/CmsContext';
 
 interface LandingNavbarProps {
   onOpenAuth: () => void;
   onDemoLogin: (email: string) => void;
+  onOpenCms?: () => void;
 }
 
 export const LandingNavbar: React.FC<LandingNavbarProps> = ({
   onOpenAuth,
   onDemoLogin,
+  onOpenCms,
 }) => {
   const { setTheme, resolvedTheme } = useTheme();
+  const { isAdmin } = useCms();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollTo = (id: string) => {
@@ -84,6 +88,18 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
 
         {/* Action Controls & CTAs */}
         <div className="flex items-center gap-3">
+          {/* Admin Studio Button (Only visible for Admins) */}
+          {isAdmin && onOpenCms && (
+            <button
+              onClick={onOpenCms}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-sand-400/40 bg-sand-400/10 hover:bg-sand-400/20 text-sand-200 text-xs font-semibold transition-all shadow-xs"
+              title="Open Content Management Studio"
+            >
+              <Sparkles size={13} className="text-sand-400" />
+              <span>Admin Studio</span>
+            </button>
+          )}
+
           {/* Sign In Button */}
           <button
             onClick={onOpenAuth}

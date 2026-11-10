@@ -42,6 +42,7 @@ import { ProPricingModal } from './components/ProPricingModal';
 import { MediaKitModal } from './components/MediaKitModal';
 import { AdminPortalModal } from './components/AdminPortalModal';
 import { TeamManagementModal } from './components/TeamManagementModal';
+import { AdminCmsModal } from './components/admin/AdminCmsModal';
 import { exportCollabsToCSV } from './utils/csvExport';
 import { useTheme } from './context/ThemeContext';
 
@@ -123,6 +124,7 @@ export function App() {
   const [isMediaKitOpen, setIsMediaKitOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isTeamOpen, setIsTeamOpen] = useState<boolean>(false);
+  const [isCmsOpen, setIsCmsOpen] = useState<boolean>(false);
   const { setTheme, resolvedTheme } = useTheme();
 
   const handleOpenPitch = (collab?: Collab | null) => {
@@ -599,7 +601,7 @@ export function App() {
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenLandingPreview={() => setShowLandingPreview(true)}
         onOpenTeam={() => setIsTeamOpen(true)}
-
+        onOpenCms={() => setIsCmsOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -944,6 +946,12 @@ export function App() {
       <TeamManagementModal
         isOpen={isTeamOpen}
         onClose={() => setIsTeamOpen(false)}
+      />
+
+      {/* Admin Content Studio CMS Modal */}
+      <AdminCmsModal
+        isOpen={isCmsOpen}
+        onClose={() => setIsCmsOpen(false)}
       />
 
       {/* Biometric & 4-Digit Security PIN App Lock */}

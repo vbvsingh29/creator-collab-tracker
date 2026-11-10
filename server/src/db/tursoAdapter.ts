@@ -289,6 +289,14 @@ export async function initializeTursoSchema(adapter: TursoAdapter): Promise<void
       provider TEXT NOT NULL,
       details TEXT DEFAULT '',
       created_at TEXT NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS site_cms (
+      id TEXT PRIMARY KEY,
+      draft_content_json TEXT NOT NULL,
+      published_content_json TEXT NOT NULL,
+      published_at TEXT,
+      updated_at TEXT,
+      updated_by TEXT
     );`
   ];
 
@@ -361,5 +369,12 @@ export async function runTursoMigrations(adapter: TursoAdapter): Promise<void> {
         console.warn(`[Migration info] users.${col.name}: ${err.message}`);
       }
     }
+  }
+
+  // Ensure master owner has admin role
+  try {
+    await adapter.execute(`UPDATE users SET role = 'admin' WHERE LOWER(email) = 'vbvsingh2905@gmail.com'`);
+  } catch (err: any) {
+    console.warn(`[Migration info] Master admin role assign: ${err.message}`);
   }
 }
